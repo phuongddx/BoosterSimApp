@@ -1,0 +1,29 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# CocoaPods (not used, but just in case)
+Pods/
+
+# Fastlane (not used, but just in case)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
