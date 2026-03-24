@@ -15,6 +15,7 @@ struct SideWindowView: View {
 
     // Selected simulator index (for multi-device picker in DeviceHeaderView)
     @State private var selectedSimIndex = 0
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     // MARK: - Computed helpers
 
@@ -58,60 +59,68 @@ struct SideWindowView: View {
     // MARK: - Body
 
     var body: some View {
-        if controller.isCollapsed {
-            CollapsedStripView(onExpand: { controller.toggleCollapsed() })
-        } else {
-            VStack(spacing: 0) {
-                SideWindowTitleBar(onCollapse: { controller.toggleCollapsed() })
+        Group {
+            if controller.isCollapsed {
+                CollapsedStripView(onExpand: { controller.toggleCollapsed() })
+                    .transition(.opacity)
+            } else {
+                VStack(spacing: 0) {
+                    SideWindowTitleBar(onCollapse: { controller.toggleCollapsed() })
 
-                DeviceHeaderView(tracker: tracker, selectedIndex: $selectedSimIndex)
+                    DeviceHeaderView(tracker: tracker, selectedIndex: $selectedSimIndex)
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 0) {
-                        // --- Existing sections ---
-                        FeatureSectionView(title: "Captures",    icon: "camera",  items: captureItems)
-                        FeatureSectionView(title: "App Actions", icon: "bolt",    items: actionItems)
-                        FeatureSectionView(title: "Design Tools",icon: "ruler",   items: designItems)
-                        FeatureSectionView(title: "Network",     icon: "network", items: networkItems)
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            // --- Existing sections ---
+                            FeatureSectionView(title: "Captures",    icon: "camera",  items: captureItems)
+                            FeatureSectionView(title: "App Actions", icon: "bolt",    items: actionItems)
+                            FeatureSectionView(title: "Design Tools",icon: "ruler",   items: designItems)
+                            FeatureSectionView(title: "Network",     icon: "network", items: networkItems)
 
-                        // --- Phase 2: Status Bar ---
-                        collapsibleSection(title: "Status Bar", icon: "clock") {
-                            StatusBarSectionView(udid: activeUDID)
-                                .environmentObject(statusBarService)
-                        }
+                            // --- Phase 2: Status Bar ---
+                            collapsibleSection(title: "Status Bar", icon: "clock") {
+                                StatusBarSectionView(udid: activeUDID)
+                                    .environmentObject(statusBarService)
+                            }
 
-                        // --- Phase 3: Environment Overrides ---
-                        collapsibleSection(title: "Environment", icon: "dial.medium") {
-                            EnvironmentOverridesView(udid: activeUDID)
-                                .environmentObject(envOverrideService)
-                        }
+                            // --- Phase 3: Environment Overrides ---
+                            collapsibleSection(title: "Environment", icon: "dial.medium") {
+                                EnvironmentOverridesView(udid: activeUDID)
+                                    .environmentObject(envOverrideService)
+                            }
 
-                        // --- Phase 5: Build Stats ---
-                        collapsibleSection(title: "Build Stats", icon: "hammer") {
-                            BuildStatsSectionView()
-                                .environmentObject(buildStatsService)
-                        }
+                            // --- Phase 5: Build Stats ---
+                            collapsibleSection(title: "Build Stats", icon: "hammer") {
+                                BuildStatsSectionView()
+                                    .environmentObject(buildStatsService)
+                            }
 
-                        // --- Phase 6: VoiceOver Navigator ---
-                        collapsibleSection(title: "VoiceOver", icon: "accessibility") {
-                            AXTreeView(pid: activePID)
-                                .environmentObject(axInspectorService)
-                        }
+                            // --- Phase 6: VoiceOver Navigator ---
+                            collapsibleSection(title: "VoiceOver", icon: "accessibility") {
+                                AXTreeView(pid: activePID)
+                                    .environmentObject(axInspectorService)
+                            }
 
-                        // --- Phase 7: Camera (iOS only) ---
-                        if deviceType == .iOS {
-                            collapsibleSection(title: "Camera", icon: "camera.on.rectangle") {
-                                CameraView(pid: activePID)
-                                    .environmentObject(cameraService)
+                            // --- Phase 7: Camera (iOS only) ---
+                            if deviceType == .iOS {
+                                collapsibleSection(title: "Camera", icon: "camera.on.rectangle") {
+                                    CameraView(pid: activePID)
+                                        .environmentObject(cameraService)
+                                }
                             }
                         }
                     }
-                }
 
-                SideWindowFooter()
+                    SideWindowFooter()
+                }
+                .frame(width: SideWindowMetrics.expandedWidth)
+                .transition(.opacity)
             }
-            .frame(width: SideWindowMetrics.expandedWidth)
         }
+        .animation(
+            reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.8),
+            value: controller.isCollapsed
+        )
     }
 
     // MARK: - Helper: wrap content in a collapsible FeatureSection-style container
@@ -133,11 +142,14 @@ private struct CollapsibleSectionWrapper<Content: View>: View {
     let icon: String
     let content: () -> Content
     @State private var isExpanded = true
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+                withAnimation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.35, dampingFraction: 0.85)) {
+                    isExpanded.toggle()
+                }
             } label: {
                 HStack {
                     HStack(spacing: Spacing.xs) {
@@ -150,7 +162,10 @@ private struct CollapsibleSectionWrapper<Content: View>: View {
                     Image(systemName: "chevron.right")
                         .imageScale(.small).foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                        .animation(
+                            reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.75),
+                            value: isExpanded
+                        )
                         .padding(.trailing, Spacing.md)
                 }
                 .contentShape(Rectangle())
@@ -158,7 +173,10 @@ private struct CollapsibleSectionWrapper<Content: View>: View {
             .buttonStyle(.plain)
             .background(.background)
 
-            if isExpanded { content() }
+            if isExpanded {
+                content()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 }

@@ -4,7 +4,7 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement
-- **Files:** 44 Swift source files (~2,500 LOC total)
+- **Files:** 44 Swift source files (~2,900 LOC total)
 - **External dependencies:** None
 - **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (empty, not yet configured)
 
@@ -23,9 +23,9 @@ BoosterSimApp/
 │   │   ├── BuildRecord.swift             # Build history record (28 LOC)
 │   │   └── AXNode.swift                  # Accessibility tree node (18 LOC)
 │   ├── Services/
-│   │   ├── SimulatorWindowTracker.swift  # Core detection service (145 LOC)
+│   │   ├── SimulatorWindowTracker.swift  # Core detection service (179 LOC)
 │   │   ├── WindowEnumerator.swift        # CGWindowList scan (65 LOC)
-│   │   ├── WindowObserver.swift          # AXObserver wrapper (99 LOC)
+│   │   ├── WindowObserver.swift          # AXObserver wrapper (154 LOC)
 │   │   ├── PermissionManager.swift       # Permission checks/requests (143 LOC)
 │   │   ├── XcodeDetector.swift           # Xcode path detection (39 LOC)
 │   │   ├── SimCtlService.swift           # xcrun simctl executor (85 LOC)
@@ -36,26 +36,26 @@ BoosterSimApp/
 │   │   └── CameraService.swift           # Camera menu automation (118 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
-│   │   ├── SideWindowController.swift    # Panel lifecycle/position (135 LOC)
+│   │   ├── SideWindowController.swift    # Panel lifecycle/position (147 LOC)
 │   │   ├── PositionCalculator.swift      # Pure frame math (82 LOC)
 │   │   └── AXHighlightPanel.swift        # AX overlay panel (62 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
 │   │   │   └── MenuBarView.swift         # MenuBarExtra content (54 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view (82 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view (182 LOC)
 │   │   │   ├── SideWindowTitleBar.swift  # Collapse button + title (35 LOC)
-│   │   │   ├── DeviceHeaderView.swift    # Active device info (52 LOC)
+│   │   │   ├── DeviceHeaderView.swift    # Active device info (84 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (30 LOC)
 │   │   │   ├── SideWindowFooter.swift    # Version/status footer (31 LOC)
-│   │   │   ├── FeatureSectionView.swift  # Collapsible section (70 LOC)
-│   │   │   ├── FeatureRowView.swift      # Individual feature row (65 LOC)
-│   │   │   ├── StatusBarSectionView.swift # Status bar preset UI (88 LOC)
-│   │   │   ├── EnvironmentOverridesView.swift # Accessibility toggles (105 LOC)
-│   │   │   ├── BuildStatsSectionView.swift # Build history section (75 LOC)
-│   │   │   ├── BuildChartView.swift      # Canvas bar chart (48 LOC)
-│   │   │   ├── AXTreeView.swift          # Accessibility tree list (92 LOC)
-│   │   │   └── CameraView.swift          # Camera toggle UI (58 LOC)
+│   │   │   ├── FeatureSectionView.swift  # Collapsible section (76 LOC)
+│   │   │   ├── FeatureRowView.swift      # Individual feature row (66 LOC)
+│   │   │   ├── StatusBarSectionView.swift # Status bar preset UI (117 LOC)
+│   │   │   ├── EnvironmentOverridesView.swift # Accessibility toggles (161 LOC)
+│   │   │   ├── BuildStatsSectionView.swift # Build history section (86 LOC)
+│   │   │   ├── BuildChartView.swift      # Canvas bar chart (29 LOC)
+│   │   │   ├── AXTreeView.swift          # Accessibility tree list (135 LOC)
+│   │   │   └── CameraView.swift          # Camera toggle UI (93 LOC)
 │   │   ├── Preferences/
 │   │   │   ├── PreferencesView.swift     # Tab container (22 LOC)
 │   │   │   ├── GeneralTab.swift          # Position + launch at login (31 LOC)
@@ -91,11 +91,11 @@ BoosterSimApp/
 
 ## Largest Files (by LOC)
 
-1. `PermissionManager.swift` — 143 LOC
-2. `AXInspectorService.swift` — 135 LOC
-3. `SideWindowController.swift` — 135 LOC
-4. `BuildStatsService.swift` — 128 LOC
-5. `OnboardingContainerView.swift` — 110 LOC
+1. `SideWindowView.swift` — 182 LOC
+2. `SimulatorWindowTracker.swift` — 179 LOC
+3. `WindowObserver.swift` — 154 LOC
+4. `EnvironmentOverridesView.swift` — 161 LOC
+5. `AXTreeView.swift` — 135 LOC
 
 All files are under the 200 LOC limit — no modularization needed at this stage.
 
