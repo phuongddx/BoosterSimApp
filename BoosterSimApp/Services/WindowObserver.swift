@@ -1,5 +1,6 @@
 // WindowObserver.swift — Wraps AXObserver to get real-time window move/resize events
-// AXObserver fires C callbacks on the main run loop; bridged to Swift closure here.
+// Phase 1: registers kAXWindowMoved/Resized on individual window elements (not app element)
+// Phase 2: onFrameChanged fast path bypasses CGWindowList scan during drag
 import AppKit
 import ApplicationServices
 
@@ -9,17 +10,23 @@ final class WindowObserver {
 
     private var observer: AXObserver?
     private let pid: pid_t
-    private var callback: ((String) -> Void)?
+    private var callback: ((String, AXUIElement) -> Void)?
+    var onFrameChanged: ((CGRect) -> Void)?
     private var selfPtr: UnsafeMutableRawPointer?  // retained pointer; released in stopObserving()
 
-    // Notifications we care about from the Simulator window
-    private static let notifications: [String] = [
-        kAXMovedNotification as String,
-        kAXResizedNotification as String,
+    // Lifecycle notifications — registered on the app element
+    private static let appNotifications: [String] = [
         kAXWindowCreatedNotification as String,
         kAXWindowMiniaturizedNotification as String,
         kAXWindowDeminiaturizedNotification as String,
         kAXUIElementDestroyedNotification as String
+    ]
+
+    // Positional notifications — registered on each window element individually
+    // kAXWindowMoved/Resized fire during drag; element-level kAXMoved/Resized do not
+    private static let windowNotifications: [String] = [
+        kAXWindowMovedNotification as String,
+        kAXWindowResizedNotification as String
     ]
 
     // MARK: - Init
@@ -35,11 +42,11 @@ final class WindowObserver {
     // MARK: - Public API
 
     /// Start observing window notifications for the given PID.
-    /// Callback receives the AX notification name string.
-    func startObserving(callback: @escaping (String) -> Void) {
+    /// Callback receives the AX notification name and the element that fired it.
+    /// Move/resize events bypass callback and are delivered via onFrameChanged instead.
+    func startObserving(callback: @escaping (String, AXUIElement) -> Void) {
         self.callback = callback
 
-        // Create the AXObserver with a C-style callback
         let result = AXObserverCreate(pid, axCallback, &observer)
         guard result == .success, let obs = observer else {
             print("[WindowObserver] Failed to create AXObserver for PID \(pid): \(result.rawValue)")
@@ -49,11 +56,14 @@ final class WindowObserver {
         let appElement = AXUIElementCreateApplication(pid)
         selfPtr = Unmanaged.passRetained(self).toOpaque()  // balanced by release() in stopObserving()
 
-        for notification in Self.notifications {
+        // Register lifecycle notifications on the app element
+        for notification in Self.appNotifications {
             AXObserverAddNotification(obs, appElement, notification as CFString, selfPtr)
         }
 
-        // Add to main run loop so callbacks fire on main thread
+        // Register positional notifications on each existing window element
+        registerWindowNotifications(obs: obs, appElement: appElement)
+
         CFRunLoopAddSource(
             CFRunLoopGetMain(),
             AXObserverGetRunLoopSource(obs),
@@ -68,19 +78,65 @@ final class WindowObserver {
             AXObserverGetRunLoopSource(obs),
             .defaultMode
         )
-        // Balance the passRetained from startObserving()
         if let ptr = selfPtr {
             Unmanaged<WindowObserver>.fromOpaque(ptr).release()
             selfPtr = nil
         }
         observer = nil
         callback = nil
+        onFrameChanged = nil
     }
 
     // MARK: - Internal callback trigger
 
-    fileprivate func handleNotification(_ name: String) {
-        callback?(name)
+    fileprivate func handleNotification(_ name: String, element: AXUIElement) {
+        // Fast path: read frame directly from callback element, skip CGWindowList scan
+        if name == kAXWindowMovedNotification as String || name == kAXWindowResizedNotification as String {
+            if let frame = readWindowFrame(from: element) {
+                onFrameChanged?(frame)
+            }
+            return
+        }
+        // When a new window is created, register positional notifications on it
+        if name == kAXWindowCreatedNotification as String, let obs = observer {
+            registerWindowNotifications(obs: obs, appElement: AXUIElementCreateApplication(pid))
+        }
+        callback?(name, element)
+    }
+
+    // MARK: - Private Helpers
+
+    /// Enumerate kAXWindowsAttribute and register windowNotifications on each window element.
+    private func registerWindowNotifications(obs: AXObserver, appElement: AXUIElement) {
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement] else { return }
+        for windowElement in windows {
+            for notification in Self.windowNotifications {
+                // Duplicate registration is a no-op — safe to call on existing windows
+                AXObserverAddNotification(obs, windowElement, notification as CFString, selfPtr)
+            }
+        }
+    }
+
+    /// Read window frame from AX element.
+    /// AX position uses Quartz coordinates (top-origin); flips to AppKit (bottom-origin).
+    private func readWindowFrame(from element: AXUIElement) -> CGRect? {
+        var posRef: CFTypeRef?
+        var sizeRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
+              let posVal = posRef, let sizeVal = sizeRef else { return nil }
+
+        var quartzOrigin = CGPoint.zero
+        var size = CGSize.zero
+        guard AXValueGetValue(posVal as! AXValue, .cgPoint, &quartzOrigin),
+              AXValueGetValue(sizeVal as! AXValue, .cgSize, &size) else { return nil }
+
+        // Flip Y: Quartz counts from top of primary screen; AppKit counts from bottom
+        let screenHeight = NSScreen.screens.first?.frame.height ?? 0
+        let appKitY = screenHeight - quartzOrigin.y - size.height
+        return CGRect(x: quartzOrigin.x, y: appKitY, width: size.width, height: size.height)
     }
 }
 
@@ -93,7 +149,6 @@ private func axCallback(
     _ refcon: UnsafeMutableRawPointer?
 ) {
     guard let refcon else { return }
-    // Retrieve WindowObserver from the retained pointer (balance with passRetained)
     let windowObserver = Unmanaged<WindowObserver>.fromOpaque(refcon).takeUnretainedValue()
-    windowObserver.handleNotification(notification as String)
+    windowObserver.handleNotification(notification as String, element: element)
 }

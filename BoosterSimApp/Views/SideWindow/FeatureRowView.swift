@@ -7,6 +7,7 @@ struct FeatureRowView: View {
 
     @State private var isHovered = false
     @State private var showComingSoon = false
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         Button {
@@ -52,12 +53,12 @@ struct FeatureRowView: View {
 
     private func triggerComingSoon() {
         guard !showComingSoon else { return }
-        withAnimation(.easeIn(duration: 0.15)) {
+        withAnimation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.2, dampingFraction: 0.7)) {
             showComingSoon = true
         }
         // Auto-dismiss after 1.5s
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation(.easeOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.8)) {
                 showComingSoon = false
             }
         }

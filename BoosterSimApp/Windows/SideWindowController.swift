@@ -74,7 +74,7 @@ final class SideWindowController: ObservableObject {
     // MARK: - Collapse/Expand
 
     func toggleCollapsed() {
-        let duration = reducedMotion ? 0.1 : 0.2
+        let duration = reducedMotion ? 0.1 : 0.3
         isCollapsed.toggle()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = duration

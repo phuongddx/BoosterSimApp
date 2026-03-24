@@ -125,8 +125,19 @@ final class SimulatorWindowTracker: ObservableObject {
 
     private func setupObserver(for pid: pid_t) {
         let obs = WindowObserver(pid: pid)
-        obs.startObserving { [weak self] _ in
+        // Lifecycle events (created, destroyed, miniaturized) → full scan
+        // Move/resize events are handled by onFrameChanged fast path below
+        obs.startObserving { [weak self] _, _ in
             self?.scanAndUpdate()
+        }
+        // Fast path: update frame directly without CGWindowList scan during drag
+        obs.onFrameChanged = { [weak self] frame in
+            guard let self else { return }
+            guard let idx = self.simulators.firstIndex(where: { $0.pid == pid }) else { return }
+            self.simulators[idx].frame = frame
+            if self.activeSimulator?.pid == pid {
+                self.activeSimulator = self.simulators[idx]
+            }
         }
         observers[pid] = obs
     }
@@ -134,7 +145,8 @@ final class SimulatorWindowTracker: ObservableObject {
     // MARK: - Polling Fallback
 
     private func startPolling() {
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // AX observer handles real-time updates; poll is fallback for edge cases
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.scanAndUpdate()
         }
     }
