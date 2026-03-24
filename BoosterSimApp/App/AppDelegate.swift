@@ -1,5 +1,4 @@
 // AppDelegate.swift — NSApplicationDelegate hosting all AppKit services
-// Owns: SimulatorWindowTracker, SideWindowController, PermissionManager, onboarding window
 import AppKit
 import SwiftUI
 import Combine
@@ -7,15 +6,37 @@ import Combine
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
-    // MARK: - Services (owned here, shared to views via @EnvironmentObject)
+    // MARK: - Core Services
 
-    let tracker = SimulatorWindowTracker()
-    let settings = AppSettings()
-    lazy var sideWindowController = SideWindowController(settings: settings, tracker: tracker)
+    let tracker      = SimulatorWindowTracker()
+    let settings     = AppSettings()
+    let simCtlService = SimCtlService()
+
+    // MARK: - Feature Services
+
+    lazy var statusBarService    = StatusBarService(simCtl: simCtlService)
+    lazy var envOverrideService  = EnvironmentOverrideService(simCtl: simCtlService)
+    lazy var buildStatsService   = BuildStatsService()
+    lazy var axInspectorService  = AXInspectorService()
+    lazy var cameraService       = CameraService()
+    lazy var axHighlightPanel    = AXHighlightPanel()
+
+    // MARK: - Windows
+
+    lazy var sideWindowController = SideWindowController(
+        settings: settings,
+        tracker: tracker,
+        statusBarService: statusBarService,
+        envOverrideService: envOverrideService,
+        buildStatsService: buildStatsService,
+        axInspectorService: axInspectorService,
+        cameraService: cameraService
+    )
 
     // MARK: - Private
 
     private var onboardingWindow: NSWindow?
+    private var cancellables = Set<AnyCancellable>()
     @AppStorage("completedOnboarding") private var completedOnboarding = false
 
     // MARK: - NSApplicationDelegate
@@ -24,8 +45,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Wire side window to simulator tracker
         sideWindowController.attach(to: tracker)
 
-        // Start detecting simulators
+        // Start simulator detection + build monitoring
         tracker.startTracking()
+        buildStatsService.startMonitoring()
+
+        // React to active simulator changes
+        tracker.$activeSimulator
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] sim in
+                guard let self else { return }
+                if let sim {
+                    let udid = sim.udid ?? "booted"
+                    envOverrideService.loadCurrentState(udid: udid)
+                    cameraService.probeSupport(pid: sim.pid)
+                    axInspectorService.loadRoot(for: sim.pid)
+                }
+            }
+            .store(in: &cancellables)
+
+        // Drive AXHighlightPanel from AXInspectorService
+        axInspectorService.$highlightFrame
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] frame in
+                if let frame { self?.axHighlightPanel.show(at: frame) }
+                else          { self?.axHighlightPanel.hide() }
+            }
+            .store(in: &cancellables)
 
         // Show onboarding on first launch
         if !completedOnboarding {
@@ -34,12 +79,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Menu bar app stays alive even when all windows are closed
         return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         tracker.stopTracking()
+        buildStatsService.stopMonitoring()
     }
 
     // MARK: - Onboarding Window

@@ -22,15 +22,29 @@ final class SideWindowController: ObservableObject {
 
     // MARK: - Init
 
-    init(settings: AppSettings, tracker: SimulatorWindowTracker) {
+    init(
+        settings: AppSettings,
+        tracker: SimulatorWindowTracker,
+        statusBarService: StatusBarService,
+        envOverrideService: EnvironmentOverrideService,
+        buildStatsService: BuildStatsService,
+        axInspectorService: AXInspectorService,
+        cameraService: CameraService
+    ) {
         self.settings = settings
-        embedSwiftUIContent(tracker: tracker)
+        embedSwiftUIContent(
+            tracker: tracker,
+            statusBarService: statusBarService,
+            envOverrideService: envOverrideService,
+            buildStatsService: buildStatsService,
+            axInspectorService: axInspectorService,
+            cameraService: cameraService
+        )
         setupKeyboardShortcut()
     }
 
     // MARK: - Tracker Integration
 
-    /// Wire the side window to react to simulator state changes.
     func attach(to tracker: SimulatorWindowTracker) {
         trackerCancellable = tracker.$activeSimulator.sink { [weak self] simulator in
             guard let self else { return }
@@ -44,9 +58,7 @@ final class SideWindowController: ObservableObject {
 
     // MARK: - Show/Hide
 
-    func toggle() {
-        isVisible ? hide() : show()
-    }
+    func toggle() { isVisible ? hide() : show() }
 
     func show() {
         guard currentSimulator != nil else { return }
@@ -76,9 +88,7 @@ final class SideWindowController: ObservableObject {
     private func attachToSimulator(_ simulator: SimulatorWindow) {
         currentSimulator = simulator
         updatePosition()
-        if settings.showSideWindow {
-            show()
-        }
+        if settings.showSideWindow { show() }
     }
 
     private func detach() {
@@ -90,27 +100,34 @@ final class SideWindowController: ObservableObject {
 
     func updatePosition(animated: Bool = false) {
         guard let sim = currentSimulator else { return }
-
         let screen = PositionCalculator.screen(containing: sim.frame)
-        let frame = PositionCalculator.panelFrame(
+        let frame  = PositionCalculator.panelFrame(
             simulatorFrame: sim.frame,
             position: settings.position,
             screenFrame: screen.visibleFrame,
             isCollapsed: isCollapsed
         )
-
-        if animated {
-            panel.animator().setFrame(frame, display: true)
-        } else {
-            panel.setFrame(frame, display: true)
-        }
+        if animated { panel.animator().setFrame(frame, display: true) }
+        else        { panel.setFrame(frame, display: true) }
     }
 
     // MARK: - SwiftUI Hosting
 
-    private func embedSwiftUIContent(tracker: SimulatorWindowTracker) {
-        let contentView = SideWindowView(tracker: tracker, controller: self)
-        panel.contentView = NSHostingView(rootView: contentView)
+    private func embedSwiftUIContent(
+        tracker: SimulatorWindowTracker,
+        statusBarService: StatusBarService,
+        envOverrideService: EnvironmentOverrideService,
+        buildStatsService: BuildStatsService,
+        axInspectorService: AXInspectorService,
+        cameraService: CameraService
+    ) {
+        let content = SideWindowView(tracker: tracker, controller: self)
+            .environmentObject(statusBarService)
+            .environmentObject(envOverrideService)
+            .environmentObject(buildStatsService)
+            .environmentObject(axInspectorService)
+            .environmentObject(cameraService)
+        panel.contentView = NSHostingView(rootView: content)
     }
 
     // MARK: - Keyboard Shortcut (Cmd+W hides side window)
@@ -118,7 +135,6 @@ final class SideWindowController: ObservableObject {
     private func setupKeyboardShortcut() {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            // Only intercept Cmd+W when the side panel is the key window
             if event.window === self.panel,
                event.modifierFlags.contains(.command),
                event.charactersIgnoringModifiers == "w" {
