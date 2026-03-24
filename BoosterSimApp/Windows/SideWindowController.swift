@@ -13,11 +13,18 @@ final class SideWindowController: ObservableObject {
     // MARK: - Private
 
     private let panel = SideWindowPanel()
+    private let springAnimator = SpringAnimator()
     private var currentSimulator: SimulatorWindow?
     private var settings: AppSettings
     private var trackerCancellable: AnyCancellable?
+    private var lastPanelSide: PanelSide = .right
     private var reducedMotion: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+
+    /// Which side the panel is currently on relative to the simulator.
+    private enum PanelSide {
+        case left, right, bottom
     }
 
     // MARK: - Init
@@ -32,6 +39,9 @@ final class SideWindowController: ObservableObject {
         cameraService: CameraService
     ) {
         self.settings = settings
+        springAnimator.onFrameUpdate = { [weak self] frame in
+            self?.panel.setFrame(frame, display: true)
+        }
         embedSwiftUIContent(
             tracker: tracker,
             statusBarService: statusBarService,
@@ -74,6 +84,7 @@ final class SideWindowController: ObservableObject {
     // MARK: - Collapse/Expand
 
     func toggleCollapsed() {
+        springAnimator.stop()
         let duration = reducedMotion ? 0.1 : 0.3
         isCollapsed.toggle()
         NSAnimationContext.runAnimationGroup { ctx in
@@ -93,6 +104,7 @@ final class SideWindowController: ObservableObject {
 
     private func detach() {
         currentSimulator = nil
+        springAnimator.stop()
         hide()
     }
 
@@ -107,8 +119,34 @@ final class SideWindowController: ObservableObject {
             screenFrame: screen.visibleFrame,
             isCollapsed: isCollapsed
         )
-        if animated { panel.animator().setFrame(frame, display: true) }
-        else        { panel.setFrame(frame, display: true) }
+
+        // Collapse/expand uses AppKit animation context — bypass spring
+        if animated {
+            panel.animator().setFrame(frame, display: true)
+            return
+        }
+
+        // Reduced motion — rigid 1:1 tracking, no spring
+        if reducedMotion {
+            panel.setFrame(frame, display: true)
+            return
+        }
+
+        // Detect side-switch: snap instantly then let spring settle
+        let newSide = panelSide(for: frame, simulator: sim.frame)
+        if newSide != lastPanelSide {
+            lastPanelSide = newSide
+            springAnimator.snapTo(frame: frame)
+        } else {
+            springAnimator.setTarget(frame: frame)
+        }
+    }
+
+    /// Determine which side the panel is on relative to the simulator.
+    private func panelSide(for panelFrame: CGRect, simulator simFrame: CGRect) -> PanelSide {
+        if panelFrame.minY < simFrame.minY { return .bottom }
+        if panelFrame.midX < simFrame.midX { return .left }
+        return .right
     }
 
     // MARK: - SwiftUI Hosting
