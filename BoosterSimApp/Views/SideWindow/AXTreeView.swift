@@ -81,7 +81,6 @@ private struct AXNodeRowView: View {
     @EnvironmentObject var service: AXInspectorService
     let node: AXNode
     @State private var isExpanded = false
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,10 +93,7 @@ private struct AXNodeRowView: View {
                         Image(systemName: "chevron.right")
                             .imageScale(.small).foregroundStyle(.tertiary)
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                            .animation(
-                                reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.25, dampingFraction: 0.85),
-                                value: isExpanded
-                            )
+                            .animation(.easeInOut(duration: 0.15), value: isExpanded)
                     } else {
                         Color.clear.frame(width: 10)
                     }

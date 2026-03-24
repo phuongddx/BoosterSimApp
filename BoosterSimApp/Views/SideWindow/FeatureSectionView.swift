@@ -41,12 +41,10 @@ struct FeatureSectionView: View {
 // MARK: - Custom Disclosure Style
 
 private struct SectionDisclosureStyle: DisclosureGroupStyle {
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
-
     func makeBody(configuration: Configuration) -> some View {
         VStack(spacing: 0) {
             Button {
-                withAnimation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.35, dampingFraction: 0.85)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     configuration.isExpanded.toggle()
                 }
             } label: {
@@ -57,10 +55,7 @@ private struct SectionDisclosureStyle: DisclosureGroupStyle {
                         .imageScale(.small)
                         .foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(configuration.isExpanded ? 90 : 0))
-                        .animation(
-                            reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.75),
-                            value: configuration.isExpanded
-                        )
+                        .animation(.easeInOut(duration: 0.2), value: configuration.isExpanded)
                 }
                 .contentShape(Rectangle())
             }
@@ -69,7 +64,6 @@ private struct SectionDisclosureStyle: DisclosureGroupStyle {
 
             if configuration.isExpanded {
                 configuration.content
-                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
