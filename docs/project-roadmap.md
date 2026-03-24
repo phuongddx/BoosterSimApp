@@ -89,16 +89,16 @@ The core infrastructure (menu bar, side panel, simulator tracking, permissions, 
 
 ---
 
-## Phase 6 — Platform & System
+## Phase 6 — Platform & System (Complete)
 
 **Goal:** Broader Simulator and system integration
 
-- [ ] Configurable status bar (time, battery, signal)
-- [ ] Simulator Camera (use Mac camera as Simulator input)
-- [ ] Apple Watch Simulator support
-- [ ] VoiceOver navigator (accessibility tree inspection)
-- [ ] Environment overrides (accessibility settings)
-- [ ] Xcode build statistics (build count, time graphs)
+- [x] Configurable status bar (time, battery, signal) — 4 presets + custom controls
+- [x] Simulator Camera (use Mac camera as Simulator input) — AX menu automation
+- [x] Apple Watch Simulator support — device type classification + multi-device picker
+- [x] VoiceOver navigator (accessibility tree inspection) — lazy AX tree walker + highlight overlay
+- [x] Environment overrides (accessibility settings) — Tier 1 (appearance, contrast) + Tier 2 (reduce motion, bold text)
+- [x] Xcode build statistics (build count, time graphs) — build history polling + Canvas chart
 
 ---
 
@@ -126,5 +126,5 @@ The core infrastructure (menu bar, side panel, simulator tracking, permissions, 
 | App Actions | 3 | Not started |
 | Design Overlays | 4 | Not started |
 | Network Tools | 5 | Not started |
-| Platform & System | 6 | Not started |
+| Platform & System | 6 | Complete |
 | Distribution Ready | 7 | Not started |
