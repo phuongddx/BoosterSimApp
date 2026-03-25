@@ -81,24 +81,87 @@ struct EnvironmentOverridesView: View {
             .padding(.horizontal, Spacing.md)
             .frame(height: SideWindowMetrics.rowHeight)
 
-            // Reduce Motion (Tier 2)
-            tier2Row(label: "Reduce Motion", icon: "waveform.path",
-                     isOn: service.reduceMotion) {
+            Divider().padding(.horizontal, Spacing.md)
+
+            // Reduce Motion
+            overrideRow(label: "Reduce Motion", icon: "waveform.path") {
                 service.setReduceMotion(!service.reduceMotion, udid: udid ?? "booted")
+            } indicator: {
+                if service.reduceMotion {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
             }
 
-            // Bold Text (Tier 2)
-            tier2Row(label: "Bold Text", icon: "bold",
-                     isOn: service.boldText) {
+            // Bold Text
+            overrideRow(label: "Bold Text", icon: "bold") {
                 service.setBoldText(!service.boldText, udid: udid ?? "booted")
+            } indicator: {
+                if service.boldText {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
             }
 
-            if let warning = service.tier2Warning {
-                Text(warning)
-                    .font(.caption2).foregroundStyle(.orange)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.bottom, Spacing.xs)
+            // Reduce Transparency
+            overrideRow(label: "Reduce Transparency", icon: "rectangle.on.rectangle") {
+                service.setReduceTransparency(!service.reduceTransparency, udid: udid ?? "booted")
+            } indicator: {
+                if service.reduceTransparency {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
             }
+
+            Divider().padding(.horizontal, Spacing.md)
+
+            // Button Shapes
+            overrideRow(label: "Button Shapes", icon: "rectangle.and.hand.point.up.left") {
+                service.setButtonShapes(!service.buttonShapes, udid: udid ?? "booted")
+            } indicator: {
+                if service.buttonShapes {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
+            }
+
+            // On/Off Labels
+            overrideRow(label: "On/Off Labels", icon: "switch.2") {
+                service.setOnOffLabels(!service.onOffLabels, udid: udid ?? "booted")
+            } indicator: {
+                if service.onOffLabels {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
+            }
+
+            // Grayscale
+            overrideRow(label: "Grayscale", icon: "circle.lefthalf.strikethrough") {
+                service.setGrayscale(!service.grayscale, udid: udid ?? "booted")
+            } indicator: {
+                if service.grayscale {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
+            }
+
+            // Invert Colors
+            overrideRow(label: "Invert Colors", icon: "circle.inset.filled") {
+                service.setInvertColors(!service.invertColors, udid: udid ?? "booted")
+            } indicator: {
+                if service.invertColors {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
+            }
+
+            // Differentiate without Color
+            overrideRow(label: "Differentiate w/o Color", icon: "circle.hexagongrid") {
+                service.setDifferentiateWithoutColor(!service.differentiateWithoutColor, udid: udid ?? "booted")
+            } indicator: {
+                if service.differentiateWithoutColor {
+                    Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onAppear {
+            if let udid { service.loadCurrentState(udid: udid) }
+        }
+        .onChange(of: udid) { _, newUdid in
+            if let newUdid { service.loadCurrentState(udid: newUdid) }
         }
     }
 
@@ -115,25 +178,6 @@ struct EnvironmentOverridesView: View {
                 Text(label).font(.body)
                 Spacer()
                 indicator()
-            }
-            .padding(.horizontal, Spacing.md)
-            .frame(height: SideWindowMetrics.rowHeight)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
-    }
-
-    private func tier2Row(label: String, icon: String, isOn: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: Spacing.sm) {
-                Image(systemName: icon).imageScale(.small).frame(width: 16)
-                Text(label).font(.body)
-                Spacer()
-                if isOn { Image(systemName: "checkmark").imageScale(.small).foregroundStyle(.secondary) }
-                Image(systemName: "exclamationmark.triangle")
-                    .imageScale(.small).foregroundStyle(.orange)
-                    .help("May require app relaunch")
             }
             .padding(.horizontal, Spacing.md)
             .frame(height: SideWindowMetrics.rowHeight)

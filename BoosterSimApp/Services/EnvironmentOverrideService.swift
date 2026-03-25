@@ -1,4 +1,4 @@
-// EnvironmentOverrideService.swift — Appearance and accessibility overrides via xcrun simctl ui
+// EnvironmentOverrideService.swift — Appearance and accessibility overrides via xcrun simctl
 import Foundation
 import Combine
 
@@ -19,10 +19,17 @@ final class EnvironmentOverrideService: ObservableObject {
 
     @Published var appearance: AppearanceStyle = .unknown
     @Published var increaseContrast: Bool = false
+    @Published var contentSizeIndex: Int = 3  // default = "large" (index 3)
+
+    // Accessibility toggles — com.apple.Accessibility domain
     @Published var reduceMotion: Bool = false
     @Published var boldText: Bool = false
-    @Published var contentSizeIndex: Int = 3  // default = "large" (index 3)
-    @Published var tier2Warning: String? = nil
+    @Published var reduceTransparency: Bool = false
+    @Published var grayscale: Bool = false
+    @Published var invertColors: Bool = false
+    @Published var buttonShapes: Bool = false
+    @Published var onOffLabels: Bool = false
+    @Published var differentiateWithoutColor: Bool = false
 
     // MARK: - Constants
 
@@ -46,15 +53,47 @@ final class EnvironmentOverrideService: ObservableObject {
     // MARK: - Public Methods
 
     func loadCurrentState(udid: String) {
+        // Tier 1 — official simctl ui commands
         simCtl.run(["ui", udid, "appearance"])
-            .sink(
-                receiveCompletion: { _ in },
-                receiveValue: { [weak self] output in
-                    let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                    self?.appearance = trimmed == "dark" ? .dark : .light
-                }
-            )
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                self?.appearance = trimmed == "dark" ? .dark : .light
+            })
             .store(in: &cancellables)
+
+        simCtl.run(["ui", udid, "increase_contrast"])
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                self?.increaseContrast = output.trimmingCharacters(in: .whitespacesAndNewlines) == "enabled"
+            })
+            .store(in: &cancellables)
+
+        simCtl.run(["ui", udid, "content_size"])
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                let name = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let idx = Self.contentSizes.firstIndex(of: name) {
+                    self?.contentSizeIndex = idx
+                }
+            })
+            .store(in: &cancellables)
+
+        // Tier 2 — com.apple.Accessibility plist (instant via notifyutil)
+        let a11yKeys: [(String, WritableKeyPath<EnvironmentOverrideService, Bool>)] = [
+            ("ReduceMotionEnabled",               \.reduceMotion),
+            ("EnhancedTextLegibilityEnabled",     \.boldText),
+            ("EnhancedBackgroundContrastEnabled", \.reduceTransparency),
+            ("GrayscaleDisplay",                  \.grayscale),
+            ("InvertColorsEnabled",               \.invertColors),
+            ("IncreaseButtonLegibilityEnabled",   \.buttonShapes),
+            ("OnOffSwitchLabels",                 \.onOffLabels),
+            ("DifferentiateWithoutColor",         \.differentiateWithoutColor),
+        ]
+        for (key, path) in a11yKeys {
+            simCtl.run(["spawn", udid, "defaults", "read", "com.apple.Accessibility", key])
+                .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                    self?[keyPath: path] = output.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+                })
+                .store(in: &cancellables)
+        }
     }
 
     func setAppearance(_ style: AppearanceStyle, udid: String) {
@@ -83,22 +122,60 @@ final class EnvironmentOverrideService: ObservableObject {
         applyContentSize(udid: udid)
     }
 
-    /// Tier 2 — undocumented, shows warning on failure.
     func setReduceMotion(_ enabled: Bool, udid: String) {
         reduceMotion = enabled
-        runTier2(["spawn", "booted", "defaults", "write",
-                  "com.apple.UIKit", "UIAccessibilityReduceMotionEnabled",
-                  "-bool", enabled ? "YES" : "NO"],
-                 warningKey: "reduceMotion")
+        setAccessibility(key: "ReduceMotionEnabled",
+                         notification: "com.apple.accessibility.reduce-motion",
+                         enabled: enabled, udid: udid)
     }
 
-    /// Tier 2 — undocumented, shows warning on failure.
     func setBoldText(_ enabled: Bool, udid: String) {
         boldText = enabled
-        runTier2(["spawn", "booted", "defaults", "write",
-                  "-g", "AccessibilityBoldText",
-                  "-bool", enabled ? "YES" : "NO"],
-                 warningKey: "boldText")
+        setAccessibility(key: "EnhancedTextLegibilityEnabled",
+                         notification: "com.apple.accessibility.enhanced-text-legibility",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setReduceTransparency(_ enabled: Bool, udid: String) {
+        reduceTransparency = enabled
+        setAccessibility(key: "EnhancedBackgroundContrastEnabled",
+                         notification: "com.apple.accessibility.reduce-transparency",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setGrayscale(_ enabled: Bool, udid: String) {
+        grayscale = enabled
+        setAccessibility(key: "GrayscaleDisplay",
+                         notification: "com.apple.accessibility.grayscale",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setInvertColors(_ enabled: Bool, udid: String) {
+        invertColors = enabled
+        setAccessibility(key: "InvertColorsEnabled",
+                         notification: "com.apple.accessibility.invert-colors",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setButtonShapes(_ enabled: Bool, udid: String) {
+        buttonShapes = enabled
+        setAccessibility(key: "IncreaseButtonLegibilityEnabled",
+                         notification: "com.apple.accessibility.increase-button-legibility",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setOnOffLabels(_ enabled: Bool, udid: String) {
+        onOffLabels = enabled
+        setAccessibility(key: "OnOffSwitchLabels",
+                         notification: "com.apple.accessibility.on-off-switch-labels",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setDifferentiateWithoutColor(_ enabled: Bool, udid: String) {
+        differentiateWithoutColor = enabled
+        setAccessibility(key: "DifferentiateWithoutColor",
+                         notification: "com.apple.accessibility.differentiate-without-color",
+                         enabled: enabled, udid: udid)
     }
 
     // MARK: - Private
@@ -109,16 +186,15 @@ final class EnvironmentOverrideService: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private func runTier2(_ args: [String], warningKey: String) {
-        simCtl.runVoid(args)
-            .sink(
-                receiveCompletion: { [weak self] result in
-                    if case .failure = result {
-                        self?.tier2Warning = "'\(warningKey)' may require app relaunch or is unsupported"
-                    }
-                },
-                receiveValue: { _ in }
-            )
+    /// Writes a boolean to com.apple.Accessibility then posts the Darwin notification for instant apply.
+    private func setAccessibility(key: String, notification: String, enabled: Bool, udid: String) {
+        simCtl.runVoid(["spawn", udid, "defaults", "write",
+                        "com.apple.Accessibility", key, "-bool", enabled ? "YES" : "NO"])
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "notifyutil", "-p", notification])
+            }
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
             .store(in: &cancellables)
     }
 }
