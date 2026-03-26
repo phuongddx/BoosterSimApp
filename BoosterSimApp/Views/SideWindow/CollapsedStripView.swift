@@ -28,3 +28,8 @@ struct CollapsedStripView: View {
         .help("Show BoosterSim")
     }
 }
+
+#Preview {
+    CollapsedStripView(onExpand: {})
+        .frame(width: SideWindowMetrics.collapsedWidth, height: 200)
+}

@@ -3,6 +3,7 @@
 // Phase 2: onFrameChanged fast path bypasses CGWindowList scan during drag
 import AppKit
 import ApplicationServices
+import OSLog
 
 final class WindowObserver {
 
@@ -49,7 +50,7 @@ final class WindowObserver {
 
         let result = AXObserverCreate(pid, axCallback, &observer)
         guard result == .success, let obs = observer else {
-            print("[WindowObserver] Failed to create AXObserver for PID \(pid): \(result.rawValue)")
+            AppLogger.windowTracking.error("Failed to create AXObserver for pid=\(self.pid, privacy: .public): \(result.rawValue, privacy: .public)")
             return
         }
 
@@ -93,6 +94,9 @@ final class WindowObserver {
         // Fast path: read frame directly from callback element, skip CGWindowList scan
         if name == kAXWindowMovedNotification as String || name == kAXWindowResizedNotification as String {
             if let frame = readWindowFrame(from: element) {
+                if name == kAXWindowMovedNotification as String {
+                    AppLogger.windowTracking.debug("Simulator moved: pid=\(self.pid, privacy: .public) frame=\(frame.debugDescription, privacy: .public)")
+                }
                 onFrameChanged?(frame)
             }
             return

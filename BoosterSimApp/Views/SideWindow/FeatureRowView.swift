@@ -64,3 +64,11 @@ struct FeatureRowView: View {
         }
     }
 }
+
+#Preview {
+    VStack(spacing: 0) {
+        FeatureRowView(item: FeatureItem(icon: "camera", label: "Screenshot"))
+        FeatureRowView(item: FeatureItem(icon: "video", label: "Record Screen"))
+    }
+    .frame(width: SideWindowMetrics.expandedWidth)
+}

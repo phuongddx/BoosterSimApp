@@ -19,3 +19,9 @@ struct AccentButton: View {
         .buttonStyle(.plain)
     }
 }
+
+#Preview {
+    AccentButton(title: "Open System Settings", action: {})
+        .padding()
+        .frame(width: 280)
+}

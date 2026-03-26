@@ -70,3 +70,29 @@ struct OnboardingStepView: View {
         .frame(width: OnboardingMetrics.width, height: OnboardingMetrics.height)
     }
 }
+
+#Preview("Needed") {
+    OnboardingStepView(
+        icon: "hand.raised",
+        title: "Accessibility Access",
+        description: "BoosterSim needs Accessibility to track Simulator window position in real-time.",
+        status: .needed,
+        detail: "Required for window tracking",
+        ctaTitle: "Open System Settings",
+        ctaAction: {},
+        onSkip: {}
+    )
+}
+
+#Preview("Granted") {
+    OnboardingStepView(
+        icon: "hand.raised",
+        title: "Accessibility Access",
+        description: "BoosterSim needs Accessibility to track Simulator window position in real-time.",
+        status: .granted,
+        detail: "Access granted",
+        ctaTitle: "Open System Settings",
+        ctaAction: {},
+        onSkip: {}
+    )
+}

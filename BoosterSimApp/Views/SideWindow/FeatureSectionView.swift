@@ -74,3 +74,17 @@ private struct SectionDisclosureStyle: DisclosureGroupStyle {
         }
     }
 }
+
+#Preview {
+    FeatureSectionView(
+        title: "Captures",
+        icon: "camera",
+        items: [
+            FeatureItem(icon: "camera",               label: "Screenshot"),
+            FeatureItem(icon: "video",                label: "Record Screen"),
+            FeatureItem(icon: "film",                 label: "GIF Recording"),
+            FeatureItem(icon: "square.and.arrow.up",  label: "Video Export")
+        ]
+    )
+    .frame(width: SideWindowMetrics.expandedWidth)
+}

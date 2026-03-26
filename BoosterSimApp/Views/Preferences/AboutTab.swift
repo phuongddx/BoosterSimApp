@@ -73,3 +73,7 @@ struct AboutTab: View {
         }
     }
 }
+
+#Preview {
+    AboutTab(settings: AppSettings())
+}

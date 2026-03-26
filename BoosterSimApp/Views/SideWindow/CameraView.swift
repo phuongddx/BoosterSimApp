@@ -91,3 +91,9 @@ struct CameraView: View {
         .frame(height: SideWindowMetrics.rowHeight, alignment: .leading)
     }
 }
+
+#Preview {
+    CameraView(pid: nil)
+        .environmentObject(CameraService())
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

@@ -29,3 +29,7 @@ struct GeneralTab: View {
         .frame(width: PreferencesMetrics.width, height: PreferencesMetrics.height)
     }
 }
+
+#Preview {
+    GeneralTab(settings: AppSettings())
+}

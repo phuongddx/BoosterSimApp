@@ -82,3 +82,9 @@ struct DeviceHeaderView: View {
         .overlay(alignment: .bottom) { Divider() }
     }
 }
+
+#Preview {
+    @Previewable @State var index = 0
+    DeviceHeaderView(tracker: SimulatorWindowTracker(), selectedIndex: $index)
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

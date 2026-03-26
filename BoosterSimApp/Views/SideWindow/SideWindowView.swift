@@ -135,6 +135,32 @@ struct SideWindowView: View {
     }
 }
 
+// MARK: - Preview
+
+#Preview {
+    let simCtl            = SimCtlService()
+    let tracker           = SimulatorWindowTracker()
+    let settings          = AppSettings()
+    let statusBarService  = StatusBarService(simCtl: simCtl)
+    let envService        = EnvironmentOverrideService(simCtl: simCtl)
+    let buildService      = BuildStatsService()
+    let axService         = AXInspectorService()
+    let cameraService     = CameraService()
+    let controller        = SideWindowController(
+        settings: settings, tracker: tracker,
+        statusBarService: statusBarService, envOverrideService: envService,
+        buildStatsService: buildService, axInspectorService: axService,
+        cameraService: cameraService
+    )
+    SideWindowView(tracker: tracker, controller: controller)
+        .environmentObject(statusBarService)
+        .environmentObject(envService)
+        .environmentObject(buildService)
+        .environmentObject(axService)
+        .environmentObject(cameraService)
+        .frame(width: SideWindowMetrics.expandedWidth, height: 600)
+}
+
 // MARK: - Collapsible Wrapper (avoids state capture issues in LazyVStack)
 
 private struct CollapsibleSectionWrapper<Content: View>: View {

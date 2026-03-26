@@ -133,3 +133,9 @@ private struct AXNodeRowView: View {
         }
     }
 }
+
+#Preview("No simulator") {
+    AXTreeView(pid: nil)
+        .environmentObject(AXInspectorService())
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

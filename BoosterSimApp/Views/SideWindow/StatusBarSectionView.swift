@@ -115,3 +115,15 @@ struct StatusBarSectionView: View {
             .frame(height: SideWindowMetrics.rowHeight, alignment: .leading)
     }
 }
+
+#Preview("With simulator") {
+    StatusBarSectionView(udid: "booted")
+        .environmentObject(StatusBarService(simCtl: SimCtlService()))
+        .frame(width: SideWindowMetrics.expandedWidth)
+}
+
+#Preview("No simulator") {
+    StatusBarSectionView(udid: nil)
+        .environmentObject(StatusBarService(simCtl: SimCtlService()))
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

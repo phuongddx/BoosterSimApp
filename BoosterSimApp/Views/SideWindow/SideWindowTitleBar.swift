@@ -33,3 +33,8 @@ struct SideWindowTitleBar: View {
         }
     }
 }
+
+#Preview {
+    SideWindowTitleBar(onCollapse: {})
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

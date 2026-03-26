@@ -1,6 +1,7 @@
 // AppSettings.swift — Persisted user settings via @AppStorage
 import SwiftUI
 import Combine
+import OSLog
 import ServiceManagement
 
 // MARK: - Side Window Position
@@ -46,7 +47,7 @@ final class AppSettings: ObservableObject {
             }
         } catch {
             // SMAppService may fail in unsigned dev builds
-            print("[AppSettings] Launch at login error: \(error)")
+            AppLogger.settings.error("Launch at login error: \(error, privacy: .public)")
         }
     }
 }

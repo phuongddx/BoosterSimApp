@@ -8,8 +8,8 @@ final class SpringAnimator {
 
     // MARK: - Spring Constants
 
-    private let stiffness: CGFloat = 280
-    private let damping: CGFloat = 22
+    private let stiffness: CGFloat = 600
+    private let damping: CGFloat = 45
     private let restThreshold: CGFloat = 0.5
 
     // MARK: - State

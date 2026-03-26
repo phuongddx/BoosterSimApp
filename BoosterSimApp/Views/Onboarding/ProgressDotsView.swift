@@ -17,3 +17,12 @@ struct ProgressDotsView: View {
         }
     }
 }
+
+#Preview {
+    VStack(spacing: 16) {
+        ProgressDotsView(total: 4, current: 0)
+        ProgressDotsView(total: 4, current: 2)
+        ProgressDotsView(total: 4, current: 3)
+    }
+    .padding()
+}

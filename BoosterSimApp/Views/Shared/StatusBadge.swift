@@ -33,3 +33,12 @@ struct StatusBadge: View {
             .foregroundStyle(color)
     }
 }
+
+#Preview {
+    HStack(spacing: 20) {
+        StatusBadge(status: .granted)
+        StatusBadge(status: .needed)
+        StatusBadge(status: .skipped)
+    }
+    .padding()
+}

@@ -27,3 +27,16 @@ struct BuildChartView: View {
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.small))
     }
 }
+
+#Preview {
+    let records: [BuildRecord] = [
+        BuildRecord(id: "1", schemeName: "MyApp", startDate: .now, duration: 12.5,  succeeded: true,  errorCount: 0, warningCount: 2),
+        BuildRecord(id: "2", schemeName: "MyApp", startDate: .now, duration: 8.3,   succeeded: false, errorCount: 3, warningCount: 0),
+        BuildRecord(id: "3", schemeName: "MyApp", startDate: .now, duration: 45.1,  succeeded: true,  errorCount: 0, warningCount: 1),
+        BuildRecord(id: "4", schemeName: "MyApp", startDate: .now, duration: 6.7,   succeeded: true,  errorCount: 0, warningCount: 0),
+        BuildRecord(id: "5", schemeName: "MyApp", startDate: .now, duration: 120.0, succeeded: false, errorCount: 1, warningCount: 5),
+    ]
+    BuildChartView(records: records)
+        .frame(width: SideWindowMetrics.expandedWidth)
+        .padding()
+}

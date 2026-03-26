@@ -2,6 +2,7 @@
 // Combines CGWindowList polling with AXObserver real-time callbacks.
 import AppKit
 import Combine
+import OSLog
 
 // MARK: - Device Info Cache Entry
 
@@ -124,6 +125,7 @@ final class SimulatorWindowTracker: ObservableObject {
     }
 
     private func setupObserver(for pid: pid_t) {
+        AppLogger.windowTracking.info("AX observer set up for pid=\(pid, privacy: .public)")
         let obs = WindowObserver(pid: pid)
         // Lifecycle events (created, destroyed, miniaturized) → full scan
         // Move/resize events are handled by onFrameChanged fast path below

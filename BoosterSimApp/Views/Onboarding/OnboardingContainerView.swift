@@ -108,3 +108,7 @@ struct OnboardingContainerView: View {
         NSApp.windows.first { $0.title == "Welcome to BoosterSim" }?.close()
     }
 }
+
+#Preview {
+    OnboardingContainerView()
+}

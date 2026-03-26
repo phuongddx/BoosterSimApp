@@ -20,3 +20,7 @@ struct PreferencesView: View {
         .frame(width: PreferencesMetrics.width, height: PreferencesMetrics.height)
     }
 }
+
+#Preview {
+    PreferencesView(settings: AppSettings())
+}

@@ -29,3 +29,8 @@ struct SideWindowFooter: View {
         }
     }
 }
+
+#Preview {
+    SideWindowFooter()
+        .frame(width: SideWindowMetrics.expandedWidth)
+}

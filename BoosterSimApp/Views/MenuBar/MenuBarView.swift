@@ -52,3 +52,8 @@ struct MenuBarView: View {
         .keyboardShortcut("q", modifiers: .command)
     }
 }
+
+#Preview {
+    MenuBarView()
+        .environmentObject(AppDelegate())
+}

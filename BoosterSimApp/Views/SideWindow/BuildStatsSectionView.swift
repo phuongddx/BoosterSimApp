@@ -84,3 +84,9 @@ struct BuildStatsSectionView: View {
             .frame(height: SideWindowMetrics.rowHeight, alignment: .leading)
     }
 }
+
+#Preview {
+    BuildStatsSectionView()
+        .environmentObject(BuildStatsService())
+        .frame(width: SideWindowMetrics.expandedWidth)
+}
