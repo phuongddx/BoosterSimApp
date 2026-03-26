@@ -122,6 +122,12 @@ final class EnvironmentOverrideService: ObservableObject {
         applyContentSize(udid: udid)
     }
 
+    func setContentSizeIndex(_ index: Int, udid: String) {
+        guard index >= 0 && index < Self.contentSizes.count else { return }
+        contentSizeIndex = index
+        applyContentSize(udid: udid)
+    }
+
     func setReduceMotion(_ enabled: Bool, udid: String) {
         reduceMotion = enabled
         setAccessibility(key: "ReduceMotionEnabled",

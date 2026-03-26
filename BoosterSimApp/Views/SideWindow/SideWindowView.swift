@@ -25,7 +25,11 @@ struct SideWindowView: View {
         return tracker.simulators[selectedSimIndex]
     }
 
-    private var activeUDID: String? { selectedSim?.udid }
+    // Fall back to "booted" when sim is detected but UDID is nil (Screen Recording not granted)
+    private var activeUDID: String? {
+        guard selectedSim != nil else { return nil }
+        return selectedSim?.udid ?? "booted"
+    }
     private var activePID:  pid_t?  { selectedSim?.pid  }
     private var deviceType: SimulatorDeviceType { selectedSim?.deviceType ?? .iOS }
 
@@ -75,18 +79,6 @@ struct SideWindowView: View {
                             collapsibleSection(title: "Environment", icon: "dial.medium") {
                                 EnvironmentOverridesView(udid: activeUDID)
                                     .environmentObject(envOverrideService)
-                            }
-
-                            // --- Phase 5: Build Stats ---
-                            collapsibleSection(title: "Build Stats", icon: "hammer") {
-                                BuildStatsSectionView()
-                                    .environmentObject(buildStatsService)
-                            }
-
-                            // --- Phase 6: VoiceOver Navigator ---
-                            collapsibleSection(title: "VoiceOver", icon: "accessibility") {
-                                AXTreeView(pid: activePID)
-                                    .environmentObject(axInspectorService)
                             }
                         }
                     }

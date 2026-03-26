@@ -22,7 +22,7 @@ struct EnvironmentOverridesView: View {
     private var controls: some View {
         VStack(spacing: 0) {
             // ACCESSIBILITY group
-            groupHeader("Accessibility")
+            subsectionHeader("Accessibility")
 
             toggleRow("Increase Contrast",      icon: "circle.lefthalf.filled",
                 isOn: binding(\.increaseContrast,   { service.setIncreaseContrast($0, udid: effectiveUDID) }))
@@ -43,15 +43,22 @@ struct EnvironmentOverridesView: View {
             toggleRow("Differentiate w/o Color", icon: "circle.hexagongrid",
                 isOn: binding(\.differentiateWithoutColor, { service.setDifferentiateWithoutColor($0, udid: effectiveUDID) }))
 
+            Divider().padding(.horizontal, Spacing.md)
+
             // APPEARANCE group
-            groupHeader("Appearance")
+            subsectionHeader("Appearance")
 
             toggleRow("Dark Mode", icon: "moon",
                 isOn: Binding(
                     get: { service.appearance == .dark },
                     set: { service.setAppearance($0 ? .dark : .light, udid: effectiveUDID) }))
 
-            dynamicTypeRow
+            Divider().padding(.horizontal, Spacing.md)
+
+            // DYNAMIC TYPE group
+            subsectionHeader("Dynamic Type")
+
+            dynamicTypeSlider
         }
         .onAppear {
             if let udid { service.loadCurrentState(udid: udid) }
@@ -63,17 +70,13 @@ struct EnvironmentOverridesView: View {
 
     // MARK: - Row Helpers
 
-    /// Caps-style muted group label matching RocketSim section header pattern
-    private func groupHeader(_ title: String) -> some View {
-        HStack {
-            Text(title.uppercased())
-                .font(.caption2).fontWeight(.semibold)
-                .foregroundStyle(.tertiary)
-            Spacer()
-        }
-        .padding(.horizontal, Spacing.md)
-        .frame(height: SideWindowMetrics.compactRowHeight)
-        .padding(.top, Spacing.xs)
+    private func subsectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline).fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, Spacing.md)
+            .padding(.top, Spacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Icon + label on left, native macOS switch toggle on right
@@ -97,29 +100,26 @@ struct EnvironmentOverridesView: View {
         Binding(get: { service[keyPath: keyPath] }, set: setter)
     }
 
-    private var dynamicTypeRow: some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: "textformat.size").imageScale(.small).frame(width: 16)
-            Text("Dynamic Type").font(.body)
-            Spacer()
-            HStack(spacing: Spacing.xs) {
-                Button { service.decrementContentSize(udid: effectiveUDID) }
-                    label: { Image(systemName: "minus").imageScale(.small) }
-                    .buttonStyle(.plain)
-                    .disabled(service.contentSizeIndex == 0)
-
-                Text(shortSizeName(service.currentSizeName))
-                    .font(.caption2).foregroundStyle(.secondary).frame(minWidth: 28)
-
-                Button { service.incrementContentSize(udid: effectiveUDID) }
-                    label: { Image(systemName: "plus").imageScale(.small) }
-                    .buttonStyle(.plain)
-                    .disabled(service.contentSizeIndex == EnvironmentOverrideService.contentSizes.count - 1)
+    private var dynamicTypeSlider: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.sm) {
+                Text("A").font(.caption).foregroundStyle(.secondary)
+                Slider(
+                    value: Binding(
+                        get: { Double(service.contentSizeIndex) },
+                        set: { service.setContentSizeIndex(Int($0.rounded()), udid: effectiveUDID) }
+                    ),
+                    in: 0...Double(EnvironmentOverrideService.contentSizes.count - 1),
+                    step: 1
+                )
+                .disabled(isDisabled)
+                Text("A").font(.title3).foregroundStyle(.secondary)
             }
+            Text(service.currentSizeName)
+                .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.horizontal, Spacing.md)
-        .frame(height: SideWindowMetrics.rowHeight)
-        .disabled(isDisabled)
+        .padding(.vertical, Spacing.xs)
     }
 
     private var noSimulatorRow: some View {
@@ -127,14 +127,6 @@ struct EnvironmentOverridesView: View {
             .font(.caption).foregroundStyle(.secondary)
             .padding(.horizontal, Spacing.md)
             .frame(height: SideWindowMetrics.rowHeight, alignment: .leading)
-    }
-
-    private func shortSizeName(_ name: String) -> String {
-        name.replacingOccurrences(of: "accessibility-", with: "a11y-")
-            .replacingOccurrences(of: "extra-extra-extra-large", with: "3XL")
-            .replacingOccurrences(of: "extra-extra-large", with: "2XL")
-            .replacingOccurrences(of: "extra-large", with: "XL")
-            .replacingOccurrences(of: "extra-small", with: "XS")
     }
 }
 
