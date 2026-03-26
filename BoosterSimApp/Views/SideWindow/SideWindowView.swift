@@ -71,18 +71,6 @@ struct SideWindowView: View {
 
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 0) {
-                            // --- Existing sections ---
-                            FeatureSectionView(title: "Captures",    icon: "camera",  items: captureItems)
-                            FeatureSectionView(title: "App Actions", icon: "bolt",    items: actionItems)
-                            FeatureSectionView(title: "Design Tools",icon: "ruler",   items: designItems)
-                            FeatureSectionView(title: "Network",     icon: "network", items: networkItems)
-
-                            // --- Phase 2: Status Bar ---
-                            collapsibleSection(title: "Status Bar", icon: "clock") {
-                                StatusBarSectionView(udid: activeUDID)
-                                    .environmentObject(statusBarService)
-                            }
-
                             // --- Phase 3: Environment Overrides ---
                             collapsibleSection(title: "Environment", icon: "dial.medium") {
                                 EnvironmentOverridesView(udid: activeUDID)
@@ -100,20 +88,12 @@ struct SideWindowView: View {
                                 AXTreeView(pid: activePID)
                                     .environmentObject(axInspectorService)
                             }
-
-                            // --- Phase 7: Camera (iOS only) ---
-                            if deviceType == .iOS {
-                                collapsibleSection(title: "Camera", icon: "camera.on.rectangle") {
-                                    CameraView(pid: activePID)
-                                        .environmentObject(cameraService)
-                                }
-                            }
                         }
                     }
 
                     SideWindowFooter()
                 }
-                .frame(width: SideWindowMetrics.expandedWidth)
+//                .frame(width: SideWindowMetrics.expandedWidth)
                 .transition(.opacity)
             }
         }

@@ -137,3 +137,15 @@ struct EnvironmentOverridesView: View {
             .replacingOccurrences(of: "extra-small", with: "XS")
     }
 }
+
+#Preview("With simulator") {
+    EnvironmentOverridesView(udid: "booted")
+        .environmentObject(EnvironmentOverrideService(simCtl: SimCtlService()))
+        .frame(width: SideWindowMetrics.expandedWidth)
+}
+
+#Preview("No simulator") {
+    EnvironmentOverridesView(udid: nil)
+        .environmentObject(EnvironmentOverrideService(simCtl: SimCtlService()))
+        .frame(width: SideWindowMetrics.expandedWidth)
+}
