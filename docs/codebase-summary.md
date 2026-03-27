@@ -3,8 +3,8 @@
 ## Project Stats
 
 - **Language:** Swift 6 (strict concurrency)
-- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement
-- **Files:** 44 Swift source files (~2,900 LOC total)
+- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore
+- **Files:** 49 Swift source files (~3,911 LOC total)
 - **External dependencies:** None
 - **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (empty, not yet configured)
 
@@ -36,14 +36,14 @@ BoosterSimApp/
 │   │   └── CameraService.swift           # Camera menu automation (118 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
-│   │   ├── SideWindowController.swift    # Panel lifecycle/position (147 LOC)
-│   │   ├── PositionCalculator.swift      # Pure frame math (82 LOC)
-│   │   └── AXHighlightPanel.swift        # AX overlay panel (62 LOC)
+│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (200 LOC)
+│   │   ├── PositionCalculator.swift      # Pure frame math, content height + centering (90 LOC)
+│   │   └── AXHighlightPanel.swift        # AX overlay panel (68 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
-│   │   │   └── MenuBarView.swift         # MenuBarExtra content (54 LOC)
+│   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view (182 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view, content height callback (186 LOC)
 │   │   │   ├── SideWindowTitleBar.swift  # Collapse button + title (35 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (84 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (30 LOC)
@@ -68,7 +68,8 @@ BoosterSimApp/
 │   │       ├── AccentButton.swift        # Amber CTA button (21 LOC)
 │   │       └── StatusBadge.swift         # Colored dot + label (35 LOC)
 │   └── Utilities/
-│       └── DesignTokens.swift            # Layout/spacing constants (51 LOC)
+│       ├── DesignTokens.swift            # Layout/spacing constants (51 LOC)
+│       └── SpringAnimator.swift          # CADisplayLink spring physics (90 LOC)
 ├── BoosterSimAppTests/                   # Unit test target (empty)
 ├── BoosterSimAppUITests/                 # UI test target (empty)
 └── plans/                               # Implementation plans
@@ -84,18 +85,19 @@ BoosterSimApp/
 | Simulator detection | `Services/SimulatorWindowTracker.swift` |
 | Low-level window scan | `Services/WindowEnumerator.swift` |
 | Real-time AX events | `Services/WindowObserver.swift` |
-| Panel lifecycle | `Windows/SideWindowController.swift` |
+| Panel lifecycle & spring tracking | `Windows/SideWindowController.swift` |
 | Position math | `Windows/PositionCalculator.swift` |
+| Spring animation physics | `Utilities/SpringAnimator.swift` |
 | Design constants | `Utilities/DesignTokens.swift` |
 | Settings persistence | `Models/AppSettings.swift` |
 
 ## Largest Files (by LOC)
 
-1. `SideWindowView.swift` — 182 LOC
-2. `SimulatorWindowTracker.swift` — 179 LOC
-3. `WindowObserver.swift` — 154 LOC
-4. `EnvironmentOverridesView.swift` — 161 LOC
-5. `AXTreeView.swift` — 135 LOC
+1. `SideWindowController.swift` — 200 LOC
+2. `EnvironmentOverridesView.swift` — 206 LOC
+3. `SideWindowView.swift` — 186 LOC
+4. `SimulatorWindowTracker.swift` — 181 LOC
+5. `StatusBarSectionView.swift` — 129 LOC
 
 All files are under the 200 LOC limit — no modularization needed at this stage.
 

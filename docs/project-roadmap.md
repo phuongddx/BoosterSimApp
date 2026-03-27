@@ -17,6 +17,8 @@ The core infrastructure (menu bar, side panel, simulator tracking, permissions, 
 - [x] Real-time position sync (AXObserver + 0.5s poll fallback)
 - [x] 4 position modes: left, right, bottom, dynamic
 - [x] Collapse/expand animation (respects Reduce Motion)
+- [x] Spring-physics panel tracking (CADisplayLink-driven, auto-stops at rest)
+- [x] Smart side-switch detection (snap + spring on position mode change)
 - [x] Permission onboarding (Accessibility, Screen Recording, DerivedData)
 - [x] Preferences window (position, launch at login)
 - [x] AppSettings persistence via @AppStorage

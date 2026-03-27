@@ -77,9 +77,15 @@ final class EnvironmentOverrideService: ObservableObject {
             .store(in: &cancellables)
 
         // Tier 2 — com.apple.Accessibility plist (instant via notifyutil)
+        // Bold Text is read from .GlobalPreferences (UIKit reads from there)
+        simCtl.run(["spawn", udid, "defaults", "read", ".GlobalPreferences", "UIAccessibilityBoldTextEnabled"])
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                self?.boldText = output.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+            })
+            .store(in: &cancellables)
+
         let a11yKeys: [(String, WritableKeyPath<EnvironmentOverrideService, Bool>)] = [
             ("ReduceMotionEnabled",               \.reduceMotion),
-            ("EnhancedTextLegibilityEnabled",     \.boldText),
             ("EnhancedBackgroundContrastEnabled", \.reduceTransparency),
             ("GrayscaleDisplay",                  \.grayscale),
             ("InvertColorsEnabled",               \.invertColors),
@@ -137,9 +143,23 @@ final class EnvironmentOverrideService: ObservableObject {
 
     func setBoldText(_ enabled: Bool, udid: String) {
         boldText = enabled
-        setAccessibility(key: "EnhancedTextLegibilityEnabled",
-                         notification: "com.apple.accessibility.enhanced-text-legibility",
-                         enabled: enabled, udid: udid)
+        // Bold Text requires writing to BOTH domains — UIKit reads from .GlobalPreferences
+        simCtl.runVoid(["spawn", udid, "defaults", "write",
+                        "com.apple.Accessibility", "EnhancedTextLegibilityEnabled",
+                        "-bool", enabled ? "YES" : "NO"])
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "defaults", "write",
+                                           ".GlobalPreferences", "UIAccessibilityBoldTextEnabled",
+                                           "-bool", enabled ? "YES" : "NO"])
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "notifyutil", "-p",
+                                           "com.apple.accessibility.enhanced-text-legibility"])
+            }
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .store(in: &cancellables)
     }
 
     func setReduceTransparency(_ enabled: Bool, udid: String) {

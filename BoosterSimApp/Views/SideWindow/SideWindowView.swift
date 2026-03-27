@@ -5,6 +5,7 @@ struct SideWindowView: View {
 
     @ObservedObject var tracker: SimulatorWindowTracker
     @ObservedObject var controller: SideWindowController
+    var onHeightChanged: (() -> Void)?
 
     // Service environment objects injected by SideWindowController
     @EnvironmentObject var statusBarService:   StatusBarService
@@ -85,9 +86,13 @@ struct SideWindowView: View {
 
                     SideWindowFooter()
                 }
-//                .frame(width: SideWindowMetrics.expandedWidth)
                 .transition(.opacity)
             }
+        }
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height
+        } action: { _ in
+            onHeightChanged?()
         }
         .animation(
             reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.8),

@@ -19,6 +19,8 @@ final class SimulatorWindowTracker: ObservableObject {
 
     @Published private(set) var simulators: [SimulatorWindow] = []
     @Published private(set) var activeSimulator: SimulatorWindow?
+    /// True when Simulator.app or BoosterSimApp is the frontmost application.
+    @Published private(set) var isSimulatorFocused = false
 
     // MARK: - Private
 
@@ -36,6 +38,9 @@ final class SimulatorWindowTracker: ObservableObject {
         scanAndUpdate()
         setupWorkspaceNotifications()
         startPolling()
+        // Seed initial focus state from current frontmost app
+        let frontName = NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
+        isSimulatorFocused = (frontName == "Simulator" || frontName == "BoosterSimApp")
     }
 
     func stopTracking() {
@@ -176,6 +181,16 @@ final class SimulatorWindowTracker: ObservableObject {
             self?.scanAndUpdate()
         }
 
-        workspaceObservers = [launchObs, terminateObs]
+        // Track which app is frontmost — hide panel when Simulator loses focus
+        let activateObs = center.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            let name = app.localizedName ?? ""
+            self?.isSimulatorFocused = (name == "Simulator" || name == "BoosterSimApp")
+        }
+
+        workspaceObservers = [launchObs, terminateObs, activateObs]
     }
 }

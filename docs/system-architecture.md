@@ -86,7 +86,12 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `@MainActor final class ObservableObject`
 - Subscribes to `tracker.$activeSimulator` via Combine sink
 - Delegates position math to `PositionCalculator`
-- Animates collapse/expand with `NSAnimationContext` (respects reduced motion)
+- Uses `SpringAnimator` for smooth position tracking (CADisplayLink-driven physics)
+- Detects panel side-switches; snaps instantly on switch, then springs to rest
+- Respects `reducedMotion` — disables spring, uses rigid 1:1 tracking
+- Animates collapse/expand with `NSAnimationContext`
+- Reads SwiftUI content intrinsic height; passes to PositionCalculator for content-driven sizing
+- Animates content-driven resizes via `onGeometryChange` callback (0.2s ease-in-out)
 - Intercepts Cmd+W keyboard shortcut when panel is key window
 
 **`PositionCalculator`** (`Windows/PositionCalculator.swift`)
@@ -94,6 +99,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Computes panel frame for left, right, bottom, dynamic modes
 - Dynamic mode: prefers right side; falls back to left if insufficient space
 - Uses NSScreen intersection area to find best-containing screen
+- Panel height driven by SwiftUI content intrinsic size (min floor: 400pt)
+- Vertically centers panel on simulator for left/right/dynamic positions
 
 ### Models
 
@@ -122,6 +129,13 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Enums: `Spacing`, `CornerRadius`, `SideWindowMetrics`, `OnboardingMetrics`, `PreferencesMetrics`
 - Single source of truth for all layout constants
 
+**`SpringAnimator`** (`Utilities/SpringAnimator.swift`)
+- `@MainActor final class` — CADisplayLink-driven spring physics
+- Damped harmonic motion: stiffness=280, damping=22, rest threshold=0.5pt
+- Smoothly animates panel position toward target frame
+- Auto-stops at rest (displacement and velocity both < threshold)
+- `snapTo()` for instant repositioning (used on panel side-switches)
+
 ## Data Flow
 
 ```
@@ -137,8 +151,26 @@ AXObserver callback (move/resize/minimize/quit)     ─┤→ SimulatorWindowTra
                                     attachToSimulator()        detach()
                                           │                        │
                                    updatePosition()           panel.orderOut()
-                                   PositionCalculator
-                                   panel.setFrame()
+                                          ↓                   springAnimator.stop()
+                         ┌────────────────────────┐
+                         │ Check reducedMotion    │
+                         └────────────────────────┘
+                    NO  /          |          \  YES
+                  Spring       Collapse    Rigid 1:1
+                    │          NSAnimation     │
+                    ↓                          ↓
+            Detect side-switch?        panel.setFrame()
+                 /          \
+              YES            NO
+               │              │
+          snap() then    setTarget()
+          spring()       (CADisplayLink)
+               │              │
+               └──────┬───────┘
+                      ↓
+            SpringAnimator.onFrameUpdate
+                      ↓
+            panel.setFrame(animated frame)
 ```
 
 ## Concurrency Model

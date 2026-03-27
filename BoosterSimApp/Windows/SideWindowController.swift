@@ -17,9 +17,17 @@ final class SideWindowController: ObservableObject {
     private var currentSimulator: SimulatorWindow?
     private var settings: AppSettings
     private var trackerCancellable: AnyCancellable?
+    private var focusCancellable: AnyCancellable?
+    private var isSimulatorFocused = true
     private var lastPanelSide: PanelSide = .right
+    private var hostingView: NSView?
+    private var isUpdatingPosition = false
     private var reducedMotion: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+    private var currentContentHeight: CGFloat {
+        let h = hostingView?.intrinsicContentSize.height ?? 0
+        return h > 0 ? h : SideWindowMetrics.minHeight
     }
 
     /// Which side the panel is currently on relative to the simulator.
@@ -64,6 +72,17 @@ final class SideWindowController: ObservableObject {
                 self.detach()
             }
         }
+        // Hide panel when Simulator loses focus; re-show when it regains focus
+        focusCancellable = tracker.$isSimulatorFocused.sink { [weak self] focused in
+            guard let self else { return }
+            self.isSimulatorFocused = focused
+            guard self.currentSimulator != nil else { return }
+            if focused {
+                if self.settings.showSideWindow { self.show() }
+            } else {
+                self.hide()
+            }
+        }
     }
 
     // MARK: - Show/Hide
@@ -99,7 +118,7 @@ final class SideWindowController: ObservableObject {
     private func attachToSimulator(_ simulator: SimulatorWindow) {
         currentSimulator = simulator
         updatePosition()
-        if settings.showSideWindow { show() }
+        if settings.showSideWindow && isSimulatorFocused { show() }
     }
 
     private func detach() {
@@ -111,13 +130,16 @@ final class SideWindowController: ObservableObject {
     // MARK: - Position Update
 
     func updatePosition(animated: Bool = false) {
-        guard let sim = currentSimulator else { return }
+        guard !isUpdatingPosition, let sim = currentSimulator else { return }
+        isUpdatingPosition = true
+        defer { isUpdatingPosition = false }
         let screen = PositionCalculator.screen(containing: sim.frame)
         let frame  = PositionCalculator.panelFrame(
             simulatorFrame: sim.frame,
             position: settings.position,
             screenFrame: screen.visibleFrame,
-            isCollapsed: isCollapsed
+            isCollapsed: isCollapsed,
+            contentHeight: currentContentHeight
         )
 
         // Collapse/expand uses AppKit animation context — bypass spring
@@ -159,13 +181,26 @@ final class SideWindowController: ObservableObject {
         axInspectorService: AXInspectorService,
         cameraService: CameraService
     ) {
-        let content = SideWindowView(tracker: tracker, controller: self)
+        let content = SideWindowView(
+            tracker: tracker,
+            controller: self,
+            onHeightChanged: { [weak self] in
+                // Defer off SwiftUI's layout pass to avoid reentrant NSHostingView layout.
+                // Use animated:false so the spring animator coalesces rapid updates.
+                DispatchQueue.main.async { [weak self] in
+                    self?.updatePosition()
+                }
+            }
+        )
             .environmentObject(statusBarService)
             .environmentObject(envOverrideService)
             .environmentObject(buildStatsService)
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
-        panel.contentView = NSHostingView(rootView: content)
+        let hv = NSHostingView(rootView: content)
+        hv.sizingOptions = [.minSize, .intrinsicContentSize]
+        panel.contentView = hv
+        hostingView = hv
     }
 
     // MARK: - Keyboard Shortcut (Cmd+W hides side window)

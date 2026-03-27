@@ -16,10 +16,11 @@ enum PositionCalculator {
         simulatorFrame: CGRect,
         position: SideWindowPosition,
         screenFrame: CGRect,
-        isCollapsed: Bool
+        isCollapsed: Bool,
+        contentHeight: CGFloat
     ) -> CGRect {
         let panelWidth = isCollapsed ? SideWindowMetrics.collapsedWidth : SideWindowMetrics.expandedWidth
-        let panelHeight = max(simulatorFrame.height, SideWindowMetrics.minHeight)
+        let panelHeight = max(contentHeight, SideWindowMetrics.minHeight)
 
         switch position {
         case .right:
@@ -37,12 +38,19 @@ enum PositionCalculator {
 
     private static func rightFrame(sim: CGRect, width: CGFloat, height: CGFloat, screen: CGRect) -> CGRect {
         let x = min(sim.maxX, screen.maxX - width)
-        return CGRect(x: x, y: sim.minY, width: width, height: height)
+        let y = centeredY(sim: sim, height: height, screen: screen)
+        return CGRect(x: x, y: y, width: width, height: height)
     }
 
     private static func leftFrame(sim: CGRect, width: CGFloat, height: CGFloat, screen: CGRect) -> CGRect {
         let x = max(sim.minX - width, screen.minX)
-        return CGRect(x: x, y: sim.minY, width: width, height: height)
+        let y = centeredY(sim: sim, height: height, screen: screen)
+        return CGRect(x: x, y: y, width: width, height: height)
+    }
+
+    private static func centeredY(sim: CGRect, height: CGFloat, screen: CGRect) -> CGFloat {
+        let ideal = sim.midY - height / 2
+        return max(screen.minY, min(ideal, screen.maxY - height))
     }
 
     private static func bottomFrame(sim: CGRect, screen: CGRect) -> CGRect {
