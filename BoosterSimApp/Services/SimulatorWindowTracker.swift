@@ -114,7 +114,10 @@ final class SimulatorWindowTracker: ObservableObject {
         }
 
         simulators      = classified
-        activeSimulator = classified.first
+        let newActive = classified.first
+        if activeSimulator != newActive {
+            activeSimulator = newActive
+        }
 
         // Setup AX observers for any new PIDs
         let foundPIDs = Set(found.map(\.pid))

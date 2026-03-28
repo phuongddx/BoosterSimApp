@@ -34,14 +34,16 @@ struct EnvironmentOverridesView: View {
                 isOn: binding(\.reduceMotion,       { service.setReduceMotion($0, udid: effectiveUDID) }))
             toggleRow("On/Off Labels",           icon: "switch.2",
                 isOn: binding(\.onOffLabels,        { service.setOnOffLabels($0, udid: effectiveUDID) }))
-            toggleRow("Button Shapes",           icon: "rectangle.and.hand.point.up.left",
+            toggleRow("Show Borders",             icon: "rectangle.and.hand.point.up.left",
                 isOn: binding(\.buttonShapes,       { service.setButtonShapes($0, udid: effectiveUDID) }))
             toggleRow("Grayscale",               icon: "circle.lefthalf.strikethrough",
                 isOn: binding(\.grayscale,          { service.setGrayscale($0, udid: effectiveUDID) }))
-            toggleRow("Invert Colors",           icon: "circle.inset.filled",
-                isOn: binding(\.invertColors,       { service.setInvertColors($0, udid: effectiveUDID) }))
+            toggleRow("Smart Invert",            icon: "circle.inset.filled",
+                isOn: binding(\.smartInvert,        { service.setSmartInvert($0, udid: effectiveUDID) }))
             toggleRow("Differentiate w/o Color", icon: "circle.hexagongrid",
                 isOn: binding(\.differentiateWithoutColor, { service.setDifferentiateWithoutColor($0, udid: effectiveUDID) }))
+            toggleRow("Prefer Horizontal Text",  icon: "textformat.alt",
+                isOn: binding(\.preferHorizontalText, { service.setPreferHorizontalText($0, udid: effectiveUDID) }))
 
             Divider().padding(.horizontal, Spacing.md)
 

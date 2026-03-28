@@ -74,15 +74,8 @@ struct SideWindowView: View {
 
                     DeviceHeaderView(tracker: tracker, selectedIndex: $selectedSimIndex)
 
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
-                            // --- Phase 3: Environment Overrides ---
-                            collapsibleSection(title: "Environment", icon: "dial.medium") {
-                                EnvironmentOverridesView(udid: activeUDID)
-                                    .environmentObject(envOverrideService)
-                            }
-                        }
-                    }
+                    EnvironmentOverridesView(udid: activeUDID)
+                        .environmentObject(envOverrideService)
 
                     SideWindowFooter()
                 }

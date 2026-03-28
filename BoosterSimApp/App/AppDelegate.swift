@@ -42,6 +42,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Terminate if another instance is already running (LSUIElement hides duplicates)
+        let runningInstances = NSRunningApplication.runningApplications(
+            withBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
+        )
+        if runningInstances.count > 1 {
+            NSApp.terminate(nil)
+            return
+        }
+
         // Wire side window to simulator tracker
         sideWindowController.attach(to: tracker)
 
@@ -49,19 +58,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         tracker.startTracking()
         buildStatsService.startMonitoring()
 
-        // React to active simulator changes
-        tracker.$activeSimulator
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] sim in
-                guard let self else { return }
-                if let sim {
-                    let udid = sim.udid ?? "booted"
-                    envOverrideService.loadCurrentState(udid: udid)
-                    cameraService.probeSupport(pid: sim.pid)
-                    axInspectorService.loadRoot(for: sim.pid)
-                }
-            }
-            .store(in: &cancellables)
+        // NOTE: envOverrideService.loadCurrentState is called from
+        // EnvironmentOverridesView (onAppear + onChange) — no need to duplicate here.
 
         // Drive AXHighlightPanel from AXInspectorService
         axInspectorService.$highlightFrame

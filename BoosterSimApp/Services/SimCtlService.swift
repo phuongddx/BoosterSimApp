@@ -32,7 +32,8 @@ final class SimCtlService: ObservableObject {
 
     /// Runs `xcrun simctl <args>` on background queue; delivers result on main.
     func run(_ args: [String]) -> AnyPublisher<String, SimCtlError> {
-        Future { promise in
+        print("[SimCtl] xcrun simctl \(args.joined(separator: " "))")
+        return Future { promise in
             DispatchQueue.global(qos: .userInitiated).async {
                 guard FileManager.default.fileExists(atPath: "/usr/bin/xcrun") else {
                     DispatchQueue.main.async { promise(.failure(.xcrunNotFound)) }

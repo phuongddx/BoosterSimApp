@@ -26,8 +26,9 @@ final class EnvironmentOverrideService: ObservableObject {
     @Published var boldText: Bool = false
     @Published var reduceTransparency: Bool = false
     @Published var grayscale: Bool = false
-    @Published var invertColors: Bool = false
+    @Published var smartInvert: Bool = false
     @Published var buttonShapes: Bool = false
+    @Published var preferHorizontalText: Bool = false
     @Published var onOffLabels: Bool = false
     @Published var differentiateWithoutColor: Bool = false
 
@@ -77,21 +78,23 @@ final class EnvironmentOverrideService: ObservableObject {
             .store(in: &cancellables)
 
         // Tier 2 — com.apple.Accessibility plist (instant via notifyutil)
-        // Bold Text is read from .GlobalPreferences (UIKit reads from there)
-        simCtl.run(["spawn", udid, "defaults", "read", ".GlobalPreferences", "UIAccessibilityBoldTextEnabled"])
+        // Smart Invert requires reading both keys
+        simCtl.run(["spawn", udid, "defaults", "read", "com.apple.Accessibility",
+                    "AXSSystemUIProcessAppSmartInvertEnabledPreference"])
             .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
-                self?.boldText = output.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+                self?.smartInvert = output.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
             })
             .store(in: &cancellables)
 
         let a11yKeys: [(String, WritableKeyPath<EnvironmentOverrideService, Bool>)] = [
             ("ReduceMotionEnabled",               \.reduceMotion),
+            ("BoldTextEnabled",                    \.boldText),
             ("EnhancedBackgroundContrastEnabled", \.reduceTransparency),
             ("GrayscaleDisplay",                  \.grayscale),
-            ("InvertColorsEnabled",               \.invertColors),
             ("IncreaseButtonLegibilityEnabled",   \.buttonShapes),
             ("OnOffSwitchLabels",                 \.onOffLabels),
             ("DifferentiateWithoutColor",         \.differentiateWithoutColor),
+            ("PreferHorizontalTextEnabled",       \.preferHorizontalText),
         ]
         for (key, path) in a11yKeys {
             simCtl.run(["spawn", udid, "defaults", "read", "com.apple.Accessibility", key])
@@ -103,6 +106,7 @@ final class EnvironmentOverrideService: ObservableObject {
     }
 
     func setAppearance(_ style: AppearanceStyle, udid: String) {
+        print("[EnvOverride] setAppearance: \(style.rawValue) (udid: \(udid))")
         appearance = style
         simCtl.runVoid(["ui", udid, "appearance", style.rawValue])
             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
@@ -110,6 +114,7 @@ final class EnvironmentOverrideService: ObservableObject {
     }
 
     func setIncreaseContrast(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setIncreaseContrast: \(enabled) (udid: \(udid))")
         increaseContrast = enabled
         simCtl.runVoid(["ui", udid, "increase_contrast", enabled ? "enabled" : "disabled"])
             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
@@ -118,51 +123,71 @@ final class EnvironmentOverrideService: ObservableObject {
 
     func incrementContentSize(udid: String) {
         guard contentSizeIndex < Self.contentSizes.count - 1 else { return }
+        print("[EnvOverride] incrementContentSize: \(contentSizeIndex + 1) (udid: \(udid))")
         contentSizeIndex += 1
         applyContentSize(udid: udid)
     }
 
     func decrementContentSize(udid: String) {
         guard contentSizeIndex > 0 else { return }
+        print("[EnvOverride] decrementContentSize: \(contentSizeIndex - 1) (udid: \(udid))")
         contentSizeIndex -= 1
         applyContentSize(udid: udid)
     }
 
     func setContentSizeIndex(_ index: Int, udid: String) {
         guard index >= 0 && index < Self.contentSizes.count else { return }
+        print("[EnvOverride] setContentSizeIndex: \(index) (\(Self.contentSizes[index])) (udid: \(udid))")
         contentSizeIndex = index
         applyContentSize(udid: udid)
     }
 
     func setReduceMotion(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setReduceMotion: \(enabled) (udid: \(udid))")
         reduceMotion = enabled
         setAccessibility(key: "ReduceMotionEnabled",
                          notification: "com.apple.accessibility.reduce-motion",
                          enabled: enabled, udid: udid)
     }
 
+    /// Bold Text requires 3 plist keys across 2 domains + a different notification than other toggles.
     func setBoldText(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setBoldText: \(enabled) (udid: \(udid))")
         boldText = enabled
-        // Bold Text requires writing to BOTH domains — UIKit reads from .GlobalPreferences
+        let value = enabled ? "YES" : "NO"
+
         simCtl.runVoid(["spawn", udid, "defaults", "write",
-                        "com.apple.Accessibility", "EnhancedTextLegibilityEnabled",
-                        "-bool", enabled ? "YES" : "NO"])
+                        "com.apple.Accessibility", "BoldTextEnabled", "-bool", value])
             .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
                 guard let self else { return Empty().eraseToAnyPublisher() }
                 return self.simCtl.runVoid(["spawn", udid, "defaults", "write",
-                                           ".GlobalPreferences", "UIAccessibilityBoldTextEnabled",
-                                           "-bool", enabled ? "YES" : "NO"])
+                                           "com.apple.Accessibility",
+                                           "EnhancedTextLegibilityEnabled", "-bool", value])
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "defaults", "write",
+                                           ".GlobalPreferences",
+                                           "UIAccessibilityBoldTextEnabled", "-bool", value])
             }
             .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
                 guard let self else { return Empty().eraseToAnyPublisher() }
                 return self.simCtl.runVoid(["spawn", udid, "notifyutil", "-p",
-                                           "com.apple.accessibility.enhanced-text-legibility"])
+                                           "com.apple.accessibility.AccessibilityUIServer"])
             }
-            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let e) = completion {
+                        print("[EnvOverride] setBoldText error: \(e)")
+                    }
+                },
+                receiveValue: { _ in }
+            )
             .store(in: &cancellables)
     }
 
     func setReduceTransparency(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setReduceTransparency: \(enabled) (udid: \(udid))")
         reduceTransparency = enabled
         setAccessibility(key: "EnhancedBackgroundContrastEnabled",
                          notification: "com.apple.accessibility.reduce-transparency",
@@ -170,20 +195,38 @@ final class EnvironmentOverrideService: ObservableObject {
     }
 
     func setGrayscale(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setGrayscale: \(enabled) (udid: \(udid))")
         grayscale = enabled
         setAccessibility(key: "GrayscaleDisplay",
                          notification: "com.apple.accessibility.grayscale",
                          enabled: enabled, udid: udid)
     }
 
-    func setInvertColors(_ enabled: Bool, udid: String) {
-        invertColors = enabled
-        setAccessibility(key: "InvertColorsEnabled",
-                         notification: "com.apple.accessibility.invert-colors",
-                         enabled: enabled, udid: udid)
+    func setSmartInvert(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setSmartInvert: \(enabled) (udid: \(udid))")
+        smartInvert = enabled
+        // Smart Invert requires both InvertColorsEnabled + AXSSystemUIProcessAppSmartInvertEnabledPreference
+        simCtl.runVoid(["spawn", udid, "defaults", "write",
+                        "com.apple.Accessibility", "InvertColorsEnabled",
+                        "-bool", enabled ? "YES" : "NO"])
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "defaults", "write",
+                                           "com.apple.Accessibility",
+                                           "AXSSystemUIProcessAppSmartInvertEnabledPreference",
+                                           "-bool", enabled ? "YES" : "NO"])
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<Void, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.runVoid(["spawn", udid, "notifyutil", "-p",
+                                           "com.apple.accessibility.invert-colors"])
+            }
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .store(in: &cancellables)
     }
 
     func setButtonShapes(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setButtonShapes: \(enabled) (udid: \(udid))")
         buttonShapes = enabled
         setAccessibility(key: "IncreaseButtonLegibilityEnabled",
                          notification: "com.apple.accessibility.increase-button-legibility",
@@ -191,6 +234,7 @@ final class EnvironmentOverrideService: ObservableObject {
     }
 
     func setOnOffLabels(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setOnOffLabels: \(enabled) (udid: \(udid))")
         onOffLabels = enabled
         setAccessibility(key: "OnOffSwitchLabels",
                          notification: "com.apple.accessibility.on-off-switch-labels",
@@ -198,9 +242,18 @@ final class EnvironmentOverrideService: ObservableObject {
     }
 
     func setDifferentiateWithoutColor(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setDifferentiateWithoutColor: \(enabled) (udid: \(udid))")
         differentiateWithoutColor = enabled
         setAccessibility(key: "DifferentiateWithoutColor",
                          notification: "com.apple.accessibility.differentiate-without-color",
+                         enabled: enabled, udid: udid)
+    }
+
+    func setPreferHorizontalText(_ enabled: Bool, udid: String) {
+        print("[EnvOverride] setPreferHorizontalText: \(enabled) (udid: \(udid))")
+        preferHorizontalText = enabled
+        setAccessibility(key: "PreferHorizontalTextEnabled",
+                         notification: "com.apple.accessibility.prefer-horizontal-text",
                          enabled: enabled, udid: udid)
     }
 
