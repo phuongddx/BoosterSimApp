@@ -13,6 +13,7 @@ struct SideWindowView: View {
     @EnvironmentObject var buildStatsService:  BuildStatsService
     @EnvironmentObject var axInspectorService: AXInspectorService
     @EnvironmentObject var cameraService:      CameraService
+    @EnvironmentObject var healthDataService:  HealthDataService
 
     // Selected simulator index (for multi-device picker in DeviceHeaderView)
     @State private var selectedSimIndex = 0
@@ -77,6 +78,9 @@ struct SideWindowView: View {
                     EnvironmentOverridesView(udid: activeUDID)
                         .environmentObject(envOverrideService)
 
+                    HealthDataSectionView(udid: activeUDID ?? "booted")
+                        .environmentObject(healthDataService)
+
                     SideWindowFooter()
                 }
                 .transition(.opacity)
@@ -93,34 +97,25 @@ struct SideWindowView: View {
         )
     }
 
-    // MARK: - Helper: wrap content in a collapsible FeatureSection-style container
-
-    @ViewBuilder
-    private func collapsibleSection<Content: View>(
-        title: String,
-        icon: String,
-        @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        CollapsibleSectionWrapper(title: title, icon: icon, content: content)
-    }
 }
 
 // MARK: - Preview
 
 #Preview {
-    let simCtl            = SimCtlService()
-    let tracker           = SimulatorWindowTracker()
-    let settings          = AppSettings()
-    let statusBarService  = StatusBarService(simCtl: simCtl)
-    let envService        = EnvironmentOverrideService(simCtl: simCtl)
-    let buildService      = BuildStatsService()
-    let axService         = AXInspectorService()
-    let cameraService     = CameraService()
-    let controller        = SideWindowController(
+    let simCtl           = SimCtlService()
+    let tracker          = SimulatorWindowTracker()
+    let settings         = AppSettings()
+    let statusBarService = StatusBarService(simCtl: simCtl)
+    let envService       = EnvironmentOverrideService(simCtl: simCtl)
+    let buildService     = BuildStatsService()
+    let axService        = AXInspectorService()
+    let cameraService    = CameraService()
+    let healthService    = HealthDataService(simCtl: simCtl)
+    let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
         buildStatsService: buildService, axInspectorService: axService,
-        cameraService: cameraService
+        cameraService: cameraService, healthDataService: healthService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -128,51 +123,6 @@ struct SideWindowView: View {
         .environmentObject(buildService)
         .environmentObject(axService)
         .environmentObject(cameraService)
+        .environmentObject(healthService)
         .frame(width: SideWindowMetrics.expandedWidth, height: 600)
-}
-
-// MARK: - Collapsible Wrapper (avoids state capture issues in LazyVStack)
-
-private struct CollapsibleSectionWrapper<Content: View>: View {
-    let title: String
-    let icon: String
-    let content: () -> Content
-    @State private var isExpanded = true
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.35, dampingFraction: 0.85)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: icon).imageScale(.small).foregroundStyle(.secondary)
-                        Text(title).font(.subheadline).fontWeight(.medium).foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .frame(height: SideWindowMetrics.compactRowHeight)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .imageScale(.small).foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(
-                            reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.75),
-                            value: isExpanded
-                        )
-                        .padding(.trailing, Spacing.md)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .background(.background)
-
-            if isExpanded {
-                content()
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
 }

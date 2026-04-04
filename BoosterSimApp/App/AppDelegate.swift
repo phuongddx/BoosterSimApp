@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var buildStatsService   = BuildStatsService()
     lazy var axInspectorService  = AXInspectorService()
     lazy var cameraService       = CameraService()
+    lazy var healthDataService   = HealthDataService(simCtl: simCtlService)
     lazy var axHighlightPanel    = AXHighlightPanel()
 
     // MARK: - Windows
@@ -30,7 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         envOverrideService: envOverrideService,
         buildStatsService: buildStatsService,
         axInspectorService: axInspectorService,
-        cameraService: cameraService
+        cameraService: cameraService,
+        healthDataService: healthDataService
     )
 
     // MARK: - Private

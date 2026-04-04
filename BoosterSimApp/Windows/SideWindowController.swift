@@ -44,7 +44,8 @@ final class SideWindowController: ObservableObject {
         envOverrideService: EnvironmentOverrideService,
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
-        cameraService: CameraService
+        cameraService: CameraService,
+        healthDataService: HealthDataService
     ) {
         self.settings = settings
         springAnimator.onFrameUpdate = { [weak self] frame in
@@ -56,7 +57,8 @@ final class SideWindowController: ObservableObject {
             envOverrideService: envOverrideService,
             buildStatsService: buildStatsService,
             axInspectorService: axInspectorService,
-            cameraService: cameraService
+            cameraService: cameraService,
+            healthDataService: healthDataService
         )
         setupKeyboardShortcut()
     }
@@ -179,7 +181,8 @@ final class SideWindowController: ObservableObject {
         envOverrideService: EnvironmentOverrideService,
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
-        cameraService: CameraService
+        cameraService: CameraService,
+        healthDataService: HealthDataService
     ) {
         let content = SideWindowView(
             tracker: tracker,
@@ -197,6 +200,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(buildStatsService)
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
+            .environmentObject(healthDataService)
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]
         panel.contentView = hv
