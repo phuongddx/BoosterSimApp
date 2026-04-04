@@ -15,9 +15,10 @@ macOS menu bar companion app that attaches a floating side panel to the iOS Simu
 **Inspection & Debugging** *(implemented)*
 - AX Inspector — browse live accessibility tree with element highlighting
 - Build Stats — chart of recent build times via Xcode derived data
-- Environment Overrides — appearance, contrast, motion, bold text toggles
+- Environment Overrides — appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale toggles (instant, no relaunch)
 - Status Bar — 4 presets + custom time/battery/signal via simctl
 - Camera — use Mac camera as Simulator input via AX menu automation
+- Health Data — seed HealthKit (steps, HR, HRV, SpO2, sleep, workout) via bundled iOS companion app
 
 **Planned**
 - Captures — screenshot, screen recording, GIF/MP4 export
@@ -62,22 +63,26 @@ Without Accessibility, the app falls back to 0.5s polling — still functional, 
 
 ## Architecture
 
-SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. 44 Swift files, ~2,500 LOC, zero external dependencies.
+SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. ~51 Swift files, ~4,625 LOC, zero external dependencies. Includes `BoosterHealth` — a bundled iOS companion app for HealthKit data seeding.
 
 ```
 BoosterSimAppApp (@main)
 └── AppDelegate
     ├── SimulatorWindowTracker      — CGWindowList poll + AXObserver
-    ├── SideWindowController        — NSPanel lifecycle + positioning
+    ├── SideWindowController        — NSPanel lifecycle + spring animation
     │   └── AXHighlightPanel        — floating overlay for AX element highlight
     ├── PermissionManager           — Accessibility / Screen Recording checks
     ├── AppSettings                 — @AppStorage persistence
-    ├── AXInspectorService          — lazy AX tree walker + element selection
-    ├── BuildStatsService           — poll DerivedData build timing logs
+    ├── EnvironmentOverrideService  — instant a11y toggles (appearance, contrast, bold text, etc.)
+    ├── StatusBarService            — status bar presets + custom controls
+    ├── BuildStatsService           — Xcode build history + Canvas chart
+    ├── AXInspectorService          — accessibility tree walker + highlight
     ├── CameraService               — Mac camera input via AX menu automation
-    ├── EnvironmentOverrideService  — appearance / a11y env overrides
     ├── SimCtlService               — xcrun simctl executor
-    └── StatusBarService            — status bar preset + custom config
+    ├── HealthDataService           — BoosterHealth companion install + URL trigger
+    └── WindowObserver              — AXObserver per PID for real-time tracking
+BoosterHealth (iOS companion, Simulator-only)
+└── BoosterHealthApp + HealthDataGenerator + HealthPayload
 ```
 
 See [`docs/system-architecture.md`](docs/system-architecture.md) for full details.

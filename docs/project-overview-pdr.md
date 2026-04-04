@@ -15,23 +15,25 @@ iOS developers spend significant time switching between the Simulator and extern
 - iOS/macOS developers running Xcode Simulator during daily development
 - Single user (developer) operating on macOS 15+ with Xcode 16.3+
 
-## Scope (MVP)
+## Scope (Phase 1 + Phase 6 Complete)
 
-### In Scope
+### Implemented
 - Menu bar app with bolt icon (connected/disconnected state)
-- Floating side panel that attaches to the active Simulator window
-- Auto-positioning: left, right, bottom, or dynamic (auto-detect screen space)
-- Collapse/expand animation for side panel
-- Simulator detection with real-time position sync
+- Floating side panel with 4 position modes (left, right, bottom, dynamic)
+- Collapse/expand animation (respects Reduce Motion)
+- Spring-physics panel position tracking (CADisplayLink)
+- Simulator detection with real-time position sync; panel hides on Simulator focus loss
 - Permission onboarding (Accessibility, Screen Recording, DerivedData)
 - Preferences window (position, launch at login)
+- **Phase 6 features:** Status bar config, accessibility toggles (appearance, contrast, bold text, smart invert, reduce transparency, grayscale, etc.), build history chart, accessibility tree inspector, Mac camera input, environment overrides
+- **Health Data Generator:** seed HealthKit (steps, HR, HRV, SpO2, energy, sleep, workout) via bundled BoosterHealth iOS companion; 4 presets + manual mode + clear data
 
-### Out of Scope (MVP — planned future phases)
-- Screenshot capture
-- Screen recording / GIF export
+### Out of Scope (Phases 2–5, 7)
+- Screenshot capture / screen recording / GIF export
 - App actions (reset, clear keychain, push notifications, deep links)
 - Design overlays (grid, safe area, color picker, ruler)
-- Network tools (throttle, block requests, certificate inspection, logging)
+- Network tools (throttle, block requests, certificate inspection)
+- Distribution & code signing
 
 ## Requirements
 
@@ -47,6 +49,10 @@ iOS developers spend significant time switching between the Simulator and extern
 - FR-09: First-launch onboarding flow (4 steps, permission setup)
 - FR-10: Preferences (position, launch at login, Xcode path)
 - FR-11: Cmd+B toggles panel; Cmd+W hides it; Cmd+, opens Preferences
+- FR-12: Panel hides when Simulator loses focus (app activation change)
+- FR-13: Environment overrides apply instantly (no app relaunch) via `xcrun simctl spawn`
+- FR-14: Health data seeded via bundled BoosterHealth iOS companion (`simctl install` + `simctl openurl boosterhealth://generate?...`)
+- FR-15: Spring-physics tracking for smooth panel position following (CADisplayLink, reducedMotion-aware)
 
 ### Non-Functional
 - NFR-01: macOS 15+ only (no backwards compat shims)

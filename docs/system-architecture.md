@@ -22,10 +22,20 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 └───────────────┬─────────────────────────────────────┘
                 │ Combine @Published
 ┌───────────────▼─────────────────────────────────────┐
-│  Services Layer                                     │
+│  Core Services                                      │
 │  ├── WindowEnumerator — CGWindowListCopyWindowInfo  │
 │  ├── WindowObserver — AXObserver C callbacks        │
 │  ├── PermissionManager — Accessibility/SR/DData     │
+│  └── SimulatorWindowTracker orchestrator            │
+├─────────────────────────────────────────────────────┤
+│  Feature Services (Phases 6+)                       │
+│  ├── EnvironmentOverrideService — a11y toggles      │
+│  ├── StatusBarService — status presets + config     │
+│  ├── BuildStatsService — build history polling      │
+│  ├── AXInspectorService — accessibility tree walk   │
+│  ├── CameraService — camera routing automation      │
+│  ├── HealthDataService — companion install/trigger  │
+│  ├── SimCtlService — xcrun simctl executor          │
 │  └── XcodeDetector — filesystem path detection     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -75,12 +85,48 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Pure filesystem checks against known Xcode paths (no process execution)
 - Returns `.app` path or nil; derives Developer directory path
 
+**`EnvironmentOverrideService`** (`Services/EnvironmentOverrideService.swift`)
+- Instant accessibility toggles via `xcrun simctl spawn`
+- Controls: appearance (dark/light), bold text, reduce motion, increase contrast, smart invert, reduce transparency, on/off labels, button shapes, differentiate without color, grayscale
+- No app relaunch required; toggles apply immediately
+
+**`StatusBarService`** (`Services/StatusBarService.swift`)
+- 4 presets: Screenshot Ready, Low Battery, No Signal, Normal
+- Custom config: time, battery percentage, signal bars via `xcrun simctl ui`
+
+**`BuildStatsService`** (`Services/BuildStatsService.swift`)
+- Polls Xcode DerivedData build timing logs every 5s
+- Stores last 30 build records with duration, timestamp, device
+- Powers Canvas bar chart in side panel
+
+**`AXInspectorService`** (`Services/AXInspectorService.swift`)
+- Lazy walks accessibility tree from app under test
+- Element selection, frame detection, properties inspection
+- Highlights selected element via `AXHighlightPanel` overlay
+
+**`CameraService`** (`Services/CameraService.swift`)
+- Toggles Mac camera input via AX menu automation
+- Targets Simulator menu: I/O → Camera → FaceTime HD Camera
+
+**`HealthDataService`** (`Services/HealthDataService.swift`)
+- Installs bundled `BoosterHealth.app` onto active Simulator via `simctl install`
+- Triggers companion via `boosterhealth://` URL scheme (`simctl openurl`) with preset/manual parameters
+- Manages state: idle → installing → generating → done/error
+- Auto-resets to idle after 3s on success; publishes `@Published` state for UI feedback
+- Delegates to `SimCtlService` for command execution
+
+**`SimCtlService`** (`Services/SimCtlService.swift`)
+- Centralized executor for `xcrun simctl` commands
+- Parses boot arguments, environment overrides, status bar config
+- Error handling with logged diagnostics
+
 ### Windows
 
 **`SideWindowPanel`** (`Windows/SideWindowPanel.swift`)
 - `NSPanel` subclass, level `.floating`, `hidesOnDeactivate = false`
 - `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]`
 - `isReleasedWhenClosed = false` — lifecycle managed by SideWindowController
+- Panel hides when Simulator loses focus (active app changes); re-shows on Simulator re-focus
 
 **`SideWindowController`** (`Windows/SideWindowController.swift`)
 - `@MainActor final class ObservableObject`
@@ -102,6 +148,11 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Panel height driven by SwiftUI content intrinsic size (min floor: 400pt)
 - Vertically centers panel on simulator for left/right/dynamic positions
 
+**`AXHighlightPanel`** (`Windows/AXHighlightPanel.swift`)
+- Borderless floating NSPanel overlay for accessibility element highlighting
+- Draws orange border around selected element frame
+- Stays on top of all windows; auto-hides after 2.5s
+
 ### Models
 
 **`SimulatorWindow`** (`Models/SimulatorWindow.swift`)
@@ -113,15 +164,30 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`
 - `setLaunchAtLogin(_:)` syncs with `SMAppService.mainApp`
 
+**`AXNode`** (`Models/AXNode.swift`)
+- Accessibility tree node: role, description, frame, attributes
+- Hashable for list rendering; supports equality comparison
+
+**`BuildRecord`** (`Models/BuildRecord.swift`)
+- Build history record: timestamp, duration, device name
+- Decoded from Xcode `IDEActivityLog` JSON logs
+
 ### Views
 
 **`MenuBarView`** — Show/hide toggle (Cmd+B), simulator list, Settings link, Quit
-**`SideWindowView`** — Root: collapsed strip or expanded panel with 4 feature sections
+**`SideWindowView`** — Root: collapsed strip or expanded panel with content-driven height
 **`PreferencesView`** — Tab container for General and About tabs
 **`OnboardingContainerView`** — 4-step flow: welcome, Accessibility, Screen Recording, done
-**`CollapsedStripView`**, **`SideWindowTitleBar`**, **`DeviceHeaderView`**, **`SideWindowFooter`** — Side panel sub-views
-**`FeatureSectionView`** / **`FeatureRowView`** — Feature list rows (MVP: "Coming soon" state)
-**`AccentButton`**, **`StatusBadge`** — Shared UI atoms
+**`CollapsedStripView`**, **`SideWindowTitleBar`**, **`DeviceHeaderView`**, **`SideWindowFooter`** — Side panel chrome
+**`DeviceHeaderView`** — Active simulator name, OS version, battery/signal status
+**`StatusBarSectionView`** — Status bar preset picker + custom controls
+**`EnvironmentOverridesView`** — Accessibility toggles (appearance, contrast, motion, bold text, smart invert, etc.)
+**`BuildStatsSectionView`** / **`BuildChartView`** — Build history + Canvas bar chart
+**`AXTreeView`** — Accessibility tree browser with element highlight
+**`CameraView`** — Front/back camera toggle for iOS Simulator
+**`HealthDataSectionView`** — Health data preset buttons, manual mode row, status, auth hint
+**`FeatureSectionView`** / **`FeatureRowView`** — Feature list rows
+**`AccentButton`**, **`StatusBadge`**, **`CollapsibleSection`** — Shared UI atoms
 
 ### Utilities
 
@@ -188,7 +254,9 @@ AXObserver callback (move/resize/minimize/quit)     ─┤→ SimulatorWindowTra
 | SwiftUI `@main` + `@NSApplicationDelegateAdaptor` | Native SwiftUI lifecycle with full AppKit access |
 | `MenuBarExtra` (.menu style) | Native macOS 13+ menu bar integration, no custom popover |
 | `Settings` scene | Automatic Cmd+, binding, native Preferences window chrome |
-| NSPanel over NSWindow | Floating utility window behavior, `hidesOnDeactivate = false` |
+| NSPanel over NSWindow | Floating utility window behavior, hides when Simulator loses focus |
 | Dual-mode tracking (poll + AXObserver) | Graceful degradation without Accessibility permission |
+| `xcrun simctl spawn` for env overrides | Instant state changes without app relaunch |
 | Zero external dependencies | Minimal footprint, no SPM overhead, pure Apple framework stability |
-| Non-sandboxed | Required for Accessibility API and CGWindowList enumeration |
+| Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and companion app installation |
+| BoosterHealth bundled companion | Simulator-only iOS app inside macOS bundle; uses `simctl install` + URL scheme for HealthKit writes |

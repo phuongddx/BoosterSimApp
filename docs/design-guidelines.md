@@ -55,6 +55,7 @@ All text uses **SF Pro** via system font APIs only.
 | Menu bar (disconnected) | `bolt.slash` |
 | Simulator device | `iphone` |
 | Collapse panel | `chevron.left` / `chevron.right` |
+| **Phase 1** |
 | Screenshot | `camera` |
 | Record screen | `video` |
 | GIF | `film` |
@@ -62,14 +63,29 @@ All text uses **SF Pro** via system font APIs only.
 | Clear keychain | `key` |
 | Push notification | `bell` |
 | Deep link | `link` |
+| **Phase 4** |
 | Grid overlay | `grid` |
 | Safe area | `rectangle.dashed` |
 | Ruler | `ruler` |
 | Color picker | `eyedropper` |
+| **Phase 5** |
 | Network throttle | `tortoise` |
 | Block requests | `xmark.shield` |
 | View logs | `list.bullet.rectangle` |
 | Certificates | `lock.shield` |
+| **Phase 6** |
+| Status bar | `iphone.gen3` or `clock` |
+| Environment overrides | `paintbrush` |
+| Build stats | `chart.bar` |
+| Accessibility tree | `accessibility` |
+| Camera | `video.camera` |
+| Health data section | `heart.fill` |
+| Health preset — active | `figure.run` |
+| Health preset — rest | `moon.fill` |
+| Health preset — sick | `cross.fill` |
+| Health preset — history | `calendar` |
+| Health clear | `trash` |
+| Health generating | `arrow.triangle.2.circlepath` |
 
 ## Spacing System (4pt Grid)
 
@@ -132,6 +148,20 @@ Row height: 32pt, horizontal padding: sm (8pt)
 - 28pt wide vertical strip
 - Single `chevron.right` icon centered
 - Tapping expands panel with 0.2s ease-in-out animation
+
+### CollapsibleSection
+
+Reusable atom (`Views/Shared/CollapsibleSection.swift`). Wraps any content with a tappable header:
+
+```
+[chevron 10pt]  [SECTION TITLE]        (uppercase, .caption, .secondary)
+← xs →          ← flex →
+Tap toggles @State isExpanded; animates with .animation(.easeInOut(0.2))
+```
+
+- Header padding: `sm` vertical, `md` horizontal
+- Chevron rotates 90° when expanded (`rotationEffect(.degrees(isExpanded ? 90 : 0))`)
+- Used by: `EnvironmentOverridesView`, `HealthDataSectionView`, `BuildStatsSectionView`
 
 ### Status Badge
 

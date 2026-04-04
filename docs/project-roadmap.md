@@ -1,8 +1,8 @@
 # Project Roadmap
 
-## Current Status: MVP Shell Complete
+## Current Status: Phase 1 + Phase 6 Complete
 
-The core infrastructure (menu bar, side panel, simulator tracking, permissions, onboarding) is built and functional. Feature implementation begins in Phase 2.
+Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully implemented. Phases 2–5 (capture, app actions, design tools, network) and Phase 7 (distribution) are not started.
 
 ---
 
@@ -101,6 +101,7 @@ The core infrastructure (menu bar, side panel, simulator tracking, permissions, 
 - [x] VoiceOver navigator (accessibility tree inspection) — lazy AX tree walker + highlight overlay
 - [x] Environment overrides (accessibility settings) — Tier 1 (appearance, contrast) + Tier 2 (reduce motion, bold text)
 - [x] Xcode build statistics (build count, time graphs) — build history polling + Canvas chart
+- [x] Health Data Generator (HealthKit seeding) — bundled iOS companion app, presets + manual mode, clear data
 
 ---
 
