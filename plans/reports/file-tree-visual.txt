@@ -1,0 +1,253 @@
+BOOSTERSIMAPP CODEBASE MAP
+═══════════════════════════════════════════════════════════════════════════════
+
+BoosterSimApp/                                           [3,924 LOC, 46 files]
+│
+├─ App/                                                   [105 LOC]
+│  └─ AppDelegate.swift (105)
+│     └─ Service initialization, lifecycle hooks, onboarding trigger
+│
+├─ Models/                                                [131 LOC]
+│  ├─ SimulatorWindow.swift (36)      — Device window + type enum
+│  ├─ AppSettings.swift (55)          — @AppStorage preferences
+│  ├─ AXNode.swift (13)               — A11y tree node
+│  └─ BuildRecord.swift (30)          — Xcode build record
+│
+├─ Services/                                             [1,373 LOC] ⭐ CORE
+│  ├─ SimulatorWindowTracker.swift (270)  — Window detection orchestrator
+│  │   └─ CGWindowList polling + AXObserver + device classification
+│  ├─ WindowObserver.swift (110)          — Real-time AX notifications
+│  ├─ WindowEnumerator.swift (100)        — Quartz window enumeration
+│  ├─ SimCtlService.swift (80)            — xcrun simctl executor
+│  ├─ AXInspectorService.swift (180)      — A11y tree walker
+│  ├─ BuildStatsService.swift (140)       — Xcode build monitoring
+│  ├─ EnvironmentOverrideService.swift (220)  — Simulator a11y/appearance
+│  ├─ StatusBarService.swift (120)        — Status bar config
+│  ├─ CameraService.swift (95)            — AX menu automation
+│  ├─ PermissionManager.swift (40)        — A11y permission checks
+│  └─ XcodeDetector.swift (38)            — Xcode discovery (unused)
+│
+├─ Views/                                               [1,701 LOC] ⭐ UI LAYER
+│  ├─ MenuBar/
+│  │  └─ MenuBarView.swift (80)
+│  │
+│  ├─ SideWindow/                    [14 views, 1,200+ LOC]
+│  │  ├─ SideWindowView.swift (150)       — Root SwiftUI view
+│  │  ├─ SideWindowTitleBar.swift (45)    — Collapse/menu buttons
+│  │  ├─ SideWindowFooter.swift (50)      — Bottom status/links
+│  │  ├─ CollapsedStripView.swift (60)    — Minimized vertical strip
+│  │  ├─ DeviceHeaderView.swift (80)      — Device + multi-sim picker
+│  │  ├─ EnvironmentOverridesView.swift (180)  — A11y/appearance toggles
+│  │  ├─ StatusBarSectionView.swift (100) — Presets + custom config
+│  │  ├─ CameraView.swift (80)            — Front/back toggles
+│  │  ├─ AXTreeView.swift (120)           — A11y inspector tree
+│  │  ├─ BuildStatsSectionView.swift (85) — Recent builds list
+│  │  ├─ BuildChartView.swift (65)        — Timeline visualization
+│  │  ├─ FeatureSectionView.swift (95)    — Coming soon groups
+│  │  └─ FeatureRowView.swift (65)        — Single feature row
+│  │
+│  ├─ Onboarding/                    [3 views]
+│  │  ├─ OnboardingContainerView.swift (100)  — 4-step welcome
+│  │  ├─ OnboardingStepView.swift (85)       — Individual step
+│  │  └─ ProgressDotsView.swift (40)         — Step indicators
+│  │
+│  ├─ Preferences/                   [3 views]
+│  │  ├─ PreferencesView.swift (80)    — Cmd+, window
+│  │  ├─ GeneralTab.swift (35)         — Position, launch-at-login
+│  │  └─ AboutTab.swift (45)           — Version, credits
+│  │
+│  └─ Shared/                        [2 views]
+│     ├─ AccentButton.swift (40)      — Styled action button
+│     └─ StatusBadge.swift (35)       — Connected/disconnected
+│
+├─ Windows/                                              [415 LOC] ⭐ PANELS
+│  ├─ SideWindowPanel.swift (37)          — NSPanel (floating)
+│  ├─ SideWindowController.swift (250)    — Lifecycle + positioning
+│  ├─ AXHighlightPanel.swift (90)         — A11y highlight overlay
+│  └─ PositionCalculator.swift (120)      — Dynamic positioning math
+│
+├─ Utilities/                                            [176 LOC]
+│  ├─ AppLogger.swift (13)            — os.Logger instances
+│  ├─ DesignTokens.swift (52)         — Design system constants
+│  └─ SpringAnimator.swift (100)      — Spring physics animation
+│
+├─ BoosterSimAppApp.swift (23)
+│  └─ @main SwiftUI App, MenuBarExtra, Settings scene
+│
+└─ Assets.xcassets/
+   └─ App icons, accent colors
+
+
+ARCHITECTURE LAYERS
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         ENTRY POINT                                          │
+│                    BoosterSimAppApp (@main)                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                  ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       APP DELEGATE                                           │
+│  • Service initialization (lazy)                                            │
+│  • Lifecycle hooks (launch, terminate)                                      │
+│  • Onboarding trigger                                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+         ↓                    ↓                      ↓
+    ┌────────────┐    ┌──────────────┐    ┌─────────────────┐
+    │   CORE     │    │  FEATURES    │    │     WINDOWS     │
+    │ SERVICES   │    │  SERVICES    │    │                 │
+    ├────────────┤    ├──────────────┤    ├─────────────────┤
+    │ Tracker    │    │ BuildStats   │    │ SideWindow      │
+    │ WindowObs  │    │ Env Override │    │ Panel           │
+    │ Enum       │    │ StatusBar    │    │ Controller      │
+    │ SimCtl     │    │ Camera       │    │ AX Highlight    │
+    │ AX Inspect │    │              │    │                 │
+    └────────────┘    └──────────────┘    └─────────────────┘
+         ↓                    ↓                      ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SWIFTUI VIEWS                                        │
+│  ├─ SideWindow: 14 views (root → device → sections → features)              │
+│  ├─ Onboarding: 3 views (welcome flow, 4 steps)                            │
+│  ├─ Preferences: 3 views (settings, tabs)                                  │
+│  ├─ MenuBar: 1 view (menu)                                                 │
+│  └─ Shared: 2 views (button, badge)                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+SERVICE COMMUNICATION MAP
+═══════════════════════════════════════════════════════════════════════════════
+
+SimulatorWindowTracker (Orchestrator)
+  ├─ @Published simulators: [SimulatorWindow]
+  ├─ @Published activeSimulator: SimulatorWindow?
+  ├─ @Published isSimulatorFocused: Bool
+  │
+  ├── WindowObserver (per-PID AX listener)
+  │   ├─ Notified by: kAXWindowMoved/Resized
+  │   └─ Callback: onFrameChanged
+  │
+  ├── WindowEnumerator
+  │   └─ Calls: CGWindowListCopyWindowInfo()
+  │
+  └── Device Type Cache
+      └─ Updated by: simctl list devices --json
+
+
+SideWindowController (Window Manager)
+  ├─ Subscribes to: tracker.activeSimulator
+  ├─ Subscribes to: tracker.isSimulatorFocused
+  ├─ Owns: NSPanel with NSHostingView<SideWindowView>
+  │
+  ├── Shows/Hides based on:
+  │   ├─ Simulator detected + focused
+  │   └─ User preference: showSideWindow
+  │
+  ├── Collapse/Expand
+  │   └─ Animation: SpringAnimator (0.3s spring or 0.1s linear)
+  │
+  └── Position Tracking
+      ├─ Listens to: windowObserver.onFrameChanged
+      └─ Uses: PositionCalculator (left/right/bottom/dynamic)
+
+
+Feature Services (Independent)
+  ├─ AXInspectorService
+  │  ├─ Publishes: rootNodes: [AXNode]
+  │  └─ Publishes: highlightFrame: CGRect?
+  │
+  ├─ BuildStatsService
+  │  ├─ Polling: 5s interval
+  │  └─ Publishes: recentBuilds: [BuildRecord]
+  │
+  ├─ EnvironmentOverrideService
+  │  ├─ Depends on: SimCtlService
+  │  └─ Publishes: appearance, contrast, etc. (9 toggles)
+  │
+  ├─ StatusBarService
+  │  ├─ Depends on: SimCtlService
+  │  └─ Publishes: isApplying, lastError
+  │
+  └─ CameraService
+     ├─ Uses: AXUIElement AX menu traversal
+     └─ Publishes: isFrontEnabled, isBackEnabled
+
+
+RECENT DEVELOPMENT (Last 10 commits)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ 93430a2  Smart invert detection fix (multi-key plist read)
+✅ 488956f  Panel focus sync (hide when Simulator unfocused)
+✅ 498b0dc  UDID fallback support (show controls without Screen Recording)
+✅ c31beca  Remove placeholder sections + add env overrides
+✅ 8916b3f  Add #Preview macros to all 22 SwiftUI views
+✅ 72c18b8  Instant a11y toggles (no app relaunch)
+✅ 2e2020d  Spring physics for smooth panel positioning
+✅ 8b49849  AX tracking + fast position path
+✅ 50fe8e1  Architecture documentation
+✅ f9ae583  MVP: window detection + basic panel + placeholder features
+
+
+KNOWN PLACEHOLDERS (Coming Soon)
+═══════════════════════════════════════════════════════════════════════════════
+
+Capture Section
+  ├─ Screenshot        (UI only)
+  ├─ Record Screen     (UI only)
+  ├─ GIF Recording     (UI only)
+  └─ Video Export      (UI only)
+
+Actions Section
+  ├─ Reset App         (UI only)
+  ├─ Clear Keychain    (UI only)
+  ├─ Push Notification (UI only)
+  └─ Deep Link         (UI only)
+
+Design Section
+  ├─ Grid Overlay      (UI only)
+  ├─ Safe Area Overlay (UI only)
+  ├─ Ruler             (UI only)
+  └─ Color Picker      (UI only)
+
+Network Section
+  ├─ Throttle Network  (UI only)
+  ├─ Block Requests    (UI only)
+  ├─ View Logs         (UI only)
+  └─ Certificates      (UI only)
+
+Plus: XcodeDetector service (unused)
+
+
+KEY NUMBERS
+═══════════════════════════════════════════════════════════════════════════════
+
+Total LOC:           3,924 (Swift)
+Total Files:         46 (all .swift)
+Total Views:         22 (SwiftUI)
+Total Services:      11
+Total Models:        4 + 4 enums
+Total Windows:       4 (NSPanel classes)
+Total Utilities:     3
+
+Time to Detect Sim:  ~500ms (one poll cycle)
+Build Poll Interval: 5s
+Max Projects Cached: 20
+Max Builds Shown:    30
+Max AX Depth:        5 levels
+Spring Animation:    0.3s response, 0.8 damping
+Minimal Collapsed:   28pt wide, 400pt min height
+Standard Expanded:   260pt wide
+
+Zero External Dependencies (all native Apple frameworks)
+
+
+DEPLOYMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+Build System:        Xcode 16+
+Deployment Target:   macOS 13+
+Language:            Swift 5.10+
+Frameworks:          AppKit, SwiftUI, Combine, ApplicationServices, ServiceManagement, OSLog
+Memory Profile:      ~30-50 MB (menu bar app)
+Permissions:         Accessibility (required), Screen Recording (optional)
+Code Signing:        Required for launch-at-login feature (SMAppService)
+
