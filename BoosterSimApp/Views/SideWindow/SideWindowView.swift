@@ -14,6 +14,7 @@ struct SideWindowView: View {
     @EnvironmentObject var axInspectorService: AXInspectorService
     @EnvironmentObject var cameraService:      CameraService
     @EnvironmentObject var healthDataService:  HealthDataService
+    @EnvironmentObject var certificateService: CertificateService
 
     // Selected simulator index (for multi-device picker in DeviceHeaderView)
     @State private var selectedSimIndex = 0
@@ -78,6 +79,12 @@ struct SideWindowView: View {
                     EnvironmentOverridesView(udid: activeUDID)
                         .environmentObject(envOverrideService)
 
+                    CertificateSectionView(
+                        udidProvider: { selectedSim?.udid },
+                        deviceNameProvider: { selectedSim?.displayName ?? "Simulator" }
+                    )
+                    .environmentObject(certificateService)
+
                     HealthDataSectionView(udid: activeUDID ?? "booted")
                         .environmentObject(healthDataService)
 
@@ -111,11 +118,13 @@ struct SideWindowView: View {
     let axService        = AXInspectorService()
     let cameraService    = CameraService()
     let healthService    = HealthDataService(simCtl: simCtl)
+    let certificateService = CertificateService(simCtl: simCtl)
     let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
         buildStatsService: buildService, axInspectorService: axService,
-        cameraService: cameraService, healthDataService: healthService
+        cameraService: cameraService, healthDataService: healthService,
+        certificateService: certificateService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -124,5 +133,6 @@ struct SideWindowView: View {
         .environmentObject(axService)
         .environmentObject(cameraService)
         .environmentObject(healthService)
+        .environmentObject(certificateService)
         .frame(width: SideWindowMetrics.expandedWidth, height: 600)
 }

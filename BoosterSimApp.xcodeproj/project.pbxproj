@@ -30,25 +30,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		BB00000C00000000000000AA /* Copy BoosterHealth.app */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR%/*)/$(CONFIGURATION)-iphonesimulator/BoosterHealth.app",
-			);
-			name = "Copy BoosterHealth.app";
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BoosterHealth.app",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "set -e\nIOS_DIR=\"${BUILT_PRODUCTS_DIR%/*}/${CONFIGURATION}-iphonesimulator\"\nCOMPANION=\"${IOS_DIR}/BoosterHealth.app\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BoosterHealth.app\"\nrm -rf \"${DEST}\"\ncp -r \"${COMPANION}\" \"${DEST}\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXFileReference section */
 		BB00000100000000000000AA /* BoosterHealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoosterHealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054AA2F6D24D100056210 /* BoosterSimApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoosterSimApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +117,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		BB00000600000000000000AA /* BoosterHealth */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB00000900000000000000AA /* Build configuration list for PBXNativeTarget "BoosterHealth" */;
+			buildPhases = (
+				BB00000300000000000000AA /* Sources */,
+				BB00000400000000000000AA /* Frameworks */,
+				BB00000500000000000000AA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BB00000200000000000000AA /* BoosterHealth */,
+			);
+			name = BoosterHealth;
+			packageProductDependencies = (
+			);
+			productName = BoosterHealth;
+			productReference = BB00000100000000000000AA /* BoosterHealth.app */;
+			productType = "com.apple.product-type.application";
+		};
 		F2E054A92F6D24D100056210 /* BoosterSimApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F2E054CB2F6D24D600056210 /* Build configuration list for PBXNativeTarget "BoosterSimApp" */;
@@ -158,28 +161,6 @@
 			);
 			productName = BoosterSimApp;
 			productReference = F2E054AA2F6D24D100056210 /* BoosterSimApp.app */;
-			productType = "com.apple.product-type.application";
-		};
-		BB00000600000000000000AA /* BoosterHealth */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BB00000900000000000000AA /* Build configuration list for PBXNativeTarget "BoosterHealth" */;
-			buildPhases = (
-				BB00000300000000000000AA /* Sources */,
-				BB00000400000000000000AA /* Frameworks */,
-				BB00000500000000000000AA /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				BB00000200000000000000AA /* BoosterHealth */,
-			);
-			name = BoosterHealth;
-			packageProductDependencies = (
-			);
-			productName = BoosterHealth;
-			productReference = BB00000100000000000000AA /* BoosterHealth.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F2E054B62F6D24D600056210 /* BoosterSimAppTests */ = {
@@ -307,6 +288,25 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		BB00000C00000000000000AA /* Copy BoosterHealth.app */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR%/*)/$(CONFIGURATION)-iphonesimulator/BoosterHealth.app",
+			);
+			name = "Copy BoosterHealth.app";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BoosterHealth.app",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -e\nIOS_DIR=\"${BUILT_PRODUCTS_DIR%/*}/${CONFIGURATION}-iphonesimulator\"\nCOMPANION=\"${IOS_DIR}/BoosterHealth.app\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BoosterHealth.app\"\nrm -rf \"${DEST}\"\ncp -r \"${COMPANION}\" \"${DEST}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		BB00000300000000000000AA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -369,7 +369,7 @@
 				INFOPLIST_FILE = "BoosterHealth-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.nextlabs.boosterhealth";
+				PRODUCT_BUNDLE_IDENTIFIER = com.nextlabs.boosterhealth;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphonesimulator;
 				SUPPORTED_PLATFORMS = iphonesimulator;
@@ -392,7 +392,7 @@
 				INFOPLIST_FILE = "BoosterHealth-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.nextlabs.boosterhealth";
+				PRODUCT_BUNDLE_IDENTIFIER = com.nextlabs.boosterhealth;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphonesimulator;
 				SUPPORTED_PLATFORMS = iphonesimulator;
@@ -527,7 +527,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -536,6 +535,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BoosterSim;
@@ -562,7 +562,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -571,6 +570,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = BoosterSim;

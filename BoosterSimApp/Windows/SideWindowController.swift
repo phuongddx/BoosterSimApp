@@ -18,6 +18,7 @@ final class SideWindowController: ObservableObject {
     private var settings: AppSettings
     private var trackerCancellable: AnyCancellable?
     private var focusCancellable: AnyCancellable?
+    private var certificateCancellable: AnyCancellable?
     private var isSimulatorFocused = true
     private var lastPanelSide: PanelSide = .right
     private var hostingView: NSView?
@@ -45,7 +46,8 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        healthDataService: HealthDataService
+        healthDataService: HealthDataService,
+        certificateService: CertificateService
     ) {
         self.settings = settings
         springAnimator.onFrameUpdate = { [weak self] frame in
@@ -58,8 +60,14 @@ final class SideWindowController: ObservableObject {
             buildStatsService: buildStatsService,
             axInspectorService: axInspectorService,
             cameraService: cameraService,
-            healthDataService: healthDataService
+            healthDataService: healthDataService,
+            certificateService: certificateService
         )
+        certificateCancellable = tracker.$activeSimulator
+            .receive(on: DispatchQueue.main)
+            .sink { simulator in
+                certificateService.reconcileStatus(udid: simulator?.udid)
+            }
         setupKeyboardShortcut()
     }
 
@@ -182,7 +190,8 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        healthDataService: HealthDataService
+        healthDataService: HealthDataService,
+        certificateService: CertificateService
     ) {
         let content = SideWindowView(
             tracker: tracker,
@@ -201,6 +210,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
             .environmentObject(healthDataService)
+            .environmentObject(certificateService)
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]
         panel.contentView = hv

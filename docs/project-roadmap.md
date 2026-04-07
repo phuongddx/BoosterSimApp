@@ -1,8 +1,8 @@
 # Project Roadmap
 
-## Current Status: Phase 1 + Phase 6 Complete
+## Current Status: Phase 1 + Phase 5 (partial) + Phase 6 Complete
 
-Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully implemented. Phases 2–5 (capture, app actions, design tools, network) and Phase 7 (distribution) are not started.
+Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully implemented. Phase 5 certificate trust management is complete; the remaining Phases 2-4, other Phase 5 items, and Phase 7 (distribution) are not started.
 
 ---
 
@@ -87,7 +87,7 @@ Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully im
 - [ ] Network speed control / throttle
 - [ ] Simulator Airplane Mode (per-app, no Mac impact)
 - [ ] Request blocking (domain/path rules)
-- [ ] Certificate trust management
+- [x] Certificate trust management (CA generation, install/rotate/reset in Simulator keychain)
 
 ---
 
@@ -128,6 +128,6 @@ Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully im
 | Screenshot & Recording | 2 | Not started |
 | App Actions | 3 | Not started |
 | Design Overlays | 4 | Not started |
-| Network Tools | 5 | Not started |
+| Network Tools | 5 | In progress (Certificate Trust complete) |
 | Platform & System | 6 | Complete |
 | Distribution Ready | 7 | Not started |

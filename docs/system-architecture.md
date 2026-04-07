@@ -18,6 +18,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── SimulatorWindowTracker (owns Combine state)    │
 │  ├── SideWindowController (owns NSPanel)            │
 │  ├── AppSettings (@AppStorage persistence)          │
+│  ├── CertificateService (CA trust management)       │
 │  └── Onboarding NSWindow (first-launch only)        │
 └───────────────┬─────────────────────────────────────┘
                 │ Combine @Published
@@ -28,13 +29,14 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── PermissionManager — Accessibility/SR/DData     │
 │  └── SimulatorWindowTracker orchestrator            │
 ├─────────────────────────────────────────────────────┤
-│  Feature Services (Phases 6+)                       │
+│  Feature Services (Phases 5+)                       │
 │  ├── EnvironmentOverrideService — a11y toggles      │
 │  ├── StatusBarService — status presets + config     │
 │  ├── BuildStatsService — build history polling      │
 │  ├── AXInspectorService — accessibility tree walk   │
 │  ├── CameraService — camera routing automation      │
 │  ├── HealthDataService — companion install/trigger  │
+│  ├── CertificateService — CA generation/trust mgmt  │
 │  ├── SimCtlService — xcrun simctl executor          │
 │  └── XcodeDetector — filesystem path detection     │
 └─────────────────────────────────────────────────────┘
@@ -53,7 +55,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 
 **`AppDelegate`** (`App/AppDelegate.swift`)
 - `@MainActor final class`, conforms to `NSApplicationDelegate` + `ObservableObject`
-- Owns all services: `tracker`, `settings`, `sideWindowController`
+- Owns core services: `tracker`, `settings`, `simCtlService`, `sideWindowController`, and feature services
 - Wires services on `applicationDidFinishLaunching`
 - Shows onboarding NSWindow on first launch (persisted via `@AppStorage("completedOnboarding")`)
 
@@ -115,6 +117,16 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Auto-resets to idle after 3s on success; publishes `@Published` state for UI feedback
 - Delegates to `SimCtlService` for command execution
 
+**`CertificateService`** (`Services/CertificateService.swift`)
+- Generates a local CA, installs it into the active Simulator keychain, and supports rotate/reset flows
+- Persists install state so the UI can distinguish generated, installed, and unknown trust states
+- Delegates certificate file creation to `CertificateStore` and shell execution to `SimCtlService`
+
+**`CertificateStore`** (`Services/CertificateStore.swift`)
+- Runs `/usr/bin/openssl` to create the CA key and certificate
+- Stores generated files under Application Support/BoosterSimApp/Certificates with restrictive permissions
+- Reads certificate metadata and redacts local paths in user-facing error messages
+
 **`SimCtlService`** (`Services/SimCtlService.swift`)
 - Centralized executor for `xcrun simctl` commands
 - Parses boot arguments, environment overrides, status bar config
@@ -131,6 +143,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 **`SideWindowController`** (`Windows/SideWindowController.swift`)
 - `@MainActor final class ObservableObject`
 - Subscribes to `tracker.$activeSimulator` via Combine sink
+- Reconciles certificate trust state when the active Simulator changes
 - Delegates position math to `PositionCalculator`
 - Uses `SpringAnimator` for smooth position tracking (CADisplayLink-driven physics)
 - Detects panel side-switches; snaps instantly on switch, then springs to rest
@@ -159,6 +172,11 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Value type (`struct`): id (`CGWindowID`), pid, deviceName, frame, isOnScreen, isMinimized
 - `deviceName` is nil without Screen Recording permission; `displayName` provides fallback
 
+**`CertificateModels.swift`**
+- `CertificateMetadata` stores CA common name, expiry, and SHA-256 fingerprint
+- `CertificateStatus` tracks generated, installed, unknown, and not-generated states
+- `CertificateOperation` guards generate/install/rotate/reset transitions; `CertificateError` carries user-facing failures
+
 **`AppSettings`** (`Models/AppSettings.swift`)
 - `ObservableObject` backed entirely by `@AppStorage`
 - Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`
@@ -182,6 +200,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 **`DeviceHeaderView`** — Active simulator name, OS version, battery/signal status
 **`StatusBarSectionView`** — Status bar preset picker + custom controls
 **`EnvironmentOverridesView`** — Accessibility toggles (appearance, contrast, motion, bold text, smart invert, etc.)
+**`CertificateSectionView`** — CA generation, Simulator keychain install/rotate/reset, trust-state messaging
 **`BuildStatsSectionView`** / **`BuildChartView`** — Build history + Canvas bar chart
 **`AXTreeView`** — Accessibility tree browser with element highlight
 **`CameraView`** — Front/back camera toggle for iOS Simulator

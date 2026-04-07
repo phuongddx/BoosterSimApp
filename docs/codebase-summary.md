@@ -4,10 +4,10 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, HealthKit
-- **Files:** ~51 Swift source files (~4,400 LOC in BoosterSimApp; ~335 LOC in BoosterHealth companion; ~4,625 LOC total)
+- **Files:** 60+ Swift source files (~5,400 LOC total across app, companion, and tests)
 - **Targets:** BoosterSimApp (macOS), BoosterHealth (iOS companion for HealthKit), test targets
 - **External dependencies:** None
-- **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (empty, not yet configured)
+- **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (lightweight scaffolds; certificate service unit tests added)
 
 ## Directory Structure
 
@@ -17,7 +17,7 @@ BoosterSimApp/
 ├── BoosterSimApp/                        # Main target
 │   ├── BoosterSimAppApp.swift            # @main entry point (23 LOC)
 │   ├── App/
-│   │   └── AppDelegate.swift             # NSApplicationDelegate (107 LOC)
+│   │   └── AppDelegate.swift             # NSApplicationDelegate (109 LOC)
 │   ├── Models/
 │   │   ├── SimulatorWindow.swift         # Window data model (25 LOC)
 │   │   ├── AppSettings.swift             # @AppStorage settings (52 LOC)
@@ -35,17 +35,20 @@ BoosterSimApp/
 │   │   ├── BuildStatsService.swift       # Build history polling (97 LOC)
 │   │   ├── AXInspectorService.swift      # AX tree walker (112 LOC)
 │   │   ├── CameraService.swift           # Camera menu automation (93 LOC)
+│   │   ├── CertificateModels.swift       # CA status / operation / error types (96 LOC)
+│   │   ├── CertificateStore.swift        # OpenSSL CA generation + persistence (172 LOC)
+│   │   ├── CertificateService.swift      # CA trust management flow (195 LOC)
 │   │   └── HealthDataService.swift       # HealthKit companion installer/trigger (116 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
-│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (224 LOC)
+│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (234 LOC)
 │   │   ├── PositionCalculator.swift      # Pure frame math, content height + centering (90 LOC)
 │   │   └── AXHighlightPanel.swift        # Floating orange border overlay (68 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
 │   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view, content height callback (128 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view, content height callback (139 LOC)
 │   │   │   ├── SideWindowTitleBar.swift  # Collapse button + title (~35 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (90 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (~40 LOC)
@@ -54,6 +57,7 @@ BoosterSimApp/
 │   │   │   ├── FeatureRowView.swift      # Individual feature row (74 LOC)
 │   │   │   ├── StatusBarSectionView.swift # Status bar preset UI (129 LOC)
 │   │   │   ├── EnvironmentOverridesView.swift # Accessibility toggles (145 LOC)
+│   │   │   ├── CertificateSectionView.swift # CA trust management UI (177 LOC)
 │   │   │   ├── BuildStatsSectionView.swift # Build history section (92 LOC)
 │   │   │   ├── BuildChartView.swift      # Canvas bar chart (42 LOC)
 │   │   │   ├── AXTreeView.swift          # Accessibility tree list (141 LOC)
@@ -80,8 +84,12 @@ BoosterSimApp/
 │   ├── HealthPayload.swift               # URL parser + HealthPreset enum (49 LOC)
 │   ├── BoosterHealth-Info.plist          # URL scheme registration
 │   └── BoosterHealth-Entitlements.plist  # HealthKit capability
-├── BoosterSimAppTests/                   # Unit test target (empty)
-├── BoosterSimAppUITests/                 # UI test target (empty)
+├── BoosterSimAppTests/                   # Unit test target
+│   ├── BoosterSimAppTests.swift          # Basic test scaffold (17 LOC)
+│   └── CertificateServiceTests.swift     # Certificate service behavior tests (26 LOC)
+├── BoosterSimAppUITests/                 # UI test target
+│   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
+│   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
 └── plans/                               # Implementation plans
     └── reports/
 ```
@@ -95,6 +103,8 @@ BoosterSimApp/
 | Simulator detection | `Services/SimulatorWindowTracker.swift` |
 | Low-level window scan | `Services/WindowEnumerator.swift` |
 | Real-time AX events | `Services/WindowObserver.swift` |
+| CA trust management | `Services/CertificateService.swift` |
+| CA persistence and generation | `Services/CertificateStore.swift` |
 | Panel lifecycle & spring tracking | `Windows/SideWindowController.swift` |
 | Position math | `Windows/PositionCalculator.swift` |
 | Spring animation physics | `Utilities/SpringAnimator.swift` |
@@ -106,12 +116,12 @@ BoosterSimApp/
 | Rank | File | LOC | Notes |
 |---|---|---|---|
 | 1 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
-| 2 | `HealthDataGenerator.swift` | 205 | BoosterHealth target |
-| 3 | `SideWindowController.swift` | 224 | Monitor growth |
+| 2 | `SideWindowController.swift` | 234 | Monitor growth |
+| 3 | `HealthDataGenerator.swift` | 205 | BoosterHealth target |
 | 4 | `SimulatorWindowTracker.swift` | 199 | — |
-| 5 | `HealthDataSectionView.swift` | 156 | — |
-| 6 | `AXTreeView.swift` | 141 | — |
-| 7 | `EnvironmentOverridesView.swift` | 145 | — |
+| 5 | `CertificateService.swift` | 195 | CA trust management |
+| 6 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
+| 7 | `CertificateStore.swift` | 172 | OpenSSL-backed persistence |
 
 ## Feature Sections (Side Panel — Phase 6 Complete)
 
@@ -123,7 +133,8 @@ BoosterSimApp/
 | Accessibility | AX Tree Inspector, Element Highlight, Frame Info | Complete |
 | Camera | Front/Back Toggle (iOS Simulator only), Mac Camera Input | Complete |
 | Health Data | 4 Presets (Active Day, Rest Day, Sick Day, 7-Day History), Manual Mode, Clear Data | Complete |
+| Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
 | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Placeholder |
 | App Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
 | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
-| Network | Throttle Network, Block Requests, View Logs, Certificates | Placeholder |
+| Network | Throttle Network, Block Requests, View Logs | Placeholder |
