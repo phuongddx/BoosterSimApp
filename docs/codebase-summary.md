@@ -3,9 +3,9 @@
 ## Project Stats
 
 - **Language:** Swift 6 (strict concurrency)
-- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, HealthKit
-- **Files:** 60+ Swift source files (~5,400 LOC total across app, companion, and tests)
-- **Targets:** BoosterSimApp (macOS), BoosterHealth (iOS companion for HealthKit), test targets
+- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore
+- **Files:** 55+ Swift source files (~4,700 LOC total across app and tests)
+- **Targets:** BoosterSimApp (macOS), test targets
 - **External dependencies:** None
 - **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (lightweight scaffolds; certificate service unit tests added)
 
@@ -37,8 +37,7 @@ BoosterSimApp/
 │   │   ├── CameraService.swift           # Camera menu automation (93 LOC)
 │   │   ├── CertificateModels.swift       # CA status / operation / error types (96 LOC)
 │   │   ├── CertificateStore.swift        # OpenSSL CA generation + persistence (172 LOC)
-│   │   ├── CertificateService.swift      # CA trust management flow (195 LOC)
-│   │   └── HealthDataService.swift       # HealthKit companion installer/trigger (116 LOC)
+│   │   └── CertificateService.swift      # CA trust management flow (195 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
 │   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (234 LOC)
@@ -48,11 +47,17 @@ BoosterSimApp/
 │   │   ├── MenuBar/
 │   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view, content height callback (139 LOC)
-│   │   │   ├── SideWindowTitleBar.swift  # Collapse button + title (~35 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (108 LOC)
+│   │   │   ├── SideTab.swift             # Tab enum for side window navigation (27 LOC)
+│   │   │   ├── TabBarView.swift          # Icon tab bar with amber underline (71 LOC)
+│   │   │   ├── tabs/
+│   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (23 LOC)
+│   │   │   │   ├── DesignTabView.swift   # Design tab: grid, safe area, ruler, picker (23 LOC)
+│   │   │   │   ├── ActionsTabView.swift  # Actions tab: env overrides + quick actions (25 LOC)
+│   │   │   │   └── NetworkTabView.swift  # Network tab: certificates + network tools (28 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (90 LOC)
-│   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (~40 LOC)
-│   │   │   ├── SideWindowFooter.swift    # Version/status footer (~30 LOC)
+│   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (35 LOC)
+│   │   │   ├── SideWindowFooter.swift    # Version/status footer (36 LOC)
 │   │   │   ├── FeatureSectionView.swift  # Collapsible section (90 LOC)
 │   │   │   ├── FeatureRowView.swift      # Individual feature row (74 LOC)
 │   │   │   ├── StatusBarSectionView.swift # Status bar preset UI (129 LOC)
@@ -61,8 +66,7 @@ BoosterSimApp/
 │   │   │   ├── BuildStatsSectionView.swift # Build history section (92 LOC)
 │   │   │   ├── BuildChartView.swift      # Canvas bar chart (42 LOC)
 │   │   │   ├── AXTreeView.swift          # Accessibility tree list (141 LOC)
-│   │   │   ├── CameraView.swift          # Camera toggle UI (99 LOC)
-│   │   │   └── HealthDataSectionView.swift # Health data presets + manual UI (156 LOC)
+│   │   │   └── CameraView.swift          # Camera toggle UI (99 LOC)
 │   │   ├── Preferences/
 │   │   │   ├── PreferencesView.swift     # Tab container (~30 LOC)
 │   │   │   ├── GeneralTab.swift          # Position + launch at login (~45 LOC)
@@ -79,12 +83,6 @@ BoosterSimApp/
 │       ├── AppLogger.swift               # Centralized os.Logger instances (14 LOC)
 │       ├── DesignTokens.swift            # Layout/spacing constants (51 LOC)
 │       └── SpringAnimator.swift          # CADisplayLink spring physics (112 LOC)
-├── BoosterHealth/                        # iOS companion app (Simulator-only)
-│   ├── BoosterHealthApp.swift            # @main entry, handles URL scheme (81 LOC)
-│   ├── HealthDataGenerator.swift         # HKHealthStore writes (205 LOC)
-│   ├── HealthPayload.swift               # URL parser + HealthPreset enum (49 LOC)
-│   ├── BoosterHealth-Info.plist          # URL scheme registration
-│   └── BoosterHealth-Entitlements.plist  # HealthKit capability
 ├── BoosterSimAppTests/                   # Unit test target
 │   ├── BoosterSimAppTests.swift          # Basic test scaffold (17 LOC)
 │   └── CertificateServiceTests.swift     # Certificate service behavior tests (26 LOC)
@@ -119,24 +117,25 @@ BoosterSimApp/
 |---|---|---|---|
 | 1 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
 | 2 | `SideWindowController.swift` | 234 | Monitor growth |
-| 3 | `HealthDataGenerator.swift` | 205 | BoosterHealth target |
-| 4 | `SimulatorWindowTracker.swift` | 199 | — |
-| 5 | `CertificateService.swift` | 195 | CA trust management |
-| 6 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
-| 7 | `CertificateStore.swift` | 172 | OpenSSL-backed persistence |
+| 3 | `SimulatorWindowTracker.swift` | 199 | — |
+| 4 | `CertificateService.swift` | 195 | CA trust management |
+| 5 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
+| 6 | `CertificateStore.swift` | 172 | OpenSSL-backed persistence |
+| 7 | `EnvironmentOverridesView.swift` | 145 | Side panel a11y toggles |
 
-## Feature Sections (Side Panel — Phase 6 Complete)
+## Feature Sections (Side Panel — Tab-Based UI)
 
-| Section | Features | Status |
-|---|---|---|
-| Status Bar | Status Presets (Screenshot Ready, Low Battery, No Signal), Custom Config | Complete |
-| Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text | Complete |
-| Builds | Build History (last 30), Duration Chart, Stats | Complete |
-| Accessibility | AX Tree Inspector, Element Highlight, Frame Info | Complete |
-| Camera | Front/Back Toggle (iOS Simulator only), Mac Camera Input | Complete |
-| Health Data | 4 Presets (Active Day, Rest Day, Sick Day, 7-Day History), Manual Mode, Clear Data | Complete |
-| Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
-| Captures | Screenshot, Record Screen, GIF Recording, Video Export | Placeholder |
-| App Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
-| Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
-| Network | Throttle Network, Block Requests, View Logs | Placeholder |
+| Tab | Section | Features | Status |
+|---|---|---|---|
+| Capture | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Placeholder |
+| Design | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
+| Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text | Complete |
+| Actions | Quick Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
+| Network | Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
+| Network | Network Tools | Throttle Network, Block Requests, View Logs | Placeholder |
+
+**Unassigned views** (exist on disk, not yet wired into any tab):
+- `StatusBarSectionView` — status bar presets + custom config (Complete)
+- `BuildStatsSectionView` / `BuildChartView` — build history + chart (Complete)
+- `AXTreeView` — accessibility tree inspector (Complete)
+- `CameraView` — camera toggle UI (Complete)

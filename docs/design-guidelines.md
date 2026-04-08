@@ -79,13 +79,6 @@ All text uses **SF Pro** via system font APIs only.
 | Build stats | `chart.bar` |
 | Accessibility tree | `accessibility` |
 | Camera | `video.camera` |
-| Health data section | `heart.fill` |
-| Health preset — active | `figure.run` |
-| Health preset — rest | `moon.fill` |
-| Health preset — sick | `cross.fill` |
-| Health preset — history | `calendar` |
-| Health clear | `trash` |
-| Health generating | `arrow.triangle.2.circlepath` |
 
 ## Spacing System (4pt Grid)
 
@@ -121,7 +114,7 @@ All spacing values must come from `Spacing` enum in `DesignTokens.swift`:
 | Row height | 32pt |
 | Compact row height | 28pt |
 | Header height | 36pt |
-| Title bar height | 28pt |
+| Tab bar height | 36pt (matches Header height) |
 
 ## Component Patterns
 
@@ -161,7 +154,26 @@ Tap toggles @State isExpanded; animates with .animation(.easeInOut(0.2))
 
 - Header padding: `sm` vertical, `md` horizontal
 - Chevron rotates 90° when expanded (`rotationEffect(.degrees(isExpanded ? 90 : 0))`)
-- Used by: `EnvironmentOverridesView`, `HealthDataSectionView`, `BuildStatsSectionView`
+- Used by: `EnvironmentOverridesView`, `BuildStatsSectionView`
+
+### Tab Bar (TabBarView)
+
+Icon-only horizontal tab bar replacing the former SideWindowTitleBar. Four tabs: Capture, Design, Actions, Network.
+
+```
+[camera] [paintbrush] [bolt] [network]              [chevron.left]
+ ← md →  ← md →      ← md → ← md →                  collapse
+           amber underline on selected tab
+Tab bar height: 36pt (SideWindowMetrics.headerHeight)
+```
+
+- Tab icons: SF Symbols, `.small` scale, `.secondary` color (`.accent` when selected)
+- Selected indicator: 2pt `RoundedRectangle` filled with `Color.accentColor`
+- Tab spacing: `md` (12pt) horizontal padding per tab button
+- Collapse button: right-aligned `chevron.left`, `.secondary` color
+- Background: `.bar` material with bottom `Divider`
+- Tab switch animates with spring (response: 0.25, dampingFraction: 0.8); linear 0.1s with Reduce Motion
+- Accessibility: `.help` tooltip, `.accessibilityLabel`, `.isSelected` trait on active tab
 
 ### Status Badge
 

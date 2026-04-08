@@ -35,7 +35,6 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── BuildStatsService — build history polling      │
 │  ├── AXInspectorService — accessibility tree walk   │
 │  ├── CameraService — camera routing automation      │
-│  ├── HealthDataService — companion install/trigger  │
 │  ├── CertificateService — CA generation/trust mgmt  │
 │  ├── SimCtlService — xcrun simctl executor          │
 │  └── XcodeDetector — filesystem path detection     │
@@ -109,13 +108,6 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 **`CameraService`** (`Services/CameraService.swift`)
 - Toggles Mac camera input via AX menu automation
 - Targets Simulator menu: I/O → Camera → FaceTime HD Camera
-
-**`HealthDataService`** (`Services/HealthDataService.swift`)
-- Installs bundled `BoosterHealth.app` onto active Simulator via `simctl install`
-- Triggers companion via `boosterhealth://` URL scheme (`simctl openurl`) with preset/manual parameters
-- Manages state: idle → installing → generating → done/error
-- Auto-resets to idle after 3s on success; publishes `@Published` state for UI feedback
-- Delegates to `SimCtlService` for command execution
 
 **`CertificateService`** (`Services/CertificateService.swift`)
 - Generates a local CA, installs it into the active Simulator keychain, and supports rotate/reset flows
@@ -193,10 +185,13 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 ### Views
 
 **`MenuBarView`** — Show/hide toggle (Cmd+B), simulator list, Settings link, Quit
-**`SideWindowView`** — Root: collapsed strip or expanded panel with content-driven height
+**`SideWindowView`** — Root: collapsed strip or expanded panel with tab-based layout (4 tabs: Capture, Design, Actions, Network)
+**`SideTab`** — Enum defining the four side window tabs with icon and label
+**`TabBarView`** — Icon-only tab bar with amber underline indicator and collapse button
+**`CaptureTabView`** / **`DesignTabView`** / **`ActionsTabView`** / **`NetworkTabView`** — Tab content views (in `tabs/` subdirectory)
 **`PreferencesView`** — Tab container for General and About tabs
 **`OnboardingContainerView`** — 4-step flow: welcome, Accessibility, Screen Recording, done
-**`CollapsedStripView`**, **`SideWindowTitleBar`**, **`DeviceHeaderView`**, **`SideWindowFooter`** — Side panel chrome
+**`CollapsedStripView`**, **`DeviceHeaderView`**, **`SideWindowFooter`** — Side panel chrome
 **`DeviceHeaderView`** — Active simulator name, OS version, battery/signal status
 **`StatusBarSectionView`** — Status bar preset picker + custom controls
 **`EnvironmentOverridesView`** — Accessibility toggles (appearance, contrast, motion, bold text, smart invert, etc.)
@@ -204,7 +199,6 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 **`BuildStatsSectionView`** / **`BuildChartView`** — Build history + Canvas bar chart
 **`AXTreeView`** — Accessibility tree browser with element highlight
 **`CameraView`** — Front/back camera toggle for iOS Simulator
-**`HealthDataSectionView`** — Health data preset buttons, manual mode row, status, auth hint
 **`FeatureSectionView`** / **`FeatureRowView`** — Feature list rows
 **`AccentButton`**, **`StatusBadge`**, **`CollapsibleSection`** — Shared UI atoms
 
@@ -282,5 +276,4 @@ AXObserver callback (move/resize/minimize/quit)     ─┤→ SimulatorWindowTra
 | Dual-mode tracking (poll + AXObserver) | Graceful degradation without Accessibility permission |
 | `xcrun simctl spawn` for env overrides | Instant state changes without app relaunch |
 | Zero external dependencies | Minimal footprint, no SPM overhead, pure Apple framework stability |
-| Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and companion app installation |
-| BoosterHealth bundled companion | Simulator-only iOS app inside macOS bundle; uses `simctl install` + URL scheme for HealthKit writes |
+| Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and Simulator control via simctl |
