@@ -27,12 +27,13 @@ iOS developers spend significant time switching between the Simulator and extern
 - Preferences window (position, launch at login)
 - **Phase 6 features:** Status bar config, accessibility toggles (appearance, contrast, bold text, smart invert, reduce transparency, grayscale, etc.), build history chart, accessibility tree inspector, Mac camera input, environment overrides
 - **Health Data Generator:** seed HealthKit (steps, HR, HRV, SpO2, energy, sleep, workout) via bundled BoosterHealth iOS companion; 4 presets + manual mode + clear data
+- **Certificate Trust Management:** generate local CA, install into Simulator keychain, rotate/reset via side panel; persists trust state across sessions
 
 ### Out of Scope (Phases 2–5, 7)
 - Screenshot capture / screen recording / GIF export
 - App actions (reset, clear keychain, push notifications, deep links)
 - Design overlays (grid, safe area, color picker, ruler)
-- Network tools (throttle, block requests, certificate inspection)
+- Network tools (throttle, block requests, certificate inspection) — *Certificate trust management complete*
 - Distribution & code signing
 
 ## Requirements

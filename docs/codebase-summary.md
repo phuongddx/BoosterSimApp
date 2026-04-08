@@ -76,6 +76,7 @@ BoosterSimApp/
 │   │       ├── StatusBadge.swift         # Colored dot + label (44 LOC)
 │   │       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
 │   └── Utilities/
+│       ├── AppLogger.swift               # Centralized os.Logger instances (14 LOC)
 │       ├── DesignTokens.swift            # Layout/spacing constants (51 LOC)
 │       └── SpringAnimator.swift          # CADisplayLink spring physics (112 LOC)
 ├── BoosterHealth/                        # iOS companion app (Simulator-only)
@@ -108,6 +109,7 @@ BoosterSimApp/
 | Panel lifecycle & spring tracking | `Windows/SideWindowController.swift` |
 | Position math | `Windows/PositionCalculator.swift` |
 | Spring animation physics | `Utilities/SpringAnimator.swift` |
+| Centralized logging | `Utilities/AppLogger.swift` |
 | Design constants | `Utilities/DesignTokens.swift` |
 | Settings persistence | `Models/AppSettings.swift` |
 

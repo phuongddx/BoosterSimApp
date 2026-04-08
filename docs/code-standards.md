@@ -119,9 +119,9 @@ do {
 
 ## Logging
 
-- Use `os.Logger` with subsystem `"app.booster.sim"` for all service logging
+- Use `AppLogger` (centralized in `Utilities/AppLogger.swift`) for all service logging; subsystem `com.nextlabs.BoosterSimApp`
 - Log levels: `.debug` (state changes), `.info` (lifecycle), `.warning` (recoverable errors), `.error` (crashes)
-- Prefix with service name: `logger.debug("[SimulatorWindowTracker] detected new window: \(pid)")`
+- Prefix with service name: `AppLogger.windowTracking.debug("[SimulatorWindowTracker] detected new window: \(pid)")`
 - Never log sensitive data (UDIDs, file paths, user tokens)
 
 ## Memory Management

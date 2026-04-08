@@ -221,6 +221,11 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Auto-stops at rest (displacement and velocity both < threshold)
 - `snapTo()` for instant repositioning (used on panel side-switches)
 
+**`AppLogger`** (`Utilities/AppLogger.swift`)
+- Enum with static `Logger` instances per concern (windowTracking, permissions, settings, certificates)
+- Subsystem: `com.nextlabs.BoosterSimApp`
+- Replaces raw `os.Logger` initialization across services
+
 ## Data Flow
 
 ```
