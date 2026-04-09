@@ -4,10 +4,10 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore
-- **Files:** 55+ Swift source files (~4,700 LOC total across app and tests)
+- **Files:** 54 Swift source files (~4,705 LOC total across app and tests)
 - **Targets:** BoosterSimApp (macOS), test targets
 - **External dependencies:** None
-- **Test targets:** BoosterSimAppTests, BoosterSimAppUITests (lightweight scaffolds; certificate service unit tests added)
+- **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
 
 ## Directory Structure
 
@@ -102,14 +102,22 @@ BoosterSimApp/
 | Simulator detection | `Services/SimulatorWindowTracker.swift` |
 | Low-level window scan | `Services/WindowEnumerator.swift` |
 | Real-time AX events | `Services/WindowObserver.swift` |
-| CA trust management | `Services/CertificateService.swift` |
-| CA persistence and generation | `Services/CertificateStore.swift` |
+| Tab-based navigation | `Views/SideWindow/SideTab.swift`, `Views/SideWindow/TabBarView.swift` |
 | Panel lifecycle & spring tracking | `Windows/SideWindowController.swift` |
 | Position math | `Windows/PositionCalculator.swift` |
+| AX element highlight | `Windows/AXHighlightPanel.swift` |
+| CA trust management | `Services/CertificateService.swift` |
+| CA models & types | `Services/CertificateModels.swift` |
+| CA persistence | `Services/CertificateStore.swift` |
 | Spring animation physics | `Utilities/SpringAnimator.swift` |
 | Centralized logging | `Utilities/AppLogger.swift` |
 | Design constants | `Utilities/DesignTokens.swift` |
 | Settings persistence | `Models/AppSettings.swift` |
+| Build stats polling | `Services/BuildStatsService.swift` |
+| AX tree inspection | `Services/AXInspectorService.swift` |
+| Camera automation | `Services/CameraService.swift` |
+| Environment overrides | `Services/EnvironmentOverrideService.swift` |
+| Status bar config | `Services/StatusBarService.swift` |
 
 ## Largest Files (by LOC)
 
@@ -129,13 +137,17 @@ BoosterSimApp/
 |---|---|---|---|
 | Capture | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Placeholder |
 | Design | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
-| Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text | Complete |
+| Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text, Smart Invert, Reduce Transparency, Grayscale, On/Off Labels, Button Shapes, Differentiate Without Color | Complete |
 | Actions | Quick Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
 | Network | Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
 | Network | Network Tools | Throttle Network, Block Requests, View Logs | Placeholder |
 
-**Unassigned views** (exist on disk, not yet wired into any tab):
-- `StatusBarSectionView` — status bar presets + custom config (Complete)
-- `BuildStatsSectionView` / `BuildChartView` — build history + chart (Complete)
-- `AXTreeView` — accessibility tree inspector (Complete)
-- `CameraView` — camera toggle UI (Complete)
+**Wired sections** (exist in tabs, fully functional):
+- Actions tab: `EnvironmentOverridesView` (11 a11y toggles)
+- Network tab: `CertificateSectionView` (CA management)
+
+**Standalone views** (exist but not wired into tabs yet):
+- `StatusBarSectionView` — status bar presets + custom (Complete)
+- `BuildStatsSectionView` / `BuildChartView` — build history + bar chart (Complete)
+- `AXTreeView` — accessibility tree inspector with lazy loading (Complete)
+- `CameraView` — Mac camera input toggle (Complete)

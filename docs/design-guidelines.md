@@ -156,24 +156,49 @@ Tap toggles @State isExpanded; animates with .animation(.easeInOut(0.2))
 - Chevron rotates 90° when expanded (`rotationEffect(.degrees(isExpanded ? 90 : 0))`)
 - Used by: `EnvironmentOverridesView`, `BuildStatsSectionView`
 
-### Tab Bar (TabBarView)
+### Floating Tab Header (TabBarView)
 
-Icon-only horizontal tab bar replacing the former SideWindowTitleBar. Four tabs: Capture, Design, Actions, Network.
+Icon-only horizontal tab bar with floating container styling. Four tabs: Capture, Design, Actions, Network.
 
 ```
 [camera] [paintbrush] [bolt] [network]              [chevron.left]
  ← md →  ← md →      ← md → ← md →                  collapse
            amber underline on selected tab
-Tab bar height: 36pt (SideWindowMetrics.headerHeight)
 ```
 
-- Tab icons: SF Symbols, `.small` scale, `.secondary` color (`.accent` when selected)
-- Selected indicator: 2pt `RoundedRectangle` filled with `Color.accentColor`
-- Tab spacing: `md` (12pt) horizontal padding per tab button
-- Collapse button: right-aligned `chevron.left`, `.secondary` color
-- Background: `.bar` material with bottom `Divider`
-- Tab switch animates with spring (response: 0.25, dampingFraction: 0.8); linear 0.1s with Reduce Motion
-- Accessibility: `.help` tooltip, `.accessibilityLabel`, `.isSelected` trait on active tab
+**Dimensions & Styling:**
+- Height: 36pt (SideWindowMetrics.headerHeight)
+- Background: `.bar` material with 8pt corner radius (`CornerRadius.large`)
+- Shadow: 15% black opacity, 2pt blur radius, 1pt Y offset
+- Horizontal padding: 8pt (sm)
+- Gap between tab bar and expanded content: 4pt (xs)
+
+**Tab Icons:**
+- Capture: `camera` / `camera.fill`
+- Design: `paintbrush` / `paintbrush.fill`
+- Actions: `bolt` / `bolt.fill`
+- Network: `network` / `network.fill`
+- Scale: `.small`, `.secondary` color (`.accentColor` when selected)
+- Spacing: `md` (12pt) horizontal padding per tab
+
+**Selected Indicator:**
+- 2pt height underline, 1pt corner radius
+- Fill: `Color.accentColor` (amber)
+- Positioned below selected tab, inset to tab button bounds
+
+**Collapse Button:**
+- Right-aligned `chevron.left` icon
+- `.secondary` color
+- Triggers side panel collapse animation (0.2s ease-in-out)
+
+**Bottom Divider:**
+- 1pt separator line below tab bar
+- `.separator` color
+
+**Interactions:**
+- Tab switch animates spring: response=0.25s, dampingFraction=0.8
+- Reduce Motion: linear 0.1s instead of spring
+- Accessibility: `.help` tooltip, `.accessibilityLabel`, `.isSelected` trait
 
 ### Status Badge
 

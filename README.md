@@ -12,19 +12,20 @@ macOS menu bar companion app that attaches a floating side panel to the iOS Simu
 - Device header with simulator name and OS version
 - Preferences window (Cmd+,)
 
-**Inspection & Debugging** *(implemented)*
-- AX Inspector — browse live accessibility tree with element highlighting
-- Build Stats — chart of recent build times via Xcode derived data
-- Environment Overrides — appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale toggles (instant, no relaunch)
-- Status Bar — 4 presets + custom time/battery/signal via simctl
-- Camera — use Mac camera as Simulator input via AX menu automation
-- Certificates — trust management for iOS Simulator certificate pinning
+**Implemented Features**
+- Tab-based UI — 4 tabs (Capture, Design, Actions, Network) with icon-only floating header
+- Accessibility Inspector — browse live AX tree with element highlighting
+- Build Stats — recent build times chart via Xcode derived data
+- Environment Overrides — 11 a11y toggles (appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale, on/off labels, button shapes, differentiate, grayscale)
+- Status Bar Control — 4 presets + custom time/battery/signal
+- Camera Toggle — use Mac camera as Simulator input via menu automation
+- Certificate Trust — generate CA, install/rotate/reset in Simulator keychain
 
 **Planned**
 - Captures — screenshot, screen recording, GIF/MP4 export
 - App Actions — reset app, clear keychain, push notifications, deep link
-- Design Tools — grid overlay, safe area overlay, color picker
-- Network — throttle, block requests, view traffic logs
+- Design Tools — grid overlay, safe area overlay, color picker, ruler
+- Network Tools — throttle, block requests, view traffic logs
 
 **Onboarding**
 - Permission onboarding (Accessibility, Screen Recording)
@@ -63,7 +64,7 @@ Without Accessibility, the app falls back to 0.5s polling — still functional, 
 
 ## Architecture
 
-SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. ~48 Swift files, ~4,300 LOC, zero external dependencies.
+SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. 54 Swift files, ~4,705 LOC, zero external dependencies.
 
 ```
 BoosterSimAppApp (@main)
@@ -71,16 +72,18 @@ BoosterSimAppApp (@main)
     ├── SimulatorWindowTracker      — CGWindowList poll + AXObserver
     ├── SideWindowController        — NSPanel lifecycle + spring animation
     │   └── AXHighlightPanel        — floating overlay for AX element highlight
-    ├── PermissionManager           — Accessibility / Screen Recording checks
+    ├── PermissionManager           — Accessibility / Screen Recording / DerivedData checks
     ├── AppSettings                 — @AppStorage persistence
-    ├── EnvironmentOverrideService  — instant a11y toggles (appearance, contrast, bold text, etc.)
-    ├── StatusBarService            — status bar presets + custom controls
-    ├── BuildStatsService           — Xcode build history + Canvas chart
-    ├── AXInspectorService          — accessibility tree walker + highlight
-    ├── CameraService               — Mac camera input via AX menu automation
+    ├── EnvironmentOverrideService  — 11 a11y toggles (instant, no relaunch)
+    ├── StatusBarService            — 4 presets + custom time/battery/signal
+    ├── BuildStatsService           — Xcode build history polling + Canvas chart
+    ├── AXInspectorService          — lazy AX tree walker + element highlight
+    ├── CameraService               — Mac camera ↔ Simulator input automation
+    ├── CertificateService          — CA generation, install, rotate, reset
+    ├── CertificateStore            — OpenSSL CA persistence (0o600 restricted)
+    ├── CertificateModels           — CA status, operation, error types
     ├── SimCtlService               — xcrun simctl executor
-    ├── CertificateService          — certificate trust management for Simulator
-    └── WindowObserver              — AXObserver per PID for real-time tracking
+    └── WindowObserver              — AXObserver per PID for real-time events
 ```
 
 See [`docs/system-architecture.md`](docs/system-architecture.md) for full details.

@@ -109,6 +109,12 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Toggles Mac camera input via AX menu automation
 - Targets Simulator menu: I/O → Camera → FaceTime HD Camera
 
+**`CertificateModels.swift`** (`Services/CertificateModels.swift`)
+- `CertificateMetadata` — CA common name, expiry, SHA-256 fingerprint
+- `CertificateStatus` — tracks generated, installed, unknown, not-generated states
+- `CertificateOperation` — guards generate/install/rotate/reset transitions
+- `CertificateError` — user-facing error messages
+
 **`CertificateService`** (`Services/CertificateService.swift`)
 - Generates a local CA, installs it into the active Simulator keychain, and supports rotate/reset flows
 - Persists install state so the UI can distinguish generated, installed, and unknown trust states
@@ -116,8 +122,9 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 
 **`CertificateStore`** (`Services/CertificateStore.swift`)
 - Runs `/usr/bin/openssl` to create the CA key and certificate
-- Stores generated files under Application Support/BoosterSimApp/Certificates with restrictive permissions
+- Stores generated files under Application Support/BoosterSimApp/Certificates with restrictive permissions (0o600)
 - Reads certificate metadata and redacts local paths in user-facing error messages
+- Single source of truth for CA file persistence
 
 **`SimCtlService`** (`Services/SimCtlService.swift`)
 - Centralized executor for `xcrun simctl` commands
@@ -125,6 +132,11 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Error handling with logged diagnostics
 
 ### Windows
+
+**`AXHighlightPanel`** (`Windows/AXHighlightPanel.swift`)
+- Borderless floating NSPanel overlay for accessibility element highlighting
+- Draws orange border around selected element frame
+- Stays on top of all windows; auto-hides after 2.5s
 
 **`SideWindowPanel`** (`Windows/SideWindowPanel.swift`)
 - `NSPanel` subclass, level `.floating`, `hidesOnDeactivate = false`
@@ -153,21 +165,19 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Panel height driven by SwiftUI content intrinsic size (min floor: 400pt)
 - Vertically centers panel on simulator for left/right/dynamic positions
 
-**`AXHighlightPanel`** (`Windows/AXHighlightPanel.swift`)
-- Borderless floating NSPanel overlay for accessibility element highlighting
-- Draws orange border around selected element frame
-- Stays on top of all windows; auto-hides after 2.5s
-
 ### Models
 
 **`SimulatorWindow`** (`Models/SimulatorWindow.swift`)
 - Value type (`struct`): id (`CGWindowID`), pid, deviceName, frame, isOnScreen, isMinimized
 - `deviceName` is nil without Screen Recording permission; `displayName` provides fallback
 
-**`CertificateModels.swift`**
-- `CertificateMetadata` stores CA common name, expiry, and SHA-256 fingerprint
-- `CertificateStatus` tracks generated, installed, unknown, and not-generated states
-- `CertificateOperation` guards generate/install/rotate/reset transitions; `CertificateError` carries user-facing failures
+**`BuildRecord`** (`Models/BuildRecord.swift`)
+- Build history record: timestamp, duration, device name
+- Decoded from Xcode `IDEActivityLog` JSON logs
+
+**`AXNode`** (`Models/AXNode.swift`)
+- Accessibility tree node: role, description, frame, attributes
+- Hashable for list rendering; supports equality comparison
 
 **`AppSettings`** (`Models/AppSettings.swift`)
 - `ObservableObject` backed entirely by `@AppStorage`
@@ -178,29 +188,47 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Accessibility tree node: role, description, frame, attributes
 - Hashable for list rendering; supports equality comparison
 
-**`BuildRecord`** (`Models/BuildRecord.swift`)
-- Build history record: timestamp, duration, device name
-- Decoded from Xcode `IDEActivityLog` JSON logs
-
 ### Views
 
 **`MenuBarView`** — Show/hide toggle (Cmd+B), simulator list, Settings link, Quit
+
 **`SideWindowView`** — Root: collapsed strip or expanded panel with tab-based layout (4 tabs: Capture, Design, Actions, Network)
-**`SideTab`** — Enum defining the four side window tabs with icon and label
-**`TabBarView`** — Icon-only tab bar with amber underline indicator and collapse button
-**`CaptureTabView`** / **`DesignTabView`** / **`ActionsTabView`** / **`NetworkTabView`** — Tab content views (in `tabs/` subdirectory)
-**`PreferencesView`** — Tab container for General and About tabs
-**`OnboardingContainerView`** — 4-step flow: welcome, Accessibility, Screen Recording, done
-**`CollapsedStripView`**, **`DeviceHeaderView`**, **`SideWindowFooter`** — Side panel chrome
-**`DeviceHeaderView`** — Active simulator name, OS version, battery/signal status
-**`StatusBarSectionView`** — Status bar preset picker + custom controls
-**`EnvironmentOverridesView`** — Accessibility toggles (appearance, contrast, motion, bold text, smart invert, etc.)
-**`CertificateSectionView`** — CA generation, Simulator keychain install/rotate/reset, trust-state messaging
-**`BuildStatsSectionView`** / **`BuildChartView`** — Build history + Canvas bar chart
-**`AXTreeView`** — Accessibility tree browser with element highlight
-**`CameraView`** — Front/back camera toggle for iOS Simulator
-**`FeatureSectionView`** / **`FeatureRowView`** — Feature list rows
-**`AccentButton`**, **`StatusBadge`**, **`CollapsibleSection`** — Shared UI atoms
+
+**`SideTab`** — Enum: `capture`, `design`, `actions`, `network` with icon and label
+
+**`TabBarView`** — Icon-only horizontal tab bar (36pt height)
+- Selected indicator: 2pt amber underline
+- Icons: camera, paintbrush, bolt, network (filled when selected, outlined when inactive)
+- Right-aligned collapse button: chevron.left
+- Background: `.bar` material with bottom divider
+- Tab spacing: 12pt horizontal padding per tab
+- Accessibility: tooltip, accessibilityLabel, isSelected trait
+
+**Tab Content Views** (`tabs/` subdirectory)
+- `CaptureTabView` — Screenshot, recording, GIF (placeholders)
+- `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
+- `ActionsTabView` — Environment overrides + quick actions container
+- `NetworkTabView` — Certificates + network tools container
+
+**Side Panel Components**
+- `DeviceHeaderView` — Active device info (name, OS, battery, signal)
+- `CollapsedStripView` — 28pt collapsed state with chevron + 2pt amber stripe
+- `SideWindowFooter` — Version/status footer
+- `StatusBarSectionView` — Status bar preset UI (4 presets + custom)
+- `EnvironmentOverridesView` — A11y toggles (appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale, on/off labels, button shapes, differentiate, grayscale)
+- `CertificateSectionView` — CA generation, install/rotate/reset, trust-state messaging
+- `BuildStatsSectionView` / `BuildChartView` — Build history + Canvas bar chart
+- `AXTreeView` — Accessibility tree browser with lazy loading + element highlight
+- `CameraView` — Mac camera input toggle
+
+**Shared Components**
+- `FeatureSectionView` — Collapsible section container
+- `FeatureRowView` — Individual feature row with toggle
+- `AccentButton`, `StatusBadge`, `CollapsibleSection` — Reusable atoms
+
+**Preferences & Onboarding**
+- `PreferencesView` — Tab container for General and About
+- `OnboardingContainerView` — 4-step flow: welcome, Accessibility, Screen Recording, done
 
 ### Utilities
 

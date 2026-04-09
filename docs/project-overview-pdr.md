@@ -25,15 +25,15 @@ iOS developers spend significant time switching between the Simulator and extern
 - Simulator detection with real-time position sync; panel hides on Simulator focus loss
 - Permission onboarding (Accessibility, Screen Recording, DerivedData)
 - Preferences window (position, launch at login)
-- **Phase 6 features:** Status bar config, accessibility toggles (appearance, contrast, bold text, smart invert, reduce transparency, grayscale, etc.), build history chart, accessibility tree inspector, Mac camera input, environment overrides
-- **Health Data Generator:** seed HealthKit (steps, HR, HRV, SpO2, energy, sleep, workout) via bundled BoosterHealth iOS companion; 4 presets + manual mode + clear data
-- **Certificate Trust Management:** generate local CA, install into Simulator keychain, rotate/reset via side panel; persists trust state across sessions
+- **Tab-based UI:** Capture, Design, Actions, Network tabs with icon-only floating header
+- **Phase 6 features:** Status bar config (4 presets + custom), environment overrides (11 a11y toggles), build history chart, accessibility tree inspector with element highlighting, Mac camera input
+- **Certificate Trust Management:** CA generation, Simulator keychain install/rotate/reset via side panel; persists trust state across sessions
 
 ### Out of Scope (Phases 2–5, 7)
 - Screenshot capture / screen recording / GIF export
 - App actions (reset, clear keychain, push notifications, deep links)
 - Design overlays (grid, safe area, color picker, ruler)
-- Network tools (throttle, block requests, certificate inspection) — *Certificate trust management complete*
+- Network tools (throttle, block requests) — *Certificate trust management implemented*
 - Distribution & code signing
 
 ## Requirements
@@ -51,9 +51,10 @@ iOS developers spend significant time switching between the Simulator and extern
 - FR-10: Preferences (position, launch at login, Xcode path)
 - FR-11: Cmd+B toggles panel; Cmd+W hides it; Cmd+, opens Preferences
 - FR-12: Panel hides when Simulator loses focus (app activation change)
-- FR-13: Environment overrides apply instantly (no app relaunch) via `xcrun simctl spawn`
-- FR-14: Health data seeded via bundled BoosterHealth iOS companion (`simctl install` + `simctl openurl boosterhealth://generate?...`)
+- FR-13: Tab-based navigation (Capture, Design, Actions, Network)
+- FR-14: Environment overrides apply instantly (no app relaunch) via `xcrun simctl spawn`
 - FR-15: Spring-physics tracking for smooth panel position following (CADisplayLink, reducedMotion-aware)
+- FR-16: Certificate trust management (CA generation, install, rotate, reset in Simulator keychain)
 
 ### Non-Functional
 - NFR-01: macOS 15+ only (no backwards compat shims)

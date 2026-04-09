@@ -1,8 +1,8 @@
 # Project Roadmap
 
-## Current Status: Phase 1 + Phase 5 (partial) + Phase 6 Complete
+## Current Status: Phase 1 Complete + Phase 5 (partial) + Phase 6 Complete
 
-Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully implemented. Phase 5 certificate trust management is complete; the remaining Phases 2-4, other Phase 5 items, and Phase 7 (distribution) are not started.
+Core infrastructure (Phase 1), tab-based UI, and developer tool features (Phase 6) are fully implemented. Phase 5 certificate trust management is complete. Phases 2-4, remaining Phase 5 items, and Phase 7 (distribution) are not started.
 
 ---
 
@@ -23,6 +23,7 @@ Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully im
 - [x] Preferences window (position, launch at login)
 - [x] AppSettings persistence via @AppStorage
 - [x] Design tokens system (Spacing, CornerRadius, SideWindowMetrics)
+- [x] Tab-based UI (Capture, Design, Actions, Network tabs with icon-only header)
 - [x] Feature section placeholders (Captures, App Actions, Design Tools, Network)
 
 ---
@@ -97,11 +98,9 @@ Core infrastructure (Phase 1) and developer tool features (Phase 6) are fully im
 
 - [x] Configurable status bar (time, battery, signal) — 4 presets + custom controls
 - [x] Simulator Camera (use Mac camera as Simulator input) — AX menu automation
-- [x] Apple Watch Simulator support — device type classification + multi-device picker
-- [x] VoiceOver navigator (accessibility tree inspection) — lazy AX tree walker + highlight overlay
-- [x] Environment overrides (accessibility settings) — Tier 1 (appearance, contrast) + Tier 2 (reduce motion, bold text)
-- [x] Xcode build statistics (build count, time graphs) — build history polling + Canvas chart
-- [x] Health Data Generator (HealthKit seeding) — bundled iOS companion app, presets + manual mode, clear data
+- [x] Environment overrides (accessibility settings) — 11 a11y toggles (appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale, on/off labels, button shapes, differentiate, grayscale)
+- [x] Xcode build statistics (build count, time graphs) — build history polling + Canvas bar chart
+- [x] Accessibility tree inspector (VoiceOver navigator) — lazy AX tree walker + highlight overlay
 
 ---
 

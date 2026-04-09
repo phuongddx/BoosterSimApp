@@ -143,16 +143,15 @@ do {
 - Check for UDID availability before calling simctl (may be nil without Screen Recording permission)
 - Parse output as String or JSON; handle non-zero exit codes gracefully
 
-## BoosterHealth Companion Integration
+## Tab Navigation Pattern
 
-Patterns for the bundled iOS companion target (`BoosterHealth`):
+Side panel uses tab-based navigation via `SideTab` enum:
 
-- **Install:** `simctl install <udid> <path/to/BoosterHealth.app>` via `SimCtlService`
-- **Trigger:** `simctl openurl <udid> boosterhealth://generate?preset=activeDay` — URL parameters parsed by `HealthPayload`
-- **State machine:** `idle → installing → generating → done | error` published via `@Published var state`
-- **Auto-reset:** Reset to `.idle` after 3s on success/error (use `DispatchQueue.main.asyncAfter`)
-- **HealthKit writes** live entirely in the iOS target (`HealthDataGenerator`) — macOS target never imports HealthKit
-- **Error propagation:** surface errors as `state = .error(String)` — never crash the macOS app on companion failure
+- `SideTab` enum: `capture`, `design`, `actions`, `network` — each defines icon + label
+- `TabBarView` renders icon-only tab buttons with amber underline for selected state
+- `SideWindowView` routes tab selection to appropriate content view via `switch selectedTab`
+- Tab switch animates with spring (response: 0.25, damping: 0.8); linear 0.1s with Reduce Motion
+- Content views are tab-agnostic; views own their state (e.g., `CertificateSectionView` in Actions tab)
 
 ## Prohibited Patterns
 

@@ -14,7 +14,7 @@
 # From project root
 cd BoosterSimApp
 
-# Build BoosterSimApp (Debug) — also builds BoosterHealth iOS companion
+# Build BoosterSimApp (Debug)
 xcodebuild -project BoosterSimApp.xcodeproj \
            -scheme BoosterSimApp \
            -configuration Debug \
@@ -23,8 +23,6 @@ xcodebuild -project BoosterSimApp.xcodeproj \
 # Or open in Xcode and press Cmd+R
 open BoosterSimApp.xcodeproj
 ```
-
-> **BoosterHealth companion:** The `BoosterHealth` target (iOS) is built automatically as a dependency of `BoosterSimApp`. The compiled `.app` is embedded in the macOS bundle and installed into the Simulator at runtime via `simctl install`.
 
 ### First Run Setup
 
@@ -88,8 +86,7 @@ BoosterSimApp is **non-sandboxed** (ENABLE_APP_SANDBOX = NO). Required for:
 - `AXIsProcessTrusted()` — Accessibility API
 - `CGWindowListCopyWindowInfo` — window enumeration
 - `AXObserverCreate` — per-process AX observation
-- `xcrun simctl spawn` — environment override commands
-- `xcrun simctl install` / `simctl openurl` — BoosterHealth companion delivery
+- `xcrun simctl spawn` — environment override and certificate trust commands
 
 For Mac App Store distribution, a redesigned sandboxed version would require entitlements review or alternative APIs (ScreenCaptureKit, accessibility frameworks with reduced capabilities).
 
