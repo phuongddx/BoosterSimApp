@@ -35,7 +35,7 @@ struct SideWindowView: View {
                 CollapsedStripView(onExpand: { controller.toggleCollapsed() })
                     .transition(.opacity)
             } else {
-                VStack(spacing: 0) {
+                VStack(spacing: Spacing.sm) {
                     TabBarView(selectedTab: $selectedTab, onCollapse: { controller.toggleCollapsed() })
 
                     tabContent

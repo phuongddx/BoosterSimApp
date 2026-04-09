@@ -16,11 +16,10 @@ struct TabBarView: View {
             Spacer()
             collapseButton
         }
-        .padding(.leading, Spacing.xs)
-        .padding(.trailing, Spacing.sm)
+        .padding(.horizontal, Spacing.xs)
         .frame(height: SideWindowMetrics.headerHeight)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
+        .background(.bar, in: RoundedRectangle(cornerRadius: CornerRadius.large))
+        .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
     }
 
     // MARK: - Tab Button

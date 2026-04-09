@@ -57,7 +57,7 @@ final class AXInspectorService: ObservableObject {
 
     // MARK: - Private Helpers (file-scope for background-queue callability)
 
-    fileprivate static func fetchChildren(of element: AXUIElement, depth: Int) -> [AXNode] {
+    nonisolated fileprivate static func fetchChildren(of element: AXUIElement, depth: Int) -> [AXNode] {
         guard depth < maxDepth else { return [] }
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(element, AXAttr.children, &ref)
@@ -65,7 +65,7 @@ final class AXInspectorService: ObservableObject {
         return elements.compactMap { readNode(from: $0, depth: depth) }
     }
 
-    fileprivate static func readNode(from element: AXUIElement, depth: Int) -> AXNode? {
+    nonisolated fileprivate static func readNode(from element: AXUIElement, depth: Int) -> AXNode? {
         let role = readString(AXAttr.role, from: element)
         guard !role.isEmpty else { return nil }
         let label = readString(AXAttr.title, from: element).nilIfEmpty
@@ -77,13 +77,13 @@ final class AXInspectorService: ObservableObject {
                       value: value, frame: frame, hasChildren: hasKids)
     }
 
-    fileprivate static func readString(_ attr: CFString, from el: AXUIElement) -> String {
+    nonisolated fileprivate static func readString(_ attr: CFString, from el: AXUIElement) -> String {
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(el, attr, &ref)
         return (ref as? String) ?? ""
     }
 
-    fileprivate static func readFrame(_ el: AXUIElement) -> CGRect {
+    nonisolated fileprivate static func readFrame(_ el: AXUIElement) -> CGRect {
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(el, AXAttr.frame, &ref)
         guard let val = ref else { return .zero }
@@ -100,7 +100,7 @@ final class AXInspectorService: ObservableObject {
         return rect
     }
 
-    fileprivate static func hasChildren(_ el: AXUIElement) -> Bool {
+    nonisolated fileprivate static func hasChildren(_ el: AXUIElement) -> Bool {
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(el, AXAttr.children, &ref)
         return (ref as? [AXUIElement])?.isEmpty == false
