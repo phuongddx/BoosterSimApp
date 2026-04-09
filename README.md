@@ -18,7 +18,7 @@ macOS menu bar companion app that attaches a floating side panel to the iOS Simu
 - Environment Overrides — appearance, contrast, motion, bold text, smart invert, reduce transparency, grayscale toggles (instant, no relaunch)
 - Status Bar — 4 presets + custom time/battery/signal via simctl
 - Camera — use Mac camera as Simulator input via AX menu automation
-- Health Data — seed HealthKit (steps, HR, HRV, SpO2, sleep, workout) via bundled iOS companion app
+- Certificates — trust management for iOS Simulator certificate pinning
 
 **Planned**
 - Captures — screenshot, screen recording, GIF/MP4 export
@@ -63,7 +63,7 @@ Without Accessibility, the app falls back to 0.5s polling — still functional, 
 
 ## Architecture
 
-SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. ~51 Swift files, ~4,625 LOC, zero external dependencies. Includes `BoosterHealth` — a bundled iOS companion app for HealthKit data seeding.
+SwiftUI `@main` App + `@NSApplicationDelegateAdaptor` for AppKit interop. Services use Combine `@Published` for state. Swift 6 strict concurrency throughout. ~48 Swift files, ~4,300 LOC, zero external dependencies.
 
 ```
 BoosterSimAppApp (@main)
@@ -79,10 +79,8 @@ BoosterSimAppApp (@main)
     ├── AXInspectorService          — accessibility tree walker + highlight
     ├── CameraService               — Mac camera input via AX menu automation
     ├── SimCtlService               — xcrun simctl executor
-    ├── HealthDataService           — BoosterHealth companion install + URL trigger
+    ├── CertificateService          — certificate trust management for Simulator
     └── WindowObserver              — AXObserver per PID for real-time tracking
-BoosterHealth (iOS companion, Simulator-only)
-└── BoosterHealthApp + HealthDataGenerator + HealthPayload
 ```
 
 See [`docs/system-architecture.md`](docs/system-architecture.md) for full details.

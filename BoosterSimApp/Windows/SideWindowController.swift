@@ -46,7 +46,6 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        healthDataService: HealthDataService,
         certificateService: CertificateService
     ) {
         self.settings = settings
@@ -60,7 +59,6 @@ final class SideWindowController: ObservableObject {
             buildStatsService: buildStatsService,
             axInspectorService: axInspectorService,
             cameraService: cameraService,
-            healthDataService: healthDataService,
             certificateService: certificateService
         )
         certificateCancellable = tracker.$activeSimulator
@@ -190,7 +188,6 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        healthDataService: HealthDataService,
         certificateService: CertificateService
     ) {
         let content = SideWindowView(
@@ -209,7 +206,6 @@ final class SideWindowController: ObservableObject {
             .environmentObject(buildStatsService)
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
-            .environmentObject(healthDataService)
             .environmentObject(certificateService)
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]

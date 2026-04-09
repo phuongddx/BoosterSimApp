@@ -7,13 +7,6 @@
 	objects = {
 
 /* Begin PBXContainerItemProxy section */
-		BB00000B00000000000000AA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = F2E054A22F6D24D100056210 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BB00000600000000000000AA;
-			remoteInfo = BoosterHealth;
-		};
 		F2E054B82F6D24D600056210 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F2E054A22F6D24D100056210 /* Project object */;
@@ -31,18 +24,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BB00000100000000000000AA /* BoosterHealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoosterHealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054AA2F6D24D100056210 /* BoosterSimApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoosterSimApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054B72F6D24D600056210 /* BoosterSimAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoosterSimAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054C12F6D24D600056210 /* BoosterSimAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoosterSimAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BB00000200000000000000AA /* BoosterHealth */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = BoosterHealth;
-			sourceTree = "<group>";
-		};
 		F2E054AC2F6D24D100056210 /* BoosterSimApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BoosterSimApp;
@@ -61,13 +48,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		BB00000400000000000000AA /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F2E054A72F6D24D100056210 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -96,7 +76,6 @@
 			isa = PBXGroup;
 			children = (
 				F2E054AC2F6D24D100056210 /* BoosterSimApp */,
-				BB00000200000000000000AA /* BoosterHealth */,
 				F2E054BA2F6D24D600056210 /* BoosterSimAppTests */,
 				F2E054C42F6D24D600056210 /* BoosterSimAppUITests */,
 				F2E054AB2F6D24D100056210 /* Products */,
@@ -107,7 +86,6 @@
 			isa = PBXGroup;
 			children = (
 				F2E054AA2F6D24D100056210 /* BoosterSimApp.app */,
-				BB00000100000000000000AA /* BoosterHealth.app */,
 				F2E054B72F6D24D600056210 /* BoosterSimAppTests.xctest */,
 				F2E054C12F6D24D600056210 /* BoosterSimAppUITests.xctest */,
 			);
@@ -117,28 +95,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BB00000600000000000000AA /* BoosterHealth */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BB00000900000000000000AA /* Build configuration list for PBXNativeTarget "BoosterHealth" */;
-			buildPhases = (
-				BB00000300000000000000AA /* Sources */,
-				BB00000400000000000000AA /* Frameworks */,
-				BB00000500000000000000AA /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				BB00000200000000000000AA /* BoosterHealth */,
-			);
-			name = BoosterHealth;
-			packageProductDependencies = (
-			);
-			productName = BoosterHealth;
-			productReference = BB00000100000000000000AA /* BoosterHealth.app */;
-			productType = "com.apple.product-type.application";
-		};
 		F2E054A92F6D24D100056210 /* BoosterSimApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F2E054CB2F6D24D600056210 /* Build configuration list for PBXNativeTarget "BoosterSimApp" */;
@@ -146,12 +102,10 @@
 				F2E054A62F6D24D100056210 /* Sources */,
 				F2E054A72F6D24D100056210 /* Frameworks */,
 				F2E054A82F6D24D100056210 /* Resources */,
-				BB00000C00000000000000AA /* Copy BoosterHealth.app */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				BB00000A00000000000000AA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F2E054AC2F6D24D100056210 /* BoosterSimApp */,
@@ -219,9 +173,6 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
-					BB00000600000000000000AA = {
-						CreatedOnToolsVersion = 26.3;
-					};
 					F2E054A92F6D24D100056210 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -250,7 +201,6 @@
 			projectRoot = "";
 			targets = (
 				F2E054A92F6D24D100056210 /* BoosterSimApp */,
-				BB00000600000000000000AA /* BoosterHealth */,
 				F2E054B62F6D24D600056210 /* BoosterSimAppTests */,
 				F2E054C02F6D24D600056210 /* BoosterSimAppUITests */,
 			);
@@ -258,13 +208,6 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		BB00000500000000000000AA /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F2E054A82F6D24D100056210 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -288,33 +231,7 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		BB00000C00000000000000AA /* Copy BoosterHealth.app */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR%/*)/$(CONFIGURATION)-iphonesimulator/BoosterHealth.app",
-			);
-			name = "Copy BoosterHealth.app";
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BoosterHealth.app",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "set -e\nIOS_DIR=\"${BUILT_PRODUCTS_DIR%/*}/${CONFIGURATION}-iphonesimulator\"\nCOMPANION=\"${IOS_DIR}/BoosterHealth.app\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/BoosterHealth.app\"\nrm -rf \"${DEST}\"\ncp -r \"${COMPANION}\" \"${DEST}\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
-		BB00000300000000000000AA /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		F2E054A62F6D24D100056210 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -339,11 +256,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		BB00000A00000000000000AA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = BB00000600000000000000AA /* BoosterHealth */;
-			targetProxy = BB00000B00000000000000AA /* PBXContainerItemProxy */;
-		};
 		F2E054B92F6D24D600056210 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F2E054A92F6D24D100056210 /* BoosterSimApp */;
@@ -357,52 +269,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		BB00000700000000000000AA /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "BoosterHealth-Entitlements.plist";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = EQ8B89SPCX;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "BoosterHealth-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nextlabs.boosterhealth;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphonesimulator;
-				SUPPORTED_PLATFORMS = iphonesimulator;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		BB00000800000000000000AA /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "BoosterHealth-Entitlements.plist";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = EQ8B89SPCX;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "BoosterHealth-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nextlabs.boosterhealth;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphonesimulator;
-				SUPPORTED_PLATFORMS = iphonesimulator;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
 		F2E054C92F6D24D600056210 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -686,15 +552,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BB00000900000000000000AA /* Build configuration list for PBXNativeTarget "BoosterHealth" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BB00000700000000000000AA /* Debug */,
-				BB00000800000000000000AA /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		F2E054A52F6D24D100056210 /* Build configuration list for PBXProject "BoosterSimApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
