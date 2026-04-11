@@ -1,4 +1,4 @@
-// NetworkTabView.swift — Network tab: certificates + network tools
+// NetworkTabView.swift — Network tab: live traffic viewer + certificates
 import SwiftUI
 
 struct NetworkTabView: View {
@@ -7,21 +7,57 @@ struct NetworkTabView: View {
     let deviceNameProvider: () -> String
 
     @EnvironmentObject var certificateService: CertificateService
+    @ObservedObject var connectService: ConnectService
 
-    private let networkItems: [FeatureItem] = [
-        FeatureItem(icon: "tortoise",              label: "Throttle Network"),
-        FeatureItem(icon: "xmark.shield",          label: "Block Requests"),
-        FeatureItem(icon: "list.bullet.rectangle", label: "View Logs")
-    ]
+    @State private var filter = TrafficFilter()
+    @State private var selectedEvent: NetworkEvent?
+    @State private var showSetup = false
+
+    // MARK: - Computed
+
+    private var filteredEvents: [NetworkEvent] {
+        connectService.networkEvents.filter { filter.matches($0) }
+    }
+
+    // MARK: - Body
 
     var body: some View {
-        ScrollView {
+        VStack(spacing: 0) {
+            // Connection status banner
+            ConnectStatusBanner(
+                state: connectService.connectionState,
+                onSetupTap: { showSetup = true }
+            )
+
+            if showSetup || connectService.connectionState == .disconnected && connectService.networkEvents.isEmpty {
+                // Setup instructions when not connected and no events
+                ConnectSetupView()
+            } else {
+                // Live traffic viewer
+                TrafficFilterBar(
+                    filter: $filter,
+                    eventCount: filteredEvents.count,
+                    onClear: { connectService.clearEvents() }
+                )
+
+                TrafficList(
+                    events: filteredEvents,
+                    selectedEvent: $selectedEvent,
+                    onRequestClear: { connectService.clearEvents() }
+                )
+            }
+
+            Divider()
+
+            // Certificate section (always visible)
             CertificateSectionView(
                 udidProvider: udidProvider,
                 deviceNameProvider: deviceNameProvider
             )
-
-            FeatureSectionView(title: "Network Tools", icon: "network", items: networkItems)
+        }
+        .sheet(item: $selectedEvent) { event in
+            TrafficDetailView(event: event)
+                .frame(width: SideWindowMetrics.expandedWidth, height: 400)
         }
     }
 }

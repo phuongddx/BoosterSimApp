@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var axInspectorService  = AXInspectorService()
     lazy var cameraService       = CameraService()
     lazy var certificateService  = CertificateService(simCtl: simCtlService)
+    lazy var connectService      = ConnectService()
     lazy var axHighlightPanel    = AXHighlightPanel()
 
     // MARK: - Windows
@@ -32,7 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         buildStatsService: buildStatsService,
         axInspectorService: axInspectorService,
         cameraService: cameraService,
-        certificateService: certificateService
+        certificateService: certificateService,
+        connectService: connectService
     )
 
     // MARK: - Private
@@ -59,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Start simulator detection + build monitoring
         tracker.startTracking()
         buildStatsService.startMonitoring()
+        connectService.startServer()
 
         // NOTE: envOverrideService.loadCurrentState is called from
         // EnvironmentOverridesView (onAppear + onChange) — no need to duplicate here.
@@ -85,6 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationWillTerminate(_ notification: Notification) {
         tracker.stopTracking()
         buildStatsService.stopMonitoring()
+        connectService.stopServer()
     }
 
     // MARK: - Onboarding Window

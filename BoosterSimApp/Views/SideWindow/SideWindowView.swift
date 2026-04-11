@@ -14,6 +14,7 @@ struct SideWindowView: View {
     @EnvironmentObject var axInspectorService: AXInspectorService
     @EnvironmentObject var cameraService:      CameraService
     @EnvironmentObject var certificateService: CertificateService
+    @EnvironmentObject var connectService:      ConnectService
 
     @State private var selectedTab: SideTab = .capture
     @Environment(\.accessibilityReduceMotion) var reduceMotion
@@ -70,7 +71,8 @@ struct SideWindowView: View {
         case .network:
             NetworkTabView(
                 udidProvider: { activeSim?.udid },
-                deviceNameProvider: { activeSim?.displayName ?? "Simulator" }
+                deviceNameProvider: { activeSim?.displayName ?? "Simulator" },
+                connectService: connectService
             )
         }
     }
@@ -88,12 +90,14 @@ struct SideWindowView: View {
     let axService        = AXInspectorService()
     let cameraService    = CameraService()
     let certificateService = CertificateService(simCtl: simCtl)
+    let connectService      = ConnectService()
     let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
         buildStatsService: buildService, axInspectorService: axService,
         cameraService: cameraService,
-        certificateService: certificateService
+        certificateService: certificateService,
+        connectService: connectService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -102,5 +106,6 @@ struct SideWindowView: View {
         .environmentObject(axService)
         .environmentObject(cameraService)
         .environmentObject(certificateService)
+        .environmentObject(connectService)
         .frame(width: SideWindowMetrics.expandedWidth, height: 600)
 }
