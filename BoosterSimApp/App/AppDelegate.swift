@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var cameraService       = CameraService()
     lazy var certificateService  = CertificateService(simCtl: simCtlService)
     lazy var connectService      = ConnectService()
+    lazy var deepLinkService     = DeepLinkService()
     lazy var axHighlightPanel    = AXHighlightPanel()
 
     // MARK: - Windows
@@ -34,7 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         axInspectorService: axInspectorService,
         cameraService: cameraService,
         certificateService: certificateService,
-        connectService: connectService
+        connectService: connectService,
+        deepLinkService: deepLinkService
     )
 
     // MARK: - Private

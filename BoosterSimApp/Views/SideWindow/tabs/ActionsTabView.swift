@@ -1,4 +1,4 @@
-// ActionsTabView.swift — Actions tab: environment overrides + quick actions
+// ActionsTabView.swift — Actions tab: environment overrides + deep link testing + quick actions
 import SwiftUI
 
 struct ActionsTabView: View {
@@ -6,19 +6,15 @@ struct ActionsTabView: View {
     let udid: String?
 
     @EnvironmentObject var envOverrideService: EnvironmentOverrideService
-
-    private let actionItems: [FeatureItem] = [
-        FeatureItem(icon: "arrow.counterclockwise", label: "Reset App"),
-        FeatureItem(icon: "key",                    label: "Clear Keychain"),
-        FeatureItem(icon: "bell",                   label: "Push Notification"),
-        FeatureItem(icon: "link",                   label: "Deep Link")
-    ]
+    @EnvironmentObject var deepLinkService: DeepLinkService
 
     var body: some View {
         ScrollView {
             EnvironmentOverridesView(udid: udid)
 
-            FeatureSectionView(title: "Quick Actions", icon: "bolt", items: actionItems)
+            CollapsibleSection(title: "Deep Link Testing", icon: "link") {
+                DeepLinkSectionView(deepLinkService: deepLinkService, udid: udid)
+            }
         }
     }
 }
