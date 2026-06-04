@@ -3,10 +3,10 @@
 ## Project Stats
 
 - **Language:** Swift 6 (strict concurrency)
-- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore
-- **Files:** 54 Swift source files (~4,705 LOC total across app and tests)
-- **Targets:** BoosterSimApp (macOS), test targets
-- **External dependencies:** None
+- **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, Network
+- **Files:** 73 Swift source files (~6,556 LOC total across app, iOS framework source, and tests)
+- **Targets:** BoosterSimApp (macOS), BoosterSimConnect (iOS framework), test targets
+- **External dependencies:** Pulse/PulseProxy SPM (BoosterSimConnect framework only)
 - **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
 
 ## Directory Structure
@@ -37,7 +37,11 @@ BoosterSimApp/
 │   │   ├── CameraService.swift           # Camera menu automation (93 LOC)
 │   │   ├── CertificateModels.swift       # CA status / operation / error types (96 LOC)
 │   │   ├── CertificateStore.swift        # OpenSSL CA generation + persistence (172 LOC)
-│   │   └── CertificateService.swift      # CA trust management flow (195 LOC)
+│   │   ├── CertificateService.swift      # CA trust management flow (195 LOC)
+│   │   ├── ConnectService.swift          # Pulse server host + event pipeline (118 LOC)
+│   │   ├── PulseServer.swift             # NWListener TCP server + Bonjour (104 LOC)
+│   │   ├── PulseClientConnection.swift   # Per-client protocol handler (183 LOC)
+│   │   └── PulsePacketDecoder.swift      # Binary protocol parser (174 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
 │   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (234 LOC)
@@ -54,7 +58,16 @@ BoosterSimApp/
 │   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (23 LOC)
 │   │   │   │   ├── DesignTabView.swift   # Design tab: grid, safe area, ruler, picker (23 LOC)
 │   │   │   │   ├── ActionsTabView.swift  # Actions tab: env overrides + quick actions (25 LOC)
-│   │   │   │   └── NetworkTabView.swift  # Network tab: certificates + network tools (28 LOC)
+│   │   │   │   └── NetworkTabView.swift  # Network tab: live traffic + certificates (62 LOC)
+│   │   │   ├── network/
+│   │   │   │   ├── NetworkEventModel.swift # NetworkEvent, HTTPMethod, TrafficFilter, ConnectionState (208 LOC)
+│   │   │   │   ├── TrafficRowView.swift    # Single request row in traffic list (98 LOC)
+│   │   │   │   ├── TrafficList.swift       # Scrollable traffic list + empty state (73 LOC)
+│   │   │   │   ├── TrafficDetailView.swift # Sheet: Summary/Headers/Body/Metrics tabs (300 LOC)
+│   │   │   │   ├── TrafficFilterBar.swift  # Method + status filter pills + search (136 LOC)
+│   │   │   │   ├── ConnectStatusBanner.swift # Connection state dot + label (92 LOC)
+│   │   │   │   ├── ConnectSetupView.swift  # Setup instructions + code snippet (89 LOC)
+│   │   │   │   └── CurlExporter.swift      # NetworkEvent → cURL command (49 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (90 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (35 LOC)
 │   │   │   ├── SideWindowFooter.swift    # Version/status footer (36 LOC)
@@ -89,6 +102,8 @@ BoosterSimApp/
 ├── BoosterSimAppUITests/                 # UI test target
 │   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
 │   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
+├── BoosterSimConnect/                    # iOS framework source (loaded into Simulator apps)
+│   └── BoosterSimConnect.swift           # PulseProxy activation + RemoteLogger (65 LOC)
 └── plans/                               # Implementation plans
     └── reports/
 ```
@@ -102,6 +117,12 @@ BoosterSimApp/
 | Simulator detection | `Services/SimulatorWindowTracker.swift` |
 | Low-level window scan | `Services/WindowEnumerator.swift` |
 | Real-time AX events | `Services/WindowObserver.swift` |
+| Pulse server + traffic pipeline | `Services/ConnectService.swift` |
+| TCP server (NWListener) | `Services/PulseServer.swift` |
+| Per-client protocol handler | `Services/PulseClientConnection.swift` |
+| Binary protocol parser | `Services/PulsePacketDecoder.swift` |
+| Network event models | `Views/SideWindow/network/NetworkEventModel.swift` |
+| iOS framework activation | `BoosterSimConnect/BoosterSimConnect.swift` |
 | Tab-based navigation | `Views/SideWindow/SideTab.swift`, `Views/SideWindow/TabBarView.swift` |
 | Panel lifecycle & spring tracking | `Windows/SideWindowController.swift` |
 | Position math | `Windows/PositionCalculator.swift` |
@@ -123,13 +144,15 @@ BoosterSimApp/
 
 | Rank | File | LOC | Notes |
 |---|---|---|---|
-| 1 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
-| 2 | `SideWindowController.swift` | 234 | Monitor growth |
-| 3 | `SimulatorWindowTracker.swift` | 199 | — |
-| 4 | `CertificateService.swift` | 195 | CA trust management |
-| 5 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
-| 6 | `CertificateStore.swift` | 172 | OpenSSL-backed persistence |
-| 7 | `EnvironmentOverridesView.swift` | 145 | Side panel a11y toggles |
+| 1 | `TrafficDetailView.swift` | 295 | Network detail sheet (4 tabs) — candidate for split |
+| 2 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
+| 3 | `SideWindowController.swift` | 234 | Monitor growth |
+| 4 | `NetworkEventModel.swift` | 208 | Network event + filter models |
+| 5 | `SimulatorWindowTracker.swift` | 199 | — |
+| 6 | `CertificateService.swift` | 195 | CA trust management |
+| 7 | `PulseClientConnection.swift` | 183 | Per-client protocol handler |
+| 8 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
+| 9 | `PulsePacketDecoder.swift` | 174 | Binary protocol parser |
 
 ## Feature Sections (Side Panel — Tab-Based UI)
 
@@ -139,12 +162,14 @@ BoosterSimApp/
 | Design | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
 | Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text, Smart Invert, Reduce Transparency, Grayscale, On/Off Labels, Button Shapes, Differentiate Without Color | Complete |
 | Actions | Quick Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
+| Network | Connect | Pulse TCP server (NWListener + Bonjour), binary protocol decode, connection state banner, setup instructions | Complete |
+| Network | Traffic Viewer | Filter by method/status, traffic list, detail sheet (headers/body/metrics), cURL export | Complete |
 | Network | Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
-| Network | Network Tools | Throttle Network, Block Requests, View Logs | Placeholder |
+| Network | Network Tools | Throttle Network, Block Requests | Placeholder |
 
 **Wired sections** (exist in tabs, fully functional):
 - Actions tab: `EnvironmentOverridesView` (11 a11y toggles)
-- Network tab: `CertificateSectionView` (CA management)
+- Network tab: `ConnectService` + `PulseServer` + `TrafficList`/`TrafficDetailView` + `CertificateSectionView`
 
 **Standalone views** (exist but not wired into tabs yet):
 - `StatusBarSectionView` — status bar presets + custom (Complete)

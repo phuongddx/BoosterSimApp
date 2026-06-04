@@ -30,6 +30,10 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  └── SimulatorWindowTracker orchestrator            │
 ├─────────────────────────────────────────────────────┤
 │  Feature Services (Phases 5+)                       │
+│  ├── ConnectService — Pulse server, event pipeline  │
+│  ├── PulseServer — NWListener TCP, Bonjour advert   │
+│  ├── PulseClientConnection — per-client protocol    │
+│  ├── PulsePacketDecoder — binary protocol parser    │
 │  ├── EnvironmentOverrideService — a11y toggles      │
 │  ├── StatusBarService — status presets + config     │
 │  ├── BuildStatsService — build history polling      │
@@ -38,6 +42,10 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── CertificateService — CA generation/trust mgmt  │
 │  ├── SimCtlService — xcrun simctl executor          │
 │  └── XcodeDetector — filesystem path detection     │
+├─────────────────────────────────────────────────────┤
+│  iOS Framework Source                               │
+│  └── BoosterSimConnect — PulseProxy activation      │
+│       (loaded into Simulator app via Bundle.load)   │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -126,6 +134,34 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Reads certificate metadata and redacts local paths in user-facing error messages
 - Single source of truth for CA file persistence
 
+**`ConnectService`** (`Services/ConnectService.swift`)
+- `@MainActor ObservableObject` — hosts Pulse TCP server to receive network events from Simulator apps
+- Owns `PulseServer` instance; subscribes to its `eventPublisher` via Combine
+- Converts `PulseDecodedEvent` to `NetworkEvent` (maps taskCompleted; skips taskCreated)
+- Publishes `connectionState: ConnectionState` (.disconnected / .searching / .connected) and `networkEvents: [NetworkEvent]`
+- Caps stored events at 500; transitions from .searching to .connected on first decoded event
+- Wired through: AppDelegate → SideWindowController → SideWindowView → NetworkTabView
+
+**`PulseServer`** (`Services/PulseServer.swift`)
+- `@MainActor final class` — NWListener TCP server advertising `_pulse._tcp.` via Bonjour
+- Accepts inbound connections; wraps each in `PulseClientConnection`
+- Publishes decoded events via `PassthroughSubject<PulseDecodedEvent, Never>`
+- Manages connection lifecycle (add on connect, remove on disconnect)
+
+**`PulseClientConnection`** (`Services/PulseClientConnection.swift`)
+- `@MainActor final class` — per-client NWConnection handler with receive loop
+- State machine: connecting → waitingHello → active → disconnected
+- Accumulates data in buffer (10 MB cap); parses packets via `PulsePacketDecoder`
+- Handles handshake (clientHello → serverHello), ping/pong, network task events
+- Callbacks: `onEvent`, `onDisconnect`, `onStateChange`
+
+**`PulsePacketDecoder`** (`Services/PulsePacketDecoder.swift`)
+- Pure static enum — binary protocol parser for Pulse wire format
+- 5-byte header: `[code: UInt8][contentSize: UInt32 BE]`
+- Zlib compress/decompress for all payloads
+- Codable structs: `PulseNetworkEvent`, `PulseRequest`, `PulseResponse`, `PulseMetrics`, etc.
+- Encodes outgoing packets (serverHello, pong)
+
 **`SimCtlService`** (`Services/SimCtlService.swift`)
 - Centralized executor for `xcrun simctl` commands
 - Parses boot arguments, environment overrides, status bar config
@@ -184,9 +220,12 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`
 - `setLaunchAtLogin(_:)` syncs with `SMAppService.mainApp`
 
-**`AXNode`** (`Models/AXNode.swift`)
-- Accessibility tree node: role, description, frame, attributes
-- Hashable for list rendering; supports equality comparison
+**`NetworkEvent`** (`Views/SideWindow/network/NetworkEventModel.swift`)
+- Captured network request/response: method, URL, path, host, statusCode, headers, body, timing, error
+- `HTTPMethod` enum (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS) with tint color for badges
+- `TrafficFilter` struct for method set + status range + search text matching
+- `StatusRange` enum (All/2xx/3xx/4xx/5xx) with `contains(_:)` predicate
+- `ConnectionState` enum (.disconnected / .searching / .connected(deviceName))
 
 ### Views
 
@@ -208,9 +247,16 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `CaptureTabView` — Screenshot, recording, GIF (placeholders)
 - `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
 - `ActionsTabView` — Environment overrides + quick actions container
-- `NetworkTabView` — Certificates + network tools container
+- `NetworkTabView` — Live traffic viewer + certificates; receives `ConnectService` as `@ObservedObject`; shows ConnectStatusBanner, ConnectSetupView, TrafficFilterBar, TrafficList; opens TrafficDetailView as sheet
 
 **Side Panel Components**
+- `ConnectStatusBanner` — Slim banner showing connection state (dot + label + setup/searching indicator); pulse animation on .searching
+- `ConnectSetupView` — 3-step setup instructions for loading BoosterSimConnect into Simulator app; copy-to-clipboard code snippet
+- `TrafficFilterBar` — Horizontal filter pills (method, status range) + collapsible search field; uses TrafficFilter binding
+- `TrafficList` — Scrollable LazyVStack of TrafficRowView; auto-scrolls to latest; empty state placeholder
+- `TrafficRowView` — Single request row: method badge, truncated path, status code, duration; amber highlight on selection
+- `TrafficDetailView` — Sheet with tabbed sections (Summary, Headers, Body, Metrics); footer with Copy as cURL button
+- `CurlExporter` — Pure enum: converts NetworkEvent to cURL command string; redacts sensitive headers
 - `DeviceHeaderView` — Active device info (name, OS, battery, signal)
 - `CollapsedStripView` — 28pt collapsed state with chevron + 2pt amber stripe
 - `SideWindowFooter` — Version/status footer
@@ -285,6 +331,30 @@ AXObserver callback (move/resize/minimize/quit)     ─┤→ SimulatorWindowTra
             panel.setFrame(animated frame)
 ```
 
+### Network Traffic Data Flow
+
+```
+Simulator app loads BoosterSimConnect.framework (Contents/Resources/)
+        ↓
+BoosterSimConnect activates PulseProxy (URLSession swizzle) + RemoteLogger
+        ↓
+RemoteLogger connects to PulseServer (NWListener, _pulse._tcp. Bonjour)
+        ↓
+PulseServer accepts connection → PulseClientConnection
+        ↓
+PulseClientConnection: receive loop → buffer → dispatchPacket()
+        ↓
+PulsePacketDecoder: parseHeader → decompress → decode JSON
+        ↓
+PulseClientConnection.onEvent → PulseServer.eventSubject
+        ↓
+ConnectService: convertToNetworkEvent() → @Published networkEvents
+        ↓
+NetworkTabView (TrafficFilterBar + TrafficList)
+        ↓
+TrafficDetailView (sheet) → CurlExporter (copy)
+```
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
@@ -303,5 +373,7 @@ AXObserver callback (move/resize/minimize/quit)     ─┤→ SimulatorWindowTra
 | NSPanel over NSWindow | Floating utility window behavior, hides when Simulator loses focus |
 | Dual-mode tracking (poll + AXObserver) | Graceful degradation without Accessibility permission |
 | `xcrun simctl spawn` for env overrides | Instant state changes without app relaunch |
+| NWListener + Bonjour for Connect | macOS hosts TCP server; Simulator apps connect to it — zero-config |
+| BoosterSimConnect as loadable framework | Loaded into Simulator app via `Bundle.load()` in DEBUG builds only |
 | Zero external dependencies | Minimal footprint, no SPM overhead, pure Apple framework stability |
 | Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and Simulator control via simctl |

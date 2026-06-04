@@ -2,7 +2,7 @@
 
 ## Current Status: Phase 1 Complete + Phase 5 (partial) + Phase 6 Complete
 
-Core infrastructure (Phase 1), tab-based UI, and developer tool features (Phase 6) are fully implemented. Phase 5 certificate trust management is complete. Phases 2-4, remaining Phase 5 items, and Phase 7 (distribution) are not started.
+Core infrastructure (Phase 1), tab-based UI, and developer tool features (Phase 6) are fully implemented. Phase 5 certificate trust management, Connect traffic viewer, and Pulse protocol server are complete. BoosterSimConnect iOS framework is fully activated with Pulse/PulseProxy SPM. Phases 2-4, remaining Phase 5 items (throttle, block), and Phase 7 (distribution) are not started.
 
 ---
 
@@ -84,11 +84,17 @@ Core infrastructure (Phase 1), tab-based UI, and developer tool features (Phase 
 
 **Goal:** Network inspection and manipulation
 
-- [ ] Network traffic monitoring (request/response log)
+- [x] ConnectService — Pulse TCP server (NWListener) receiving events from Simulator apps
+- [x] PulseServer + PulseClientConnection — NWListener TCP server, per-client protocol handler
+- [x] PulsePacketDecoder — Binary protocol parser (5-byte header, zlib, Codable Pulse events)
+- [x] BoosterSimConnect — iOS framework with PulseProxy activation (Pulse/PulseProxy SPM integrated)
+- [x] Traffic viewer — Filter by method/status, traffic list with auto-scroll, detail sheet (Summary/Headers/Body/Metrics), cURL export
+- [x] Connection UI — Status banner, setup instructions with copy-to-clipboard
+- [x] Certificate trust management (CA generation, install/rotate/reset in Simulator keychain)
+- [x] Network event parsing (Pulse binary protocol decode via PulsePacketDecoder)
 - [ ] Network speed control / throttle
 - [ ] Simulator Airplane Mode (per-app, no Mac impact)
 - [ ] Request blocking (domain/path rules)
-- [x] Certificate trust management (CA generation, install/rotate/reset in Simulator keychain)
 
 ---
 
@@ -127,6 +133,6 @@ Core infrastructure (Phase 1), tab-based UI, and developer tool features (Phase 
 | Screenshot & Recording | 2 | Not started |
 | App Actions | 3 | Not started |
 | Design Overlays | 4 | Not started |
-| Network Tools | 5 | In progress (Certificate Trust complete) |
+| Network Tools | 5 | In progress (Connect + Certificates + Traffic Viewer + Protocol Parsing complete; throttle/block pending) |
 | Platform & System | 6 | Complete |
 | Distribution Ready | 7 | Not started |

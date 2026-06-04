@@ -22,11 +22,77 @@
 			remoteInfo = BoosterSimApp;
 		};
 /* End PBXContainerItemProxy section */
+/* Begin PBXCopyFilesBuildPhase section */
+		883C4EF014A743C5B478B9AA /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* Build iOS Framework & Copy */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build iOS Framework & Copy";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "FRAMEWORK_NAME=\"BoosterSimConnect\"
+FRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources\"
+IOS_PRODUCTS=\"${BUILD_DIR}/${CONFIGURATION}-iphonesimulator\"
+
+mkdir -p \"${FRAMEWORKS_DIR}\"
+
+# Check if framework already built (from separate xcodebuild step)
+if [ -d \"${IOS_PRODUCTS}/${FRAMEWORK_NAME}.framework\" ]; then
+  cp -R \"${IOS_PRODUCTS}/${FRAMEWORK_NAME}.framework\" \"${FRAMEWORKS_DIR}/\"
+  echo \"Copied ${FRAMEWORK_NAME}.framework to ${FRAMEWORKS_DIR}\"
+else
+  # Try building it (may fail if parent build holds project lock)
+  xcodebuild build \-project \"${PROJECT_FILE_PATH}\" \-scheme \"${FRAMEWORK_NAME}\" \-configuration \"${CONFIGURATION}\" \-sdk iphonesimulator \-quiet 2>/dev/null
+  if [ -d \"${IOS_PRODUCTS}/${FRAMEWORK_NAME}.framework\" ]; then
+    cp -R \"${IOS_PRODUCTS}/${FRAMEWORK_NAME}.framework\" \"${FRAMEWORKS_DIR}/\"
+    echo \"Copied ${FRAMEWORK_NAME}.framework to ${FRAMEWORKS_DIR}\"
+  else
+    echo \"Note: ${FRAMEWORK_NAME}.framework not built. Build separately with: xcodebuild -scheme ${FRAMEWORK_NAME} -sdk iphonesimulator build\"
+  fi
+fi";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+
+/* Begin XCRemoteSwiftPackageReference section */
+		078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Pulse.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 
 /* Begin PBXFileReference section */
 		F2E054AA2F6D24D100056210 /* BoosterSimApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoosterSimApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054B72F6D24D600056210 /* BoosterSimAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoosterSimAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2E054C12F6D24D600056210 /* BoosterSimAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BoosterSimAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		959AF6C136E846C2B9BB24E4 /* BoosterSimConnect.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = BoosterSimConnect.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +109,11 @@
 		F2E054C42F6D24D600056210 /* BoosterSimAppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BoosterSimAppUITests;
+			sourceTree = "<group>";
+		};
+		1F01C942BA7C4620857F3664 /* BoosterSimConnect */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BoosterSimConnect;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,12 +140,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+/* Begin PBXHeadersBuildPhase section */
+		87D07EB37C4D42818AA99FA8 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		F2E054A12F6D24D100056210 = {
 			isa = PBXGroup;
 			children = (
+				1F01C942BA7C4620857F3664 /* BoosterSimConnect */,
 				F2E054AC2F6D24D100056210 /* BoosterSimApp */,
 				F2E054BA2F6D24D600056210 /* BoosterSimAppTests */,
 				F2E054C42F6D24D600056210 /* BoosterSimAppUITests */,
@@ -85,6 +166,7 @@
 		F2E054AB2F6D24D100056210 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				959AF6C136E846C2B9BB24E4 /* BoosterSimConnect.framework */,
 				F2E054AA2F6D24D100056210 /* BoosterSimApp.app */,
 				F2E054B72F6D24D600056210 /* BoosterSimAppTests.xctest */,
 				F2E054C12F6D24D600056210 /* BoosterSimAppUITests.xctest */,
@@ -102,16 +184,21 @@
 				F2E054A62F6D24D100056210 /* Sources */,
 				F2E054A72F6D24D100056210 /* Frameworks */,
 				F2E054A82F6D24D100056210 /* Resources */,
+				883C4EF014A743C5B478B9AA /* Embed Frameworks */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* Build iOS Framework & Copy */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				1F01C942BA7C4620857F3664 /* BoosterSimConnect */,
 				F2E054AC2F6D24D100056210 /* BoosterSimApp */,
 			);
 			name = BoosterSimApp;
 			packageProductDependencies = (
+				FD0EBCE09EF34E9DADF86FF9 /* Pulse */,
+				03A8970A216C40DDA3DA33AB /* PulseProxy */,
 			);
 			productName = BoosterSimApp;
 			productReference = F2E054AA2F6D24D100056210 /* BoosterSimApp.app */;
@@ -163,6 +250,32 @@
 			productReference = F2E054C12F6D24D600056210 /* BoosterSimAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+
+		D39DED7F0C4344DEADF2DEB8 /* BoosterSimConnect */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA0292AF3BDE4A07B60FA58F /* Build configuration list for PBXNativeTarget "BoosterSimConnect" */;
+			buildPhases = (
+				87D07EB37C4D42818AA99FA8 /* Headers */,
+				D2CC27C9DF9047F091D7D113 /* Sources */,
+				D6ED0488A7F2442B8113B0BB /* Frameworks */,
+				161AD37A4E91412084883878 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				1F01C942BA7C4620857F3664 /* BoosterSimConnect */,
+			);
+			name = BoosterSimConnect;
+			packageProductDependencies = (
+				4C637B4ECC474DADBB89D08C /* Pulse (BoosterSimConnect) */,
+				D1971BA2074045C4AD267986 /* PulseProxy (BoosterSimConnect) */,
+			);
+			productName = BoosterSimConnect;
+			productReference = 959AF6C136E846C2B9BB24E4 /* BoosterSimConnect.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -196,11 +309,15 @@
 			mainGroup = F2E054A12F6D24D100056210;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */,
+			);
 			productRefGroup = F2E054AB2F6D24D100056210 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				F2E054A92F6D24D100056210 /* BoosterSimApp */,
+				D39DED7F0C4344DEADF2DEB8 /* BoosterSimConnect */,
 				F2E054B62F6D24D600056210 /* BoosterSimAppTests */,
 				F2E054C02F6D24D600056210 /* BoosterSimAppUITests */,
 			);
@@ -253,6 +370,35 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+
+		D2CC27C9DF9047F091D7D113 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6ED0488A7F2442B8113B0BB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		87D07EB37C4D42818AA99FA8 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		161AD37A4E91412084883878 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -267,6 +413,29 @@
 			targetProxy = F2E054C22F6D24D600056210 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+/* Begin XCSwiftPackageProductDependency section */
+		FD0EBCE09EF34E9DADF86FF9 /* Pulse */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */;
+			productName = Pulse;
+		};
+		03A8970A216C40DDA3DA33AB /* PulseProxy */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */;
+			productName = PulseProxy;
+		};
+		4C637B4ECC474DADBB89D08C /* Pulse (BoosterSimConnect) */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */;
+			productName = Pulse;
+		};
+		D1971BA2074045C4AD267986 /* PulseProxy (BoosterSimConnect) */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */;
+			productName = PulseProxy;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 
 /* Begin XCBuildConfiguration section */
 		F2E054C92F6D24D600056210 /* Debug */ = {
@@ -549,6 +718,93 @@
 			};
 			name = Release;
 		};
+
+		A0F0A14FAD9D44CD9431C21A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEFINED_MODULE_VERSION_YES = 1;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BoosterSimConnect;
+				INFOPLIST_KEY_CFBundleExecutable = "$(EXECUTABLE_NAME)";
+				INFOPLIST_KEY_CFBundleIdentifier = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				INFOPLIST_KEY_CFBundleInfoDictionaryVersion = "6.0";
+				INFOPLIST_KEY_CFBundleName = "$(PRODUCT_NAME)";
+				INFOPLIST_KEY_CFBundlePackageType = "$(PRODUCT_BUNDLE_PACKAGE_TYPE)";
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sim-dev.BoosterSimConnect";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				ARCHS = "$(ARCHS_STANDARD)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		75B2BB653A6043DEB4F9DD70 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEFINED_MODULE_VERSION_YES = 1;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = BoosterSimConnect;
+				INFOPLIST_KEY_CFBundleExecutable = "$(EXECUTABLE_NAME)";
+				INFOPLIST_KEY_CFBundleIdentifier = "$(PRODUCT_BUNDLE_IDENTIFIER)";
+				INFOPLIST_KEY_CFBundleInfoDictionaryVersion = "6.0";
+				INFOPLIST_KEY_CFBundleName = "$(PRODUCT_NAME)";
+				INFOPLIST_KEY_CFBundlePackageType = "$(PRODUCT_BUNDLE_PACKAGE_TYPE)";
+				INFOPLIST_KEY_CFBundleShortVersionString = "1.0";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "sim-dev.BoosterSimConnect";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				ARCHS = "$(ARCHS_STANDARD)";
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -584,6 +840,16 @@
 			buildConfigurations = (
 				F2E054D22F6D24D600056210 /* Debug */,
 				F2E054D32F6D24D600056210 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+
+		BA0292AF3BDE4A07B60FA58F /* Build configuration list for PBXNativeTarget "BoosterSimConnect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0F0A14FAD9D44CD9431C21A /* Debug */,
+				75B2BB653A6043DEB4F9DD70 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

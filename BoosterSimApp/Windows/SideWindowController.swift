@@ -47,7 +47,8 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        certificateService: CertificateService
+        certificateService: CertificateService,
+        connectService: ConnectService
     ) {
         self.settings = settings
         springAnimator.onFrameUpdate = { [weak self] frame in
@@ -60,7 +61,8 @@ final class SideWindowController: ObservableObject {
             buildStatsService: buildStatsService,
             axInspectorService: axInspectorService,
             cameraService: cameraService,
-            certificateService: certificateService
+            certificateService: certificateService,
+            connectService: connectService
         )
         certificateCancellable = tracker.$activeSimulator
             .receive(on: DispatchQueue.main)
@@ -189,7 +191,8 @@ final class SideWindowController: ObservableObject {
         buildStatsService: BuildStatsService,
         axInspectorService: AXInspectorService,
         cameraService: CameraService,
-        certificateService: CertificateService
+        certificateService: CertificateService,
+        connectService: ConnectService
     ) {
         let content = SideWindowView(
             tracker: tracker,
@@ -208,6 +211,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
             .environmentObject(certificateService)
+            .environmentObject(connectService)
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]
         panel.contentView = hv
