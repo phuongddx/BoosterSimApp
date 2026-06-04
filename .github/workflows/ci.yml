@@ -17,7 +17,7 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.configuration }})
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -28,18 +28,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
-
-      - name: Fix Project Settings for CI
         run: |
-          # Fix deployment target (macOS 15 runner max)
-          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable MainActor isolation default (causes concurrency errors in CI)
-          sed -i '' 's/SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor/SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable upcoming features
-          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable approachable concurrency
-          sed -i '' 's/SWIFT_APPROACHABLE_CONCURRENCY = YES/SWIFT_APPROACHABLE_CONCURRENCY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          xcode-select -p
+          xcodebuild -version
 
       - name: Resolve SPM Dependencies
         run: |
@@ -69,15 +60,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=NO
 
-      - name: Check Build Warnings
-        if: matrix.configuration == 'Debug'
-        run: |
-          WARNINGS=$(find DerivedData -name "*.xcresult" -exec xcrun xcresulttool get --format json --path {} \; 2>/dev/null | grep -c "warning" || true)
-          echo "Build warnings: $WARNINGS"
-
   test:
     name: Unit Tests
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 20
     needs: build
 
@@ -85,18 +70,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
-
-      - name: Fix Project Settings for CI
         run: |
-          # Fix deployment target (macOS 15 runner max)
-          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable MainActor isolation default (causes concurrency errors in CI)
-          sed -i '' 's/SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor/SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable upcoming features
-          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable approachable concurrency
-          sed -i '' 's/SWIFT_APPROACHABLE_CONCURRENCY = YES/SWIFT_APPROACHABLE_CONCURRENCY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          xcode-select -p
+          xcodebuild -version
 
       - name: Resolve SPM Dependencies
         run: |
@@ -149,7 +125,7 @@ jobs:
 
   build-benchmark:
     name: Build Time Benchmark
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 15
     if: github.event_name == 'pull_request'
 
@@ -157,18 +133,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
-
-      - name: Fix Project Settings for CI
         run: |
-          # Fix deployment target (macOS 15 runner max)
-          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable MainActor isolation default (causes concurrency errors in CI)
-          sed -i '' 's/SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor/SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable upcoming features
-          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
-          # Disable approachable concurrency
-          sed -i '' 's/SWIFT_APPROACHABLE_CONCURRENCY = YES/SWIFT_APPROACHABLE_CONCURRENCY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          xcode-select -p
+          xcodebuild -version
 
       - name: Resolve SPM Dependencies
         run: |
