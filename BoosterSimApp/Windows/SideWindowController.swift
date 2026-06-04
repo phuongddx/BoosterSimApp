@@ -219,10 +219,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(certificateService)
             .environmentObject(connectService)
             .environmentObject(deepLinkService)
-<<<<<<< HEAD
             .environmentObject(designComparisonService)
-=======
->>>>>>> main
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]
         panel.contentView = hv
