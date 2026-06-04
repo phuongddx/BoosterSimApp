@@ -30,10 +30,14 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
-      - name: Fix Deployment Target
+      - name: Fix Project Settings
         run: |
+          # Fix deployment target
           sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          # Disable upcoming features
           sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          # Add strict concurrency minimal to all build settings
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;\n\t\t\t\t\tSWIFT_STRICT_CONCURRENCY = minimal/g' ${{ env.PROJECT }}/project.pbxproj
 
       - name: Resolve SPM Dependencies
         run: |
@@ -81,10 +85,14 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
-      - name: Fix Deployment Target
+      - name: Fix Project Settings
         run: |
+          # Fix deployment target
           sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          # Disable upcoming features
           sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          # Add strict concurrency minimal to all build settings
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;\n\t\t\t\t\tSWIFT_STRICT_CONCURRENCY = minimal/g' ${{ env.PROJECT }}/project.pbxproj
 
       - name: Resolve SPM Dependencies
         run: |
@@ -147,10 +155,14 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
-      - name: Fix Deployment Target
+      - name: Fix Project Settings
         run: |
+          # Fix deployment target
           sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          # Disable upcoming features
           sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+          # Add strict concurrency minimal to all build settings
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO;\n\t\t\t\t\tSWIFT_STRICT_CONCURRENCY = minimal/g' ${{ env.PROJECT }}/project.pbxproj
 
       - name: Resolve SPM Dependencies
         run: |
