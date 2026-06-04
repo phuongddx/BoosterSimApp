@@ -30,6 +30,11 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
+      - name: Fix Deployment Target
+        run: |
+          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+
       - name: Resolve SPM Dependencies
         run: |
           xcodebuild -project ${{ env.PROJECT }} \
@@ -53,13 +58,10 @@ jobs:
             -configuration ${{ matrix.configuration }} \
             -clonedSourcePackagesDirPath SourcePackages \
             -derivedDataPath DerivedData \
-            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            ENABLE_HARDENED_RUNTIME=NO \
-            SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY=NO \
-            OTHER_SWIFT_FLAGS="-strict-concurrency=minimal"
+            ENABLE_HARDENED_RUNTIME=NO
 
       - name: Check Build Warnings
         if: matrix.configuration == 'Debug'
@@ -78,6 +80,11 @@ jobs:
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+
+      - name: Fix Deployment Target
+        run: |
+          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
 
       - name: Resolve SPM Dependencies
         run: |
@@ -103,12 +110,9 @@ jobs:
             -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath TestResults \
             -enableCodeCoverage YES \
-            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY=NO \
-            OTHER_SWIFT_FLAGS="-strict-concurrency=minimal"
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Upload Test Results
         if: always()
@@ -143,6 +147,11 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
+      - name: Fix Deployment Target
+        run: |
+          sed -i '' 's/MACOSX_DEPLOYMENT_TARGET = 26.2/MACOSX_DEPLOYMENT_TARGET = 15.0/g' ${{ env.PROJECT }}/project.pbxproj
+          sed -i '' 's/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES/SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = NO/g' ${{ env.PROJECT }}/project.pbxproj
+
       - name: Resolve SPM Dependencies
         run: |
           xcodebuild -project ${{ env.PROJECT }} \
@@ -166,12 +175,9 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Debug \
             -clonedSourcePackagesDirPath SourcePackages \
-            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY=NO \
-            OTHER_SWIFT_FLAGS="-strict-concurrency=minimal" 2>&1 | tee build.log
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "## Build Time Benchmark" >> $GITHUB_STEP_SUMMARY
