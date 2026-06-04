@@ -22,7 +22,7 @@ final class DesignComparisonService: ObservableObject {
 
     // MARK: - Types
 
-    enum ComparisonMode: String, CaseIterable {
+    enum ComparisonMode: String, CaseIterable, Codable {
         case overlay = "Overlay"
         case split = "Split"
     }
@@ -69,8 +69,8 @@ final class DesignComparisonService: ObservableObject {
         if let cgImage = CGWindowListCreateImage(
             CGRect(origin: screenPoint, size: CGSize(width: 1, height: 1)),
             .optionOnScreenOnly,
-            kCGWindowListOptionOnScreenOnly,
-            .excludeDesktopElements
+            kCGNullWindowID,
+            .default
         ) {
             let bitmap = NSBitmapImageRep(cgImage: cgImage)
             pickedColor = bitmap.colorAt(x: 0, y: 0)
@@ -138,7 +138,3 @@ final class DesignComparisonService: ObservableObject {
         UserDefaults.standard.set(data, forKey: presetsKey)
     }
 }
-
-// MARK: - Color Type
-
-typealias Color = NSColor
