@@ -180,8 +180,12 @@ final class CaptureService: ObservableObject {
 
         do {
             guard let firstFrame = capturedFrames.first,
-                  let formatDesc = CMSampleBufferGetFormatDescription(firstFrame),
-                  let dimensions = CMVideoFormatDescriptionGetDimensions(formatDesc) else {
+                  let formatDesc = CMSampleBufferGetFormatDescription(firstFrame) else {
+                lastError = "Invalid frame format"
+                return
+            }
+            let dimensions = CMVideoFormatDescriptionGetDimensions(formatDesc)
+            if dimensions.width == 0 || dimensions.height == 0 {
                 lastError = "Invalid frame format"
                 return
             }
@@ -197,7 +201,7 @@ final class CaptureService: ObservableObject {
 
             writer.add(input)
             writer.startWriting()
-            writer.startSession(atTime: .zero)
+            writer.startSession(atSourceTime: .zero)
 
             for (index, frame) in capturedFrames.enumerated() {
                 if let buffer = CMSampleBufferGetImageBuffer(frame) {
@@ -225,7 +229,7 @@ final class CaptureService: ObservableObject {
     private func exportAsGIF() async {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("boostersim-capture-\(UUID().uuidString).gif")
 
-        guard let destination = CGImageDestinationCreateWithURL(tempURL as CFURL, "com.compuserve.gif" as CFTypeRef, capturedFrames.count, nil) else {
+        guard let destination = CGImageDestinationCreateWithURL(tempURL as CFURL, "com.compuserve.gif" as CFString, capturedFrames.count, nil) else {
             lastError = "Failed to create GIF destination"
             return
         }

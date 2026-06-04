@@ -1,5 +1,6 @@
 // DesignComparisonService.swift — Manages design comparison overlays and presets
 import Foundation
+import SwiftUI
 import AppKit
 import Combine
 
@@ -13,7 +14,7 @@ final class DesignComparisonService: ObservableObject {
     @Published var splitPosition: Double = 0.5
     @Published var showGrid: Bool = false
     @Published var gridSpacing: CGFloat = 20
-    @Published var gridColor: Color = .blue
+    @Published var gridColor: SwiftUI.Color = .blue
     @Published var showRuler: Bool = false
     @Published var rulerStart: CGPoint?
     @Published var rulerEnd: CGPoint?
@@ -66,12 +67,9 @@ final class DesignComparisonService: ObservableObject {
     func pickColor(at point: CGPoint) {
         guard let screen = NSScreen.main else { return }
         let screenPoint = CGPoint(x: point.x, y: screen.frame.height - point.y)
-        if let cgImage = CGWindowListCreateImage(
-            CGRect(origin: screenPoint, size: CGSize(width: 1, height: 1)),
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .default
-        ) {
+        // Use CGDisplayCreateImage for screen color sampling
+        let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? CGMainDisplayID()
+        if let cgImage = CGDisplayCreateImage(displayID, rect: CGRect(origin: screenPoint, size: CGSize(width: 1, height: 1))) {
             let bitmap = NSBitmapImageRep(cgImage: cgImage)
             pickedColor = bitmap.colorAt(x: 0, y: 0)
         }

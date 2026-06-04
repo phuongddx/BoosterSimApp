@@ -38,7 +38,7 @@ struct TabBarView: View {
 
                 // Amber underline indicator
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(selectedTab == tab ? NSColor.controlAccentColor : NSColor.clear)
+                    .fill(selectedTab == tab ? Color.accentColor : Color.clear)
                     .frame(height: 2)
             }
             .padding(.horizontal, Spacing.md)
