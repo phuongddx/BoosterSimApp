@@ -1,0 +1,224 @@
+// DesignComparisonView.swift — UI for design comparison tools
+import SwiftUI
+
+struct DesignComparisonView: View {
+
+    @ObservedObject var service: DesignComparisonService
+
+    @State private var presetName: String = ""
+    @State private var showSavePreset: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // MARK: - Comparison Mode
+            Picker("Mode", selection: $service.comparisonMode) {
+                ForEach(DesignComparisonService.ComparisonMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            // MARK: - Image Controls
+            HStack(spacing: 8) {
+                Button("Load Image") { service.loadImage() }
+                    .buttonStyle(.bordered)
+
+                if service.overlayImage != nil {
+                    Button("Clear") { service.clearOverlay() }
+                        .buttonStyle(.bordered)
+                        .foregroundColor(.red)
+                }
+
+                Spacer()
+
+                if let img = service.overlayImage {
+                    Text("\(Int(img.size.width))×\(Int(img.size.height))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // MARK: - Opacity Slider
+            if service.overlayImage != nil && service.comparisonMode == .overlay {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Opacity")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(service.overlayOpacity * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $service.overlayOpacity, in: 0...1)
+                }
+            }
+
+            // MARK: - Split Position
+            if service.comparisonMode == .split {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Split Position")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(service.splitPosition * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $service.splitPosition, in: 0...1)
+                }
+            }
+
+            Divider()
+
+            // MARK: - Grid Overlay
+            Toggle("Grid Overlay", isOn: $service.showGrid)
+                .font(.subheadline.bold())
+
+            if service.showGrid {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Spacing")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(service.gridSpacing))px")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $service.gridSpacing, in: 5...100, step: 5)
+                }
+            }
+
+            Divider()
+
+            // MARK: - Ruler Tool
+            Toggle("Ruler Tool", isOn: $service.showRuler)
+                .font(.subheadline.bold())
+
+            if service.showRuler {
+                HStack {
+                    Image(systemName: "ruler")
+                        .foregroundColor(.accentColor)
+                    Text("Click two points to measure distance")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Divider()
+
+            // MARK: - Color Picker
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Color Picker", systemImage: "eyedropper")
+                    .font(.subheadline.bold())
+
+                HStack(spacing: 8) {
+                    Button("Pick Color") {
+                        // Color picking is handled by the overlay
+                    }
+                    .buttonStyle(.bordered)
+
+                    if let color = service.pickedColor {
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(nsColor: color))
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .stroke(Color.secondary, lineWidth: 1)
+                                )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(service.colorToHex(color))
+                                    .font(.caption.monospacedDigit())
+                                Text(service.colorToRGB(color))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Button {
+                                service.copyColorToClipboard()
+                            } label: {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Copy hex to clipboard")
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            // MARK: - Presets
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Label("Presets", systemImage: "square.grid.2x2")
+                        .font(.subheadline.bold())
+                    Spacer()
+                    Button {
+                        showSavePreset = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if showSavePreset {
+                    HStack(spacing: 6) {
+                        TextField("Preset name", text: $presetName)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Save") {
+                            if !presetName.isEmpty {
+                                service.savePreset(name: presetName)
+                                presetName = ""
+                                showSavePreset = false
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(presetName.isEmpty)
+                    }
+                }
+
+                if service.presets.isEmpty {
+                    Text("No presets saved")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(service.presets) { preset in
+                        HStack {
+                            Button {
+                                service.loadPreset(preset)
+                            } label: {
+                                HStack {
+                                    Text(preset.name)
+                                        .font(.caption)
+                                    Spacer()
+                                    Text(preset.mode.rawValue)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                service.deletePreset(preset)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+        .padding(12)
+    }
+}

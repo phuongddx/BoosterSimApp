@@ -22,21 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var certificateService  = CertificateService(simCtl: simCtlService)
     lazy var connectService      = ConnectService()
     lazy var deepLinkService     = DeepLinkService()
-    lazy var axHighlightPanel    = AXHighlightPanel()
-
-    // MARK: - Windows
-
-    lazy var sideWindowController = SideWindowController(
-        settings: settings,
-        tracker: tracker,
-        statusBarService: statusBarService,
-        envOverrideService: envOverrideService,
-        buildStatsService: buildStatsService,
-        axInspectorService: axInspectorService,
-        cameraService: cameraService,
-        certificateService: certificateService,
-        connectService: connectService,
-        deepLinkService: deepLinkService
+    lazy var designComparisonService = DesignComparisonService()
     )
 
     // MARK: - Private
