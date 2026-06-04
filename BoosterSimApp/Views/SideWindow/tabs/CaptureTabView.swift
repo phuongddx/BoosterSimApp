@@ -6,10 +6,11 @@ struct CaptureTabView: View {
     @EnvironmentObject var captureService: CaptureService
 
     @State private var showExportOptions = false
+    @State private var isCaptureExpanded = true
 
     var body: some View {
         ScrollView {
-            CollapsibleSection(title: "Screen Capture", icon: "video") {
+            CollapsibleSection(title: "Screen Capture", icon: "video", isExpanded: $isCaptureExpanded) {
                 VStack(alignment: .leading, spacing: 12) {
                     // MARK: - Recording Controls
                     HStack(spacing: 12) {

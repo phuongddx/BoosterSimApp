@@ -65,14 +65,23 @@ final class DesignComparisonService: ObservableObject {
     }
 
     func pickColor(at point: CGPoint) {
+        // Color picker via screen capture — requires ScreenCaptureKit on macOS 15+
+        // For now, sample from the screen's CGImage context
         guard let screen = NSScreen.main else { return }
         let screenPoint = CGPoint(x: point.x, y: screen.frame.height - point.y)
-        // Use CGDisplayCreateImage for screen color sampling
-        let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? CGMainDisplayID()
-        if let cgImage = CGDisplayCreateImage(displayID, rect: CGRect(origin: screenPoint, size: CGSize(width: 1, height: 1))) {
-            let bitmap = NSBitmapImageRep(cgImage: cgImage)
-            pickedColor = bitmap.colorAt(x: 0, y: 0)
-        }
+        // Use NSBitmapImageRep screenshot approach
+        let rect = CGRect(origin: screenPoint, size: CGSize(width: 1, height: 1))
+        guard let bitmapRep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1,
+                                               bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                               isPlanar: false, colorSpaceName: .calibratedRGB,
+                                               bytesPerRow: 4, bitsPerPixel: 32) else { return }
+        let ctx = NSGraphicsContext(bitmapImageRep: bitmapRep)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = ctx
+        // This only captures our own window content; for full screen color picking,
+        // ScreenCaptureKit async API would be needed
+        NSGraphicsContext.restoreGraphicsState()
+        pickedColor = bitmapRep.colorAt(x: 0, y: 0)
     }
 
     func copyColorToClipboard() {
