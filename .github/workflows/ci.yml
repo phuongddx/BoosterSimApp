@@ -53,10 +53,12 @@ jobs:
             -configuration ${{ matrix.configuration }} \
             -clonedSourcePackagesDirPath SourcePackages \
             -derivedDataPath DerivedData \
+            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            ENABLE_HARDENED_RUNTIME=NO
+            ENABLE_HARDENED_RUNTIME=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal
 
       - name: Check Build Warnings
         if: matrix.configuration == 'Debug'
@@ -100,9 +102,11 @@ jobs:
             -clonedSourcePackagesDirPath SourcePackages \
             -resultBundlePath TestResults \
             -enableCodeCoverage YES \
+            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal
 
       - name: Upload Test Results
         if: always()
@@ -160,9 +164,11 @@ jobs:
             -destination 'platform=macOS' \
             -configuration Debug \
             -clonedSourcePackagesDirPath SourcePackages \
+            MACOSX_DEPLOYMENT_TARGET=15.0 \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build.log
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal 2>&1 | tee build.log
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "## Build Time Benchmark" >> $GITHUB_STEP_SUMMARY
