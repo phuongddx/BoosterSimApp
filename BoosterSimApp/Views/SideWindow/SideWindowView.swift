@@ -93,6 +93,7 @@ struct SideWindowView: View {
     let connectService      = ConnectService()
     let deepLinkService = DeepLinkService()
     let designComparisonService = DesignComparisonService()
+    let captureService = CaptureService()
     let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
@@ -101,7 +102,8 @@ struct SideWindowView: View {
         certificateService: certificateService,
         connectService: connectService,
         deepLinkService: deepLinkService,
-        designComparisonService: designComparisonService
+        designComparisonService: designComparisonService,
+        captureService: captureService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -113,5 +115,6 @@ struct SideWindowView: View {
         .environmentObject(connectService)
         .environmentObject(deepLinkService)
         .environmentObject(designComparisonService)
+        .environmentObject(captureService)
         .frame(width: SideWindowMetrics.expandedWidth, height: 600)
 }

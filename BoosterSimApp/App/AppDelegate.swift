@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var connectService      = ConnectService()
     lazy var deepLinkService     = DeepLinkService()
     lazy var designComparisonService = DesignComparisonService()
+    lazy var captureService         = CaptureService()
     lazy var axHighlightPanel    = AXHighlightPanel()
 
     // MARK: - Windows
@@ -38,7 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         certificateService: certificateService,
         connectService: connectService,
         deepLinkService: deepLinkService,
-        designComparisonService: designComparisonService
+        designComparisonService: designComparisonService,
+        captureService: captureService
     )
 
     // MARK: - Private
