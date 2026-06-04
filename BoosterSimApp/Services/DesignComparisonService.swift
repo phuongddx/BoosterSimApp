@@ -1,6 +1,7 @@
 // DesignComparisonService.swift — Manages design comparison overlays and presets
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 import AppKit
 import Combine
 
