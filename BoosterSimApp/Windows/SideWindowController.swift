@@ -3,6 +3,7 @@ import AppKit
 import SwiftUI
 import Combine
 
+@MainActor
 final class SideWindowController: ObservableObject {
 
     // MARK: - Published State
