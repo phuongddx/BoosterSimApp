@@ -60,6 +60,90 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=NO
 
+  ui-tests:
+    name: UI Tests & Screenshots
+    runs-on: macos-26
+    timeout-minutes: 25
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          xcode-select -p
+          xcodebuild -version
+
+      - name: Resolve SPM Dependencies
+        run: |
+          xcodebuild -project ${{ env.PROJECT }} \
+            -scheme ${{ env.SCHEME }} \
+            -resolvePackageDependencies \
+            -clonedSourcePackagesDirPath SourcePackages
+
+      - name: Cache SPM Packages
+        uses: actions/cache@v4
+        with:
+          path: SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Run UI Tests with Screenshots
+        run: |
+          xcodebuild test \
+            -project ${{ env.PROJECT }} \
+            -scheme ${{ env.SCHEME }} \
+            -destination 'platform=macOS' \
+            -configuration Debug \
+            -clonedSourcePackagesDirPath SourcePackages \
+            -resultBundlePath UITestResults \
+            -only-testing:BoosterSimAppUITests/ScreenshotTests \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_APP_SANDBOX=NO \
+            2>&1 | xcbeautify || true
+
+      - name: Extract Screenshots from xcresult
+        if: always()
+        run: |
+          mkdir -p Screenshots
+          # Use xcresulttool to extract attachments as files
+          xcrun xcresulttool export \
+            --type directory \
+            --output-path Screenshots/xcresult-export \
+            --path UITestResults.xcresult 2>/dev/null || true
+
+          # Flatten any PNG files into the Screenshots directory
+          find Screenshots/xcresult-export -name "*.png" -exec mv {} Screenshots/ \; 2>/dev/null || true
+
+          # Also check DerivedData test artifacts (fallback)
+          find ~/Library/Developer/Xcode/DerivedData -name "*.png" -path "*/Attachments/*" \
+            -exec cp {} Screenshots/ \; 2>/dev/null || true
+
+          # Cleanup export subfolder
+          rm -rf Screenshots/xcresult-export 2>/dev/null || true
+
+          echo "Screenshots found:"
+          ls -la Screenshots/*.png 2>/dev/null || echo "No individual PNGs (view xcresult in Xcode)"
+
+      - name: Upload UI Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: UITestResults.xcresult
+          retention-days: 14
+
+      - name: Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: Screenshots/
+          retention-days: 14
+          if-no-files-found: warn
+
   build-benchmark:
     name: Build Time Benchmark
     runs-on: macos-26
