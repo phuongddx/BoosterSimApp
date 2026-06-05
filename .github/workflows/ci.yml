@@ -108,31 +108,24 @@ jobs:
         if: always()
         run: |
           mkdir -p Screenshots
-          # Extract attachments from xcresult bundle
-          xcrun xcresulttool get --format json --path UITestResults.xcresult \
-            | python3 -c "
-          import json, sys, base64, os
-          data = json.load(sys.stdin)
-          def extract(obj, depth=0):
-              if isinstance(obj, dict):
-                  if 'payload' in obj and 'filename' in obj.get('payload', {}):
-                      filename = obj['payload']['filename']
-                      if filename.endswith('.png'):
-                          pass
-                  for v in obj.values():
-                      extract(v, depth+1)
-              elif isinstance(obj, list):
-                  for item in obj:
-                      extract(item, depth+1)
-          extract(data)
-          " 2>/dev/null || echo "JSON extraction skipped"
+          # Use xcresulttool to extract attachments as files
+          xcrun xcresulttool export \
+            --type directory \
+            --output-path Screenshots/xcresult-export \
+            --path UITestResults.xcresult 2>/dev/null || true
 
-          # Alternative: copy from DerivedData test artifacts
+          # Flatten any PNG files into the Screenshots directory
+          find Screenshots/xcresult-export -name "*.png" -exec mv {} Screenshots/ \; 2>/dev/null || true
+
+          # Also check DerivedData test artifacts (fallback)
           find ~/Library/Developer/Xcode/DerivedData -name "*.png" -path "*/Attachments/*" \
             -exec cp {} Screenshots/ \; 2>/dev/null || true
 
-          echo "Screenshots extracted:"
-          ls -la Screenshots/ 2>/dev/null || echo "No screenshots found via DerivedData"
+          # Cleanup export subfolder
+          rm -rf Screenshots/xcresult-export 2>/dev/null || true
+
+          echo "Screenshots found:"
+          ls -la Screenshots/*.png 2>/dev/null || echo "No individual PNGs (view xcresult in Xcode)"
 
       - name: Upload UI Test Results
         if: always()
