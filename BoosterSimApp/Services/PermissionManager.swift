@@ -19,6 +19,7 @@ final class PermissionManager: ObservableObject {
     // MARK: - Private
 
     private var screenRecordingPollTimer: Timer?
+    private var accessibilityPollTimer: Timer?
 
     // MARK: - Check All
 
@@ -76,12 +77,13 @@ final class PermissionManager: ObservableObject {
 
     func startAccessibilityPolling(onGranted: @escaping () -> Void) {
         // Poll every 1s for accessibility grant (timer stored to prevent leak)
-        screenRecordingPollTimer?.invalidate()
-        screenRecordingPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+        accessibilityPollTimer?.invalidate()
+        accessibilityPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             self.checkAccessibility()
             if self.accessibilityGranted {
                 timer.invalidate()
+                self.accessibilityPollTimer = nil
                 onGranted()
             }
         }

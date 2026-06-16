@@ -5,6 +5,7 @@ import AVFoundation
 import ScreenCaptureKit
 import Combine
 
+@MainActor
 final class CaptureService: ObservableObject {
 
     // MARK: - Published State
@@ -68,6 +69,10 @@ final class CaptureService: ObservableObject {
         let timestamp: Date
     }
 
+    deinit {
+        timer?.invalidate()
+    }
+
     // MARK: - Public API
 
     func startRecording() async {
@@ -89,7 +94,7 @@ final class CaptureService: ObservableObject {
                 self?.capturedFrames.append(frame)
             })
 
-            stream = SCStream(filter: filter, configuration: config, delegate: nil)
+            stream = SCStream(filter: filter, configuration: config, delegate: self)
             try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
             try await stream?.startCapture()
 
@@ -273,5 +278,18 @@ private class CaptureStreamOutput: NSObject, SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen else { return }
         onFrame(sampleBuffer)
+    }
+}
+
+// MARK: - SCStreamDelegate
+
+extension CaptureService: SCStreamDelegate {
+    nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
+        Task { @MainActor in
+            self.isRecording = false
+            self.lastError = error.localizedDescription
+            self.timer?.invalidate()
+            self.timer = nil
+        }
     }
 }
