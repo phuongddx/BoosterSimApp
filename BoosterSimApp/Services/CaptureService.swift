@@ -172,6 +172,13 @@ final class CaptureService: ObservableObject {
         timer = nil
     }
 
+    /// Called by StreamDelegate when SCStream stops unexpectedly.
+    func handleStreamError(_ message: String) {
+        isRecording = false
+        lastError = message
+        stopTimer()
+    }
+
     private func exportCapture() async {
         guard !capturedFrames.isEmpty else {
             lastError = "No frames captured"
@@ -299,10 +306,7 @@ private final class StreamDelegate: NSObject, SCStreamDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         Task { @MainActor [weak self] in
             guard let owner = self?.owner else { return }
-            owner.isRecording = false
-            owner.lastError = error.localizedDescription
-            owner.timer?.invalidate()
-            owner.timer = nil
+            owner.handleStreamError(error.localizedDescription)
         }
     }
 }
