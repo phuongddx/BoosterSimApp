@@ -8,6 +8,10 @@ import Combine
 @MainActor
 final class CaptureService: ObservableObject {
 
+    // MARK: - SCStreamDelegate wrapper
+
+    private var streamDelegate: StreamDelegate?
+
     // MARK: - Published State
 
     @Published var isRecording = false
@@ -94,7 +98,8 @@ final class CaptureService: ObservableObject {
                 self?.capturedFrames.append(frame)
             })
 
-            stream = SCStream(filter: filter, configuration: config, delegate: self)
+            streamDelegate = StreamDelegate(owner: self)
+            stream = SCStream(filter: filter, configuration: config, delegate: streamDelegate)
             try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
             try await stream?.startCapture()
 
@@ -283,13 +288,21 @@ private class CaptureStreamOutput: NSObject, SCStreamOutput {
 
 // MARK: - SCStreamDelegate
 
-extension CaptureService: SCStreamDelegate {
-    nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
-        Task { @MainActor in
-            self.isRecording = false
-            self.lastError = error.localizedDescription
-            self.timer?.invalidate()
-            self.timer = nil
+/// Wrapper to avoid NSObject inheritance on CaptureService.
+private final class StreamDelegate: NSObject, SCStreamDelegate {
+    weak var owner: CaptureService?
+
+    init(owner: CaptureService) {
+        self.owner = owner
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        Task { @MainActor [weak self] in
+            guard let owner = self?.owner else { return }
+            owner.isRecording = false
+            owner.lastError = error.localizedDescription
+            owner.timer?.invalidate()
+            owner.timer = nil
         }
     }
 }
