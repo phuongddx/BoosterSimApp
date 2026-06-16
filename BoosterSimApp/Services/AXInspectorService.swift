@@ -35,10 +35,11 @@ final class AXInspectorService: ObservableObject {
     func loadRoot(for pid: pid_t) {
         isLoading = true
         rootNodes = []
+        let screenHeight = NSScreen.screens.first?.frame.height ?? 0
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let appEl = AXUIElementCreateApplication(pid)
             AXUIElementSetMessagingTimeout(appEl, 2.0)
-            let children = Self.fetchChildren(of: appEl, depth: 0)
+            let children = Self.fetchChildren(of: appEl, depth: 0, screenHeight: screenHeight)
             DispatchQueue.main.async {
                 self?.rootNodes  = children
                 self?.isLoading  = false
@@ -57,21 +58,21 @@ final class AXInspectorService: ObservableObject {
 
     // MARK: - Private Helpers (file-scope for background-queue callability)
 
-    nonisolated fileprivate static func fetchChildren(of element: AXUIElement, depth: Int) -> [AXNode] {
+    nonisolated fileprivate static func fetchChildren(of element: AXUIElement, depth: Int, screenHeight: CGFloat) -> [AXNode] {
         guard depth < maxDepth else { return [] }
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(element, AXAttr.children, &ref)
         guard let elements = ref as? [AXUIElement] else { return [] }
-        return elements.compactMap { readNode(from: $0, depth: depth) }
+        return elements.compactMap { readNode(from: $0, depth: depth, screenHeight: screenHeight) }
     }
 
-    nonisolated fileprivate static func readNode(from element: AXUIElement, depth: Int) -> AXNode? {
+    nonisolated fileprivate static func readNode(from element: AXUIElement, depth: Int, screenHeight: CGFloat) -> AXNode? {
         let role = readString(AXAttr.role, from: element)
         guard !role.isEmpty else { return nil }
         let label = readString(AXAttr.title, from: element).nilIfEmpty
             ?? readString(AXAttr.description, from: element)
         let value    = readString(AXAttr.value, from: element)
-        let frame    = readFrame(element)
+        let frame    = readFrame(element, screenHeight: screenHeight)
         let hasKids  = hasChildren(element)
         return AXNode(id: UUID(), role: role, label: label,
                       value: value, frame: frame, hasChildren: hasKids)
@@ -83,7 +84,7 @@ final class AXInspectorService: ObservableObject {
         return (ref as? String) ?? ""
     }
 
-    nonisolated fileprivate static func readFrame(_ el: AXUIElement) -> CGRect {
+    nonisolated fileprivate static func readFrame(_ el: AXUIElement, screenHeight: CGFloat) -> CGRect {
         var ref: CFTypeRef?
         AXUIElementCopyAttributeValue(el, AXAttr.frame, &ref)
         guard let val = ref else { return .zero }
@@ -94,8 +95,8 @@ final class AXInspectorService: ObservableObject {
             _ = AXValueGetValue(val as! AXValue, AXValueType.cgRect, ptr)  // swiftlint:disable:this force_cast
         }
         // Convert Quartz Y (top-origin) → AppKit Y (bottom-origin)
-        if let screenH = NSScreen.screens.first?.frame.height {
-            rect.origin.y = screenH - rect.origin.y - rect.height
+        if screenHeight > 0 {
+            rect.origin.y = screenHeight - rect.origin.y - rect.height
         }
         return rect
     }

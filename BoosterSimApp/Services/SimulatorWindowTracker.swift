@@ -33,6 +33,10 @@ final class SimulatorWindowTracker: ObservableObject {
 
     // MARK: - Public API
 
+    deinit {
+        stopTracking()
+    }
+
     func startTracking() {
         refreshDeviceTypeCache()
         scanAndUpdate()

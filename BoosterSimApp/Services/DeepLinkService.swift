@@ -48,34 +48,46 @@ final class DeepLinkService: ObservableObject {
     // MARK: - Public API
 
     func openInSimulator(udid: String?) {
+        Task { await openInSimulatorAsync(udid: udid) }
+    }
+
+    func openInSimulatorAsync(udid: String?) async {
         let urlString = currentURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !urlString.isEmpty else {
-            lastResult = .error(message: "URL is empty")
+            await MainActor.run { self.lastResult = .error(message: "URL is empty") }
             return
         }
 
         guard let url = URL(string: urlString), url.scheme != nil else {
-            lastResult = .error(message: "Invalid URL format")
+            await MainActor.run { self.lastResult = .error(message: "Invalid URL format") }
             return
         }
 
         let deviceUDID = udid ?? "booted"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = ["simctl", "openurl", deviceUDID, urlString]
+        let result: DeepLinkResult = await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+            process.arguments = ["simctl", "openurl", deviceUDID, urlString]
 
-        do {
-            try process.run()
-            process.waitUntilExit()
+            do {
+                try process.run()
+                process.waitUntilExit()
 
-            if process.terminationStatus == 0 {
-                lastResult = .success(url: urlString)
-                addToHistory(url: urlString)
-            } else {
-                lastResult = .error(message: "simctl exited with code \(process.terminationStatus)")
+                if process.terminationStatus == 0 {
+                    return DeepLinkResult.success(url: urlString)
+                } else {
+                    return DeepLinkResult.error(message: "simctl exited with code \(process.terminationStatus)")
+                }
+            } catch {
+                return DeepLinkResult.error(message: error.localizedDescription)
             }
-        } catch {
-            lastResult = .error(message: error.localizedDescription)
+        }.value
+
+        await MainActor.run {
+            self.lastResult = result
+            if case .success = result {
+                self.addToHistory(url: urlString)
+            }
         }
     }
 

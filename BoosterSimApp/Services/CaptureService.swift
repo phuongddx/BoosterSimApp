@@ -5,7 +5,12 @@ import AVFoundation
 import ScreenCaptureKit
 import Combine
 
+@MainActor
 final class CaptureService: ObservableObject {
+
+    // MARK: - SCStreamDelegate wrapper
+
+    private var streamDelegate: StreamDelegate?
 
     // MARK: - Published State
 
@@ -68,6 +73,10 @@ final class CaptureService: ObservableObject {
         let timestamp: Date
     }
 
+    deinit {
+        timer?.invalidate()
+    }
+
     // MARK: - Public API
 
     func startRecording() async {
@@ -89,7 +98,8 @@ final class CaptureService: ObservableObject {
                 self?.capturedFrames.append(frame)
             })
 
-            stream = SCStream(filter: filter, configuration: config, delegate: nil)
+            streamDelegate = StreamDelegate(owner: self)
+            stream = SCStream(filter: filter, configuration: config, delegate: streamDelegate)
             try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
             try await stream?.startCapture()
 
@@ -160,6 +170,13 @@ final class CaptureService: ObservableObject {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+    }
+
+    /// Called by StreamDelegate when SCStream stops unexpectedly.
+    func handleStreamError(_ message: String) {
+        isRecording = false
+        lastError = message
+        stopTimer()
     }
 
     private func exportCapture() async {
@@ -273,5 +290,23 @@ private class CaptureStreamOutput: NSObject, SCStreamOutput {
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         guard type == .screen else { return }
         onFrame(sampleBuffer)
+    }
+}
+
+// MARK: - SCStreamDelegate
+
+/// Wrapper to avoid NSObject inheritance on CaptureService.
+private final class StreamDelegate: NSObject, SCStreamDelegate {
+    weak var owner: CaptureService?
+
+    init(owner: CaptureService) {
+        self.owner = owner
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        Task { @MainActor [weak self] in
+            guard let owner = self?.owner else { return }
+            owner.handleStreamError(error.localizedDescription)
+        }
     }
 }

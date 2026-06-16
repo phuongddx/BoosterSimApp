@@ -134,7 +134,9 @@ final class WindowObserver {
 
         var quartzOrigin = CGPoint.zero
         var size = CGSize.zero
-        guard AXValueGetValue(posVal as! AXValue, .cgPoint, &quartzOrigin),
+        guard CFGetTypeID(posVal) == AXValueGetTypeID(),
+              AXValueGetValue(posVal as! AXValue, .cgPoint, &quartzOrigin),
+              CFGetTypeID(sizeVal) == AXValueGetTypeID(),
               AXValueGetValue(sizeVal as! AXValue, .cgSize, &size) else { return nil }
 
         // Flip Y: Quartz counts from top of primary screen; AppKit counts from bottom

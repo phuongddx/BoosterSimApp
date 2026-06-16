@@ -24,6 +24,7 @@ final class SideWindowController: ObservableObject {
     private var lastPanelSide: PanelSide = .right
     private var hostingView: NSView?
     private var isUpdatingPosition = false
+    private var keyMonitor: Any?
     private var reducedMotion: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
@@ -233,7 +234,7 @@ final class SideWindowController: ObservableObject {
     // MARK: - Keyboard Shortcut (Cmd+W hides side window)
 
     private func setupKeyboardShortcut() {
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             if event.window === self.panel,
                event.modifierFlags.contains(.command),
@@ -243,5 +244,9 @@ final class SideWindowController: ObservableObject {
             }
             return event
         }
+    }
+
+    deinit {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
     }
 }
