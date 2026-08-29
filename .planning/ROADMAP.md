@@ -87,7 +87,12 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   3. User can control Simulator network speed (throttle) from the side panel
   4. User can toggle per-app Simulator Airplane Mode with no impact on Mac connectivity
   5. User can block requests by domain/path rules
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 05-01-command-channel-tracer-PLAN.md — Tracer: command channel (_booster-cmd._tcp.) + Airplane Mode end-to-end (engine: payload, transport, verdict enforcement, Network tab toggle)
+- [ ] 05-02-throttle-profiles-PLAN.md — Throttle profiles (off/EDGE/3G/LTE/Wi-Fi) with latency + paced-chunk enforcement and picker UI
+- [ ] 05-03-block-rules-PLAN.md — Block rules: matcher hardening (string-ops only) + rules editor UI in the Network tab
+- [ ] 05-04-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin assertions, phase-gate manual smoke
 **UI hint**: yes
 
 ### Phase 6: Platform & System
