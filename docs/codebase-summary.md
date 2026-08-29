@@ -4,7 +4,7 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, Network
-- **Files:** 73 Swift source files (~6,556 LOC total across app, iOS framework source, and tests)
+- **Files:** 95 Swift source files (~10,030 LOC total across app, iOS framework source, and tests)
 - **Targets:** BoosterSimApp (macOS), BoosterSimConnect (iOS framework), test targets
 - **External dependencies:** Pulse/PulseProxy SPM (BoosterSimConnect framework only)
 - **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
@@ -17,12 +17,15 @@ BoosterSimApp/
 ├── BoosterSimApp/                        # Main target
 │   ├── BoosterSimAppApp.swift            # @main entry point (23 LOC)
 │   ├── App/
-│   │   └── AppDelegate.swift             # NSApplicationDelegate (109 LOC)
+│   │   └── AppDelegate.swift             # NSApplicationDelegate (119 LOC)
 │   ├── Models/
 │   │   ├── SimulatorWindow.swift         # Window data model (25 LOC)
 │   │   ├── AppSettings.swift             # @AppStorage settings (52 LOC)
 │   │   ├── BuildRecord.swift             # Build history record (28 LOC)
-│   │   └── AXNode.swift                  # Accessibility tree node (18 LOC)
+│   │   ├── AXNode.swift                  # Accessibility tree node (18 LOC)
+│   │   ├── BoosterCommand.swift          # Condition snapshot + framing + verdict (127 LOC)
+│   │   ├── BlockRule.swift               # Domain/path block rule + matcher (43 LOC)
+│   │   └── NetworkConditionProfile.swift # Throttle presets + pacing math (83 LOC)
 │   ├── Services/
 │   │   ├── SimulatorWindowTracker.swift  # Core detection service (199 LOC)
 │   │   ├── WindowEnumerator.swift        # CGWindowList scan (65 LOC)
@@ -41,24 +44,26 @@ BoosterSimApp/
 │   │   ├── ConnectService.swift          # Pulse server host + event pipeline (118 LOC)
 │   │   ├── PulseServer.swift             # NWListener TCP server + Bonjour (104 LOC)
 │   │   ├── PulseClientConnection.swift   # Per-client protocol handler (183 LOC)
-│   │   └── PulsePacketDecoder.swift      # Binary protocol parser (174 LOC)
+│   │   ├── PulsePacketDecoder.swift      # Binary protocol parser (174 LOC)
+│   │   ├── CommandServer.swift           # _booster-cmd._tcp. snapshot server (176 LOC)
+│   │   └── NetworkConditionService.swift # Condition state hub + persistence (186 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
-│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (234 LOC)
+│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (256 LOC)
 │   │   ├── PositionCalculator.swift      # Pure frame math, content height + centering (90 LOC)
 │   │   └── AXHighlightPanel.swift        # Floating orange border overlay (68 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
 │   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (108 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (122 LOC)
 │   │   │   ├── SideTab.swift             # Tab enum for side window navigation (27 LOC)
 │   │   │   ├── TabBarView.swift          # Icon tab bar with amber underline (71 LOC)
 │   │   │   ├── tabs/
 │   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (23 LOC)
 │   │   │   │   ├── DesignTabView.swift   # Design tab: grid, safe area, ruler, picker (23 LOC)
 │   │   │   │   ├── ActionsTabView.swift  # Actions tab: env overrides + quick actions (25 LOC)
-│   │   │   │   └── NetworkTabView.swift  # Network tab: live traffic + certificates (62 LOC)
+│   │   │   │   └── NetworkTabView.swift  # Network tab: traffic + conditions + rules + certs (70 LOC)
 │   │   │   ├── network/
 │   │   │   │   ├── NetworkEventModel.swift # NetworkEvent, HTTPMethod, TrafficFilter, ConnectionState (208 LOC)
 │   │   │   │   ├── TrafficRowView.swift    # Single request row in traffic list (98 LOC)
@@ -67,7 +72,9 @@ BoosterSimApp/
 │   │   │   │   ├── TrafficFilterBar.swift  # Method + status filter pills + search (136 LOC)
 │   │   │   │   ├── ConnectStatusBanner.swift # Connection state dot + label (92 LOC)
 │   │   │   │   ├── ConnectSetupView.swift  # Setup instructions + code snippet (89 LOC)
-│   │   │   │   └── CurlExporter.swift      # NetworkEvent → cURL command (49 LOC)
+│   │   │   │   ├── CurlExporter.swift        # NetworkEvent → cURL command (49 LOC)
+│   │   │   │   ├── NetworkConditionsSectionView.swift # Airplane toggle + profile pills (144 LOC)
+│   │   │   │   └── BlockRulesView.swift      # Block-rule editor section (153 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (90 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (35 LOC)
 │   │   │   ├── SideWindowFooter.swift    # Version/status footer (36 LOC)
@@ -93,17 +100,26 @@ BoosterSimApp/
 │   │       ├── StatusBadge.swift         # Colored dot + label (44 LOC)
 │   │       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
 │   └── Utilities/
-│       ├── AppLogger.swift               # Centralized os.Logger instances (14 LOC)
+│       ├── AppLogger.swift               # Centralized os.Logger instances (15 LOC)
 │       ├── DesignTokens.swift            # Layout/spacing constants (51 LOC)
 │       └── SpringAnimator.swift          # CADisplayLink spring physics (112 LOC)
 ├── BoosterSimAppTests/                   # Unit test target
 │   ├── BoosterSimAppTests.swift          # Basic test scaffold (17 LOC)
-│   └── CertificateServiceTests.swift     # Certificate service behavior tests (26 LOC)
+│   ├── CertificateServiceTests.swift     # Certificate service behavior tests (26 LOC)
+│   ├── CommandPayloadTests.swift         # BoosterCommand wire contract + framing (110 LOC)
+│   ├── ConditionVerdictTests.swift       # Verdict precedence: guard/airplane/rules/throttle (119 LOC)
+│   ├── NetworkConditionServiceTests.swift # State machine + persistence + snapshots (151 LOC)
+│   ├── NetworkConditionProfileTests.swift # Presets + ThrottleSchedule pacing math (103 LOC)
+│   └── BlockRuleTests.swift              # Block-rule matcher edge cases (90 LOC)
 ├── BoosterSimAppUITests/                 # UI test target
 │   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
 │   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
 ├── BoosterSimConnect/                    # iOS framework source (loaded into Simulator apps)
-│   └── BoosterSimConnect.swift           # PulseProxy activation + RemoteLogger (65 LOC)
+│   ├── BoosterSimConnect.swift           # PulseProxy + condition-engine activation (71 LOC)
+│   ├── BoosterCommandClient.swift        # Command channel client, NWBrowser (191 LOC)
+│   ├── NetworkConditionController.swift  # Snapshot store + schema mirrors (137 LOC)
+│   ├── BoosterNetworkProtocol.swift      # URLProtocol condition enforcement (239 LOC)
+│   └── ThrottlePacing.swift              # Paced delivery scheduler (95 LOC)
 └── plans/                               # Implementation plans
     └── reports/
 ```
@@ -121,6 +137,15 @@ BoosterSimApp/
 | TCP server (NWListener) | `Services/PulseServer.swift` |
 | Per-client protocol handler | `Services/PulseClientConnection.swift` |
 | Binary protocol parser | `Services/PulsePacketDecoder.swift` |
+| Command channel server | `Services/CommandServer.swift` |
+| Condition state hub | `Services/NetworkConditionService.swift` |
+| Condition payload + verdict | `Models/BoosterCommand.swift` |
+| Block rule model | `Models/BlockRule.swift` |
+| Throttle profiles + pacing | `Models/NetworkConditionProfile.swift` |
+| Framework command client | `BoosterSimConnect/BoosterCommandClient.swift` |
+| Framework snapshot store | `BoosterSimConnect/NetworkConditionController.swift` |
+| Framework URLProtocol enforcement | `BoosterSimConnect/BoosterNetworkProtocol.swift` |
+| Framework paced delivery | `BoosterSimConnect/ThrottlePacing.swift` |
 | Network event models | `Views/SideWindow/network/NetworkEventModel.swift` |
 | iOS framework activation | `BoosterSimConnect/BoosterSimConnect.swift` |
 | Tab-based navigation | `Views/SideWindow/SideTab.swift`, `Views/SideWindow/TabBarView.swift` |
@@ -165,14 +190,34 @@ BoosterSimApp/
 | Network | Connect | Pulse TCP server (NWListener + Bonjour), binary protocol decode, connection state banner, setup instructions | Complete |
 | Network | Traffic Viewer | Filter by method/status, traffic list, detail sheet (headers/body/metrics), cURL export | Complete |
 | Network | Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
-| Network | Network Tools | Throttle Network, Block Requests | Placeholder |
+| Network | Network Conditions | Airplane Mode, Throttle Profiles (Off/EDGE/3G/LTE/Wi-Fi), effective-condition status, URLSession-scope caption | Complete |
+| Network | Block Rules | Domain/path rule editor (add/toggle/delete, 50-rule cap), snapshot push | Complete |
 
 **Wired sections** (exist in tabs, fully functional):
 - Actions tab: `EnvironmentOverridesView` (11 a11y toggles)
 - Network tab: `ConnectService` + `PulseServer` + `TrafficList`/`TrafficDetailView` + `CertificateSectionView`
+- Network tab: `NetworkConditionService` + `CommandServer` pushing snapshots over `_booster-cmd._tcp.` (`NetworkConditionsSectionView`, `BlockRulesView`)
 
 **Standalone views** (exist but not wired into tabs yet):
 - `StatusBarSectionView` — status bar presets + custom (Complete)
 - `BuildStatsSectionView` / `BuildChartView` — build history + bar chart (Complete)
 - `AXTreeView` — accessibility tree inspector with lazy loading (Complete)
 - `CameraView` — Mac camera input toggle (Complete)
+
+### Network Manipulation (Phase 5) — primary types
+
+| File | Primary types |
+|---|---|
+| `BoosterSimApp/Models/BoosterCommand.swift` | `BoosterCommand`, `ThrottleSpec`, `CommandFrame`, `ConditionVerdict`, `evaluate(request:snapshot:)`, `BoosterInternalGuard` |
+| `BoosterSimApp/Models/BlockRule.swift` | `BlockRule` (+ `matches(_:)` string-only matcher) |
+| `BoosterSimApp/Models/NetworkConditionProfile.swift` | `NetworkConditionProfile`, `ThrottleSchedule` |
+| `BoosterSimApp/Services/CommandServer.swift` | `CommandServer` (`_booster-cmd._tcp.`, loopback bind, reconcile-on-connect) |
+| `BoosterSimApp/Services/NetworkConditionService.swift` | `NetworkConditionService`, `NetworkConditionState` |
+| `BoosterSimApp/Views/SideWindow/network/NetworkConditionsSectionView.swift` | `NetworkConditionsSectionView` |
+| `BoosterSimApp/Views/SideWindow/network/BlockRulesView.swift` | `BlockRulesView` |
+| `BoosterSimConnect/BoosterCommandClient.swift` | `BoosterCommandClient` (+ mirrored frame decode) |
+| `BoosterSimConnect/NetworkConditionController.swift` | `NetworkConditionController`, mirrored `BoosterCommand`/`ThrottleSpec`/`BlockRule`, `ConditionVerdict`, `evaluateCondition(request:snapshot:)` |
+| `BoosterSimConnect/BoosterNetworkProtocol.swift` | `BoosterNetworkProtocol` (chained URLSession init exchange) |
+| `BoosterSimConnect/ThrottlePacing.swift` | `ThrottlePacing` (+ `Plan`, `plan(spec:chunkBytes:totalBytes:)`) |
+
+Modified mount points (plans 01–03): `NetworkTabView` (sections mounted), `AppDelegate`/`SideWindowController`/`SideWindowView` (service ownership + environment injection), `BoosterSimConnect.swift` (`activate()` enables `BoosterNetworkProtocol` + `BoosterCommandClient`), `AppLogger` (new `network` category). See `docs/system-architecture.md` § Network Manipulation for the command flow, verdict order, scope limitations, pacing fidelity note, and persistence keys.

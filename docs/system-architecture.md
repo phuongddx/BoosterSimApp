@@ -34,6 +34,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── PulseServer — NWListener TCP, Bonjour advert   │
 │  ├── PulseClientConnection — per-client protocol    │
 │  ├── PulsePacketDecoder — binary protocol parser    │
+│  ├── CommandServer — _booster-cmd._tcp. snapshots  │
+│  ├── NetworkConditionService — condition state hub │
 │  ├── EnvironmentOverrideService — a11y toggles      │
 │  ├── StatusBarService — status presets + config     │
 │  ├── BuildStatsService — build history polling      │
@@ -44,7 +46,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  └── XcodeDetector — filesystem path detection     │
 ├─────────────────────────────────────────────────────┤
 │  iOS Framework Source                               │
-│  └── BoosterSimConnect — PulseProxy activation      │
+│  └── BoosterSimConnect — PulseProxy activation,     │
+│       command client + URLProtocol conditions       │
 │       (loaded into Simulator app via Bundle.load)   │
 └─────────────────────────────────────────────────────┘
 ```
@@ -162,6 +165,19 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Codable structs: `PulseNetworkEvent`, `PulseRequest`, `PulseResponse`, `PulseMetrics`, etc.
 - Encodes outgoing packets (serverHello, pong)
 
+**`CommandServer`** (`Services/CommandServer.swift`)
+- `@MainActor final class` — NWListener TCP server advertising `_booster-cmd._tcp.` via Bonjour (mirrors `PulseServer`'s shape on a second channel)
+- Loopback-only bind (`requiredLocalEndpoint` = 127.0.0.1): Simulator apps share the host stack and reach the Mac's loopback; nothing else on the LAN can connect
+- Broadcasts full-state `BoosterCommand` JSON snapshots to every connected client — frames are length-prefixed (4-byte big-endian UInt32 + body, 10 MB cap)
+- Reconcile-on-connect: `onClientConnect` fires so `NetworkConditionService` can push the current snapshot to a newly connected (or relaunched) app
+- Never accepts client frames; the receive loop exists only to detect malformed input and drop that connection. `deinit` cancels listener and connections (NWListener must be cancelled)
+
+**`NetworkConditionService`** (`Services/NetworkConditionService.swift`)
+- `@MainActor ObservableObject` — single writer for all condition state: airplane flag, throttle profile selection, block rules
+- `NetworkConditionState` machine (idle → applying → applied, error recovery) around every mutation
+- Builds total snapshots (`snapshot()`) so airplane + throttle + rules always travel together — never torn
+- Owns the `CommandServer`; every mutation persists to UserDefaults and broadcasts a fresh `BoosterCommand`
+
 **`SimCtlService`** (`Services/SimCtlService.swift`)
 - Centralized executor for `xcrun simctl` commands
 - Parses boot arguments, environment overrides, status bar config
@@ -225,6 +241,21 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `HTTPMethod` enum (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS) with tint color for badges
 - `TrafficFilter` struct for method set + status range + search text matching
 - `StatusRange` enum (All/2xx/3xx/4xx/5xx) with `contains(_:)` predicate
+
+**`BoosterCommand`** (`Models/BoosterCommand.swift`)
+- Full-state condition snapshot, schema `version` 1: `airplane`, `throttle: ThrottleSpec?`, `blockRules: [BlockRule]` — idempotent; clients ignore unknown versions whole (no partial application)
+- `ThrottleSpec` — `latencyMs` + `downloadKbps` (+ `uploadKbps` reserved; approximated by the latency phase in v1)
+- `CommandFrame` — length-prefix codec (encode/decodeOne); decode copies to a re-based `[UInt8]` before offset math (Data-slice index trap avoidance)
+- `ConditionVerdict` + pure `evaluate(request:snapshot:)` — ordered verdict: guard marker → airplane → rules → throttle → pass-through
+- `BoosterInternalGuard` — `X-Booster-Internal` marker key for tool-internal requests (anti-recursion)
+
+**`BlockRule`** (`Models/BlockRule.swift`)
+- Domain/path block rule: exact host or `*.suffix` wildcard (dot-boundary), optional `pathPrefix`, `isEnabled`
+- Pure matcher using string operations only (no regex — ReDoS impossible); case-insensitive host, nil-host never matches, fields trimmed, empty domains never match
+
+**`NetworkConditionProfile`** (`Models/NetworkConditionProfile.swift`)
+- Throttle presets: off / EDGE (800 ms · 200 Kbps) / 3G (400 ms · 750 Kbps) / LTE (100 ms · 10000 Kbps) / Wi-Fi (20 ms · 25000 Kbps) with display names and picker captions
+- `ThrottleSchedule` — pure, deterministic pacing math (see Network Manipulation)
 - `ConnectionState` enum (.disconnected / .searching / .connected(deviceName))
 
 ### Views
@@ -247,7 +278,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `CaptureTabView` — Screenshot, recording, GIF (placeholders)
 - `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
 - `ActionsTabView` — Environment overrides + quick actions container
-- `NetworkTabView` — Live traffic viewer + certificates; receives `ConnectService` as `@ObservedObject`; shows ConnectStatusBanner, ConnectSetupView, TrafficFilterBar, TrafficList; opens TrafficDetailView as sheet
+- `NetworkTabView` — Live traffic viewer + network conditions + block rules + certificates; receives `ConnectService` as `@ObservedObject`; shows ConnectStatusBanner, ConnectSetupView, TrafficFilterBar, TrafficList, NetworkConditionsSectionView, BlockRulesView, CertificateSectionView; opens TrafficDetailView as sheet
 
 **Side Panel Components**
 - `ConnectStatusBanner` — Slim banner showing connection state (dot + label + setup/searching indicator); pulse animation on .searching
@@ -257,6 +288,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `TrafficRowView` — Single request row: method badge, truncated path, status code, duration; amber highlight on selection
 - `TrafficDetailView` — Sheet with tabbed sections (Summary, Headers, Body, Metrics); footer with Copy as cURL button
 - `CurlExporter` — Pure enum: converts NetworkEvent to cURL command string; redacts sensitive headers
+- `NetworkConditionsSectionView` — Airplane toggle, throttle profile pills (Off/EDGE/3G/LTE/Wi-Fi), effective-condition caption, state-machine status row, URLSession-scope disclosure
+- `BlockRulesView` — Block-rule editor: add/toggle/delete rows, path-prefix capsule badges, 50-rule cap with caption, URLSession-scope disclosure
 - `DeviceHeaderView` — Active device info (name, OS, battery, signal)
 - `CollapsedStripView` — 28pt collapsed state with chevron + 2pt amber stripe
 - `SideWindowFooter` — Version/status footer
@@ -290,7 +323,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `snapTo()` for instant repositioning (used on panel side-switches)
 
 **`AppLogger`** (`Utilities/AppLogger.swift`)
-- Enum with static `Logger` instances per concern (windowTracking, permissions, settings, certificates)
+- Enum with static `Logger` instances per concern (windowTracking, permissions, settings, certificates, network)
 - Subsystem: `com.nextlabs.BoosterSimApp`
 - Replaces raw `os.Logger` initialization across services
 
@@ -355,6 +388,47 @@ NetworkTabView (TrafficFilterBar + TrafficList)
 TrafficDetailView (sheet) → CurlExporter (copy)
 ```
 
+### Network Manipulation Command Flow
+
+```
+NetworkConditionService (Mac, single writer: airplane + profile + rules)
+        ↓  total BoosterCommand snapshot (JSON, length-prefixed frame)
+CommandServer (NWListener, "_booster-cmd._tcp.", loopback bind)
+        ↓  broadcast to all clients; reconcile on every connect
+BoosterCommandClient (framework: NWBrowser → NWConnection, buffered decode)
+        ↓  version-gated apply
+NetworkConditionController (framework: NSLock-guarded snapshot store)
+        ↓  evaluateCondition(request:snapshot:) per request
+BoosterNetworkProtocol (framework: URLProtocol verdict enforcement)
+```
+
+## Network Manipulation
+
+Phase 5 ships three condition tools — **Airplane Mode**, **throttle profiles**, and **block rules** — pushed from the Network tab into Simulator apps over a second Bonjour channel (`_booster-cmd._tcp.`), independent of the `_pulse._tcp.` telemetry stream. Both channels stay connected exactly when the app under test is "offline": airplane never touches the Mac's connectivity or BoosterSimApp's own sessions (proven by the plan-01 live-Simulator smoke).
+
+**Scope — stated honestly.** Conditions apply to **URLSession HTTP(S) requests of DEBUG apps embedding BoosterSimConnect, on sessions created after `BoosterSimConnect.activate()`, only**:
+- WebSocket, WKWebView, and Network.framework traffic are unaffected
+- URLSession sessions created before framework load are unaffected
+- `NWPathMonitor`/reachability still reports satisfied — airplane is enforced per request (`NSURLErrorNotConnectedToInternet` on the app's requests), not at the interface level, and the Mac browses normally while it is on
+
+**Enforcement chain.** `BoosterSimConnect.activate()` calls `BoosterNetworkProtocol.enableAutomaticRegistration()`, which exchanges `URLSession.init(configuration:delegate:delegateQueue:)` and **chains with Pulse's exchange** (the exchanged body calls the renamed selector), so both protocols prepend to new sessions. `canInit(with:)` returns true only for requests a condition would actually change (zero overhead while all conditions are off); `startLoading()` re-evaluates against a lock-copied snapshot. Verdict order is contract:
+
+1. Guard marker → pass-through (anti-recursion)
+2. Airplane → fail `NSURLErrorNotConnectedToInternet` (-1009)
+3. First enabled matching block rule → fail `NSURLErrorCannotConnectToHost` (-1004)
+4. Throttle spec set → paced delivery
+5. Otherwise pass-through via an inner ephemeral session
+
+**Anti-recursion guard.** Tool-issued inner requests carry the `X-Booster-Internal` URLProtocol property *and* the literal header; the inner session configuration has no protocols of its own (stripped `protocolClasses`). The guard check is first in the verdict order — without it the protocol would intercept its own forwarding requests forever.
+
+**Throttle pacing (as shipped).** `ThrottleSchedule` (Mac, pure + unit-tested) and its framework mirror `ThrottlePacing.plan` compute `chunkInterval = chunkBytes × 8 / downloadKbps` **seconds** with `chunkBytes = 1500`: first response callback after `latencyMs/1000` s, body delivered in 1500-byte chunks at that interval, completion at `latencyMs + totalBytes × 8 / downloadKbps` s. **Known fidelity gap:** the formula omits the ÷1000 kilo factor, so durations far exceed physical network timing — e.g. 3G paces 1500 B at 16 s/chunk (a 15 KB body takes ~160 s instead of ~0.16 s). The formula is plan-pinned; values are declared approximations, and rescaling is a known one-line follow-up. Invalid specs (kbps ≤ 0, negative bytes/latency) return nil — enforcement degrades to unpaced delivery rather than trusting wire data. `uploadKbps` is nil in v1; upload cost is approximated by the latency phase.
+
+**Persistence (UserDefaults; user-facing keys — renaming strands stored state).** `networkConditionAirplane` (Bool), `networkBlockRules` (JSON-encoded `[BlockRule]`), `networkConditionProfile` (raw-value String). All read back on service init and re-applied via the reconcile push when an app (re)connects.
+
+**Schema sync.** The framework cannot import the Mac app target, so `BoosterSimConnect/NetworkConditionController.swift` mirrors `BoosterCommand`/`ThrottleSpec`/`BlockRule` and the verdict function (`evaluateCondition`) byte-for-byte in semantics; Mac-side `CommandPayloadTests` guards the shared wire contract. Every semantic change must mirror identically on both sides (cross-reference comments mark the pairs).
+
+**Concurrency.** The framework-side classes are deliberately NOT `@MainActor` (URLProtocol callbacks arrive on URLSession session queues): `NetworkConditionController` guards its snapshot with an `NSLock`; `BoosterCommandClient` and `ThrottlePacing` confine all state to private serial queues (`@unchecked Sendable`, Pulse precedent).
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
@@ -374,6 +448,8 @@ TrafficDetailView (sheet) → CurlExporter (copy)
 | Dual-mode tracking (poll + AXObserver) | Graceful degradation without Accessibility permission |
 | `xcrun simctl spawn` for env overrides | Instant state changes without app relaunch |
 | NWListener + Bonjour for Connect | macOS hosts TCP server; Simulator apps connect to it — zero-config |
+| Second Bonjour channel (`_booster-cmd._tcp.`, loopback-bound) for condition snapshots | Full-state idempotent snapshots self-heal on reconnect; loopback bind keeps the LAN out while Simulator apps still reach the host |
+| Chained URLSession init exchange (Pulse + Booster) | Both protocol prepends compose; guard marker prevents self-interception |
 | BoosterSimConnect as loadable framework | Loaded into Simulator app via `Bundle.load()` in DEBUG builds only |
-| Zero external dependencies | Minimal footprint, no SPM overhead, pure Apple framework stability |
+| Apple frameworks only; Pulse/PulseProxy SPM exception via BoosterSimConnect | Sole dependency exception (user-resolved 2026-08-29); powers Connect network inspection |
 | Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and Simulator control via simctl |
