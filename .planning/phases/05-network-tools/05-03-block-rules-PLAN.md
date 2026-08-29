@@ -197,6 +197,7 @@ Analog sources:
 
 <verification>
 - Automated: BlockRuleTests (ten matcher cases), NetworkConditionServiceTests still green (rules persistence covered in plan 01), macOS app build green.
+- Wave-2 serialization note: plan 02 (05-02-throttle-profiles) also modifies BoosterSimApp.xcodeproj/project.pbxproj in this wave — different target/sections, so overlap is merge-conflict-level only; pbxproj edits within Wave 2 must serialize (executor wave guard); no other files_modified overlap with plan 02.
 - Manual confirmation (blocked request produces an error row in the viewer — research A6) rides the plan-04 phase-gate smoke.
 </verification>
 

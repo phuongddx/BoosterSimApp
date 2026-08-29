@@ -427,15 +427,19 @@ func evaluate(request: URLRequest, snapshot: BoosterCommand) -> ConditionVerdict
 
 ## Open Questions
 
-1. **Block-rule failure semantics — URLError vs HTTP status?**
+1. **Block-rule failure semantics — URLError vs HTTP status? (RESOLVED — URLError default)**
    - What we know: airplane must be `.notConnectedToInternet` to read as offline; rules could also serve HTTP 403/526 for server-driven UI branches.
    - What's unclear: which default the target apps' retry logic tolerates better.
    - Recommendation: ship URLError default (Pitfall 10), add per-rule "respond with status" only if requested.
-2. **Should conditions auto-reset when the last client disconnects or BoosterSimApp quits?**
+   - Resolution: implemented as recommended — plan 05-01 Task 1 `evaluate(request:snapshot:)` fails matching rules with `URLError.Code.cannotConnectToHost` (tested in ConditionVerdictTests; precedence airplane > rules > throttle re-asserted by plan 05-02 Task 2). Per-rule "respond with status" remains unimplemented (add only if requested).
+2. **Should conditions auto-reset when the last client disconnects or BoosterSimApp quits? (RESOLVED — persist + re-apply)**
    - What we know: framework state dies with the app process; persisted Mac-side profile re-applies on next connect (Pattern 1).
    - What's unclear: whether users expect "off" after restarting the tool app.
    - Recommendation: persist + re-apply (matches certificate trust persistence behavior, REQ-fr-16 precedent), with a visible "active" caption in the panel.
-3. **Scope of "per-app" with multiple connected apps** (Pitfall 9) — recommend global-to-embedding-apps for v1, bundle-ID allowlist as stretch. Planner should encode the decision in the task list either way.
+   - Resolution: implemented as recommended — plan 05-01 Task 2 NetworkConditionServiceTests covers persistence re-init (keys "networkConditionAirplane"/"networkBlockRules"); reconcile-on-connect is plan 05-01 must_haves truth 4 and smoke step 7; the effective-condition caption ships in plan 05-02 Task 3 ("Throttling: …" / "Airplane Mode on" / "No conditions applied").
+3. **Scope of "per-app" with multiple connected apps** (Pitfall 9) — **(RESOLVED — global-to-embedding-apps for v1)**
+   - Recommendation (original): global-to-embedding-apps for v1, bundle-ID allowlist as stretch. Planner should encode the decision in the task list either way.
+   - Resolution: encoded in the plans — plan 05-01 must_haves truth 8 states every embedding app receives the complete snapshot independently (single writer, no cross-app state); the bundle-ID allowlist appears only as a documented stretch in Pitfall 9 and is not planned this phase.
 
 ## Environment Availability
 

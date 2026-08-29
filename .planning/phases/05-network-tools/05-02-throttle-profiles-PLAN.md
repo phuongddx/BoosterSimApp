@@ -243,6 +243,7 @@ Analog sources:
 <verification>
 - Automated: NetworkConditionProfileTests (pacing math + presets + Codable), extended ConditionVerdictTests (throttle + precedence), NetworkConditionServiceTests still green; macOS app build green (framework target + copy phase included).
 - Manual confirmation of visible slow-loading behavior rides the plan-04 phase-gate smoke (3G profile step).
+- Wave-2 serialization note: plan 03 (05-03-block-rules) also modifies BoosterSimApp.xcodeproj/project.pbxproj in this wave — different target/sections, so overlap is merge-conflict-level only; the executor's wave guard must serialize pbxproj edits within Wave 2 (never edit the same pbxproj concurrently). No other files_modified overlap with plan 03.
 </verification>
 
 <success_criteria>
