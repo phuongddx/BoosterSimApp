@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 current_phase: 5
 current_phase_name: Network Tools
 status: executing
-stopped_at: Completed 05-02 — throttle profiles delivered (34 unit tests green, both targets build); next 05-03
-last_updated: "2026-08-29T16:48:00.000Z"
+stopped_at: Completed 05-03 — block rules delivered (44/44 unit tests green, both targets build); next 05-04 phase-gate closure
+last_updated: "2026-08-29T16:56:59.971Z"
 last_activity: 2026-08-29
-last_activity_desc: 05-02 complete — .throttle verdict + paced enforcement + profile picker
-state_head: 08e9fcf691e36adaa0d541f29de07ed83d11ba94
+last_activity_desc: 05-03 complete — hardened matcher + BlockRulesView editor
+state_head: b7ebad843c4a663e82b111bb1f81049bbac2fe30
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -28,31 +28,32 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 5 (Network Tools) — EXECUTING
-Plan: 05-02 COMPLETE (2 of 4); next up 05-03 block rules (wave 2)
-Status: throttle profiles delivered end-to-end (pills → snapshot → .throttle verdict → paced chunks); 34/34 unit tests green, both targets build, no SPM changes
-Last activity: 2026-08-29 — 05-02 executed (commits 726289c, 3a1bb34, 08e9fcf)
+Plan: 05-03 COMPLETE (3 of 4); next up 05-04 phase-gate closure (wave 3)
+Status: block rules delivered end-to-end (BlockRulesView editor → service mutations → snapshot → .fail(.cannotConnectToHost) verdict); 44/44 unit tests green, both targets build, no SPM changes
+Last activity: 2026-08-29 — 05-03 executed (commits aec8f94, 99b3aee, b7ebad8)
 
-Progress: [█████░░░░░] 2 of 4 Phase-5 plans complete (05-01 command channel tracer, 05-02 throttle profiles)
+Progress: [███████░░░] 3 of 4 Phase-5 plans complete (05-01 command channel tracer, 05-02 throttle profiles, 05-03 block rules)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
-- Average duration: 26min
-- Total execution time: 52min
+- Total plans completed: 3 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Average duration: 21min
+- Total execution time: 63min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 5 | 2 | 52min | 26min |
+| 5 | 3 | 63min | 21min |
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 05 P01 | 37min | 3 tasks | 17 files |
 | Phase 05 P02 | 15min | 3 tasks | 11 files |
+| Phase 05 P03 | 11min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5]: Throttle pacing contract = chunkInterval chunkBytes*8/kbps s, completion latencyMs + totalBytes*8/kbps (plan truths #1–2; the Task-1 bullet's "1.6s" tail was an internal arithmetic slip) — rescale note for plan-04 smoke in 05-02 SUMMARY
 - [Phase 5]: Pacing constructor rejects invalid specs by returning nil (never traps on wire data); framework degrades to unpaced delivery; enforcement chunkBytes = 1500
 - [Phase 5]: 05-01's ea7b024 accidentally deleted BoosterCommandClient's private frame constants — framework target had not compiled since; restored in 3a1bb34 (always build the BoosterSimConnect scheme, the macOS app compiles that folder empty)
+- [Phase 5]: BlockRule.matches owns the isEnabled check + field trimming (safe for UI and decode paths); every semantic change mirrors identically into NetworkConditionController's framework copy (schema-sync pair, cross-referenced)
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-29T16:48:00.000Z
-Stopped at: Completed 05-02 — throttle profiles (pills → snapshot → .throttle verdict → paced chunks); next 05-03
+Last session: 2026-08-29T16:56:59.959Z
+Stopped at: Completed 05-03 — block rules delivered (44/44 unit tests green, both targets build); next 05-04 phase-gate closure
 Resume file: None

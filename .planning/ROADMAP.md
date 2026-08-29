@@ -103,7 +103,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   4. User can toggle per-app Simulator Airplane Mode with no impact on Mac connectivity
   5. User can block requests by domain/path rules
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 Plans:
 **Wave 1**
 
@@ -112,7 +112,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 05-02-throttle-profiles-PLAN.md — Throttle profiles (off/EDGE/3G/LTE/Wi-Fi) with latency + paced-chunk enforcement and picker UI
-- [ ] 05-03-block-rules-PLAN.md — Block rules: matcher hardening (string-ops only) + rules editor UI in the Network tab
+- [x] 05-03-block-rules-PLAN.md — Block rules: matcher hardening (string-ops only) + rules editor UI in the Network tab
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -164,6 +164,6 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 2. Capture Tools | 0/TBD | Not started | - |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
-| 5. Network Tools | 2/4 | In Progress|  |
+| 5. Network Tools | 3/4 | In Progress|  |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |
