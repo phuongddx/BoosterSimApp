@@ -53,6 +53,9 @@ struct NetworkTabView: View {
             // Network conditions (airplane) — pushed to apps embedding BoosterSimConnect
             NetworkConditionsSectionView()
 
+            // Block rules editor — rides the same snapshot channel
+            BlockRulesView()
+
             // Certificate section (always visible)
             CertificateSectionView(
                 udidProvider: udidProvider,
