@@ -39,6 +39,13 @@ import PulseProxy
         // Activate URLSession swizzling — captures all URLSession traffic
         URLSessionProxyDelegate.enableAutomaticRegistration()
 
+        // Enforce Mac-pushed network conditions (airplane/block) on URLSession
+        // traffic — chained exchange composes with the swizzle above
+        BoosterNetworkProtocol.enableAutomaticRegistration()
+
+        // Discover the BoosterSimApp command channel and apply condition snapshots
+        BoosterCommandClient.shared.start()
+
         // Start remote broadcasting so BoosterSimApp can discover via Bonjour
         RemoteLogger.shared.initialize(store: .shared)
         RemoteLogger.shared.enable()

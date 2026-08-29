@@ -50,6 +50,7 @@ final class SideWindowController: ObservableObject {
         cameraService: CameraService,
         certificateService: CertificateService,
         connectService: ConnectService,
+        networkConditionService: NetworkConditionService,
         deepLinkService: DeepLinkService,
         designComparisonService: DesignComparisonService,
         captureService: CaptureService
@@ -67,6 +68,7 @@ final class SideWindowController: ObservableObject {
             cameraService: cameraService,
             certificateService: certificateService,
             connectService: connectService,
+            networkConditionService: networkConditionService,
             deepLinkService: deepLinkService,
             designComparisonService: designComparisonService,
             captureService: captureService
@@ -200,6 +202,7 @@ final class SideWindowController: ObservableObject {
         cameraService: CameraService,
         certificateService: CertificateService,
         connectService: ConnectService,
+        networkConditionService: NetworkConditionService,
         deepLinkService: DeepLinkService,
         designComparisonService: DesignComparisonService,
         captureService: CaptureService
@@ -221,6 +224,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(axInspectorService)
             .environmentObject(cameraService)
             .environmentObject(certificateService)
+            .environmentObject(networkConditionService)
             .environmentObject(connectService)
             .environmentObject(deepLinkService)
             .environmentObject(designComparisonService)

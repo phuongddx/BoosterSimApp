@@ -8,6 +8,7 @@ struct NetworkTabView: View {
 
     @EnvironmentObject var certificateService: CertificateService
     @ObservedObject var connectService: ConnectService
+    @EnvironmentObject var networkConditionService: NetworkConditionService
 
     @State private var filter = TrafficFilter()
     @State private var selectedEvent: NetworkEvent?
@@ -48,6 +49,9 @@ struct NetworkTabView: View {
             }
 
             Divider()
+
+            // Network conditions (airplane) — pushed to apps embedding BoosterSimConnect
+            NetworkConditionsSectionView()
 
             // Certificate section (always visible)
             CertificateSectionView(

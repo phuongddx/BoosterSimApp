@@ -91,6 +91,7 @@ struct SideWindowView: View {
     let cameraService    = CameraService()
     let certificateService = CertificateService(simCtl: simCtl)
     let connectService      = ConnectService()
+    let networkConditionService = NetworkConditionService()
     let deepLinkService = DeepLinkService()
     let designComparisonService = DesignComparisonService()
     let captureService = CaptureService()
@@ -101,6 +102,7 @@ struct SideWindowView: View {
         cameraService: cameraService,
         certificateService: certificateService,
         connectService: connectService,
+        networkConditionService: networkConditionService,
         deepLinkService: deepLinkService,
         designComparisonService: designComparisonService,
         captureService: captureService
@@ -110,8 +112,8 @@ struct SideWindowView: View {
         .environmentObject(envService)
         .environmentObject(buildService)
         .environmentObject(axService)
-        .environmentObject(cameraService)
         .environmentObject(certificateService)
+        .environmentObject(networkConditionService)
         .environmentObject(connectService)
         .environmentObject(deepLinkService)
         .environmentObject(designComparisonService)
