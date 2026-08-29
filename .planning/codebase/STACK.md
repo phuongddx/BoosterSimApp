@@ -1,101 +1,98 @@
 # Technology Stack
 
-**Analysis Date:** 2025-03-25
+**Analysis Date:** 2026-08-29
 
 ## Languages
 
 **Primary:**
-- Swift 6 - Entire application with strict concurrency mode enabled
-- Objective-C (minimal) - Interface stubs via `AXUIElement` and CoreGraphics C APIs
+- Swift 5.0 — All application code (macOS menu-bar app, iOS companion framework, CLI tool)
+- ~8,271 lines across 44 Swift files
+
+**No secondary languages.** The project is pure Swift with no Objective-C bridging headers, no `.m`/`.h` files, and no non-Swift source.
 
 ## Runtime
 
 **Environment:**
-- macOS 15 Sequoia (deployment target: 15.0, actual requires macOS 26.2 for Xcode 16.3)
-- Target: macOS menu bar companion app
+- macOS 26.2+ (deployment target: `MACOSX_DEPLOYMENT_TARGET = 26.2`)
+- Apple Silicon (arm64) — runs on M3 Pro; CI uses `macos-26` runners
 
 **Package Manager:**
-- Xcode built-in (no external package manager)
-- No CocoaPods, SPM, or third-party dependencies
+- Swift Package Manager (SPM) for the CLI tool (`booster-sim-cli/Package.swift`)
+- Xcode SPM integration for the main app (resolved in `BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`)
+- No CocoaPods, no Carthage
+- Lockfile: Present (`Package.resolved`)
 
 ## Frameworks
 
-**Core (Apple frameworks only):**
-- **SwiftUI** - UI rendering; `@main` App entry point, `MenuBarExtra`, `Settings` scene, views in `BoosterSimApp/Views/`
-- **AppKit** - Window management, NSPanel, NSWindow, NSApplication, menu bar integration. `SideWindowPanel` is NSPanel subclass in `BoosterSimApp/Windows/SideWindowPanel.swift`
-- **Combine** - Reactive state management via `@Published` and `@EnvironmentObject`. Used throughout services in `BoosterSimApp/Services/`
-- **CoreGraphics** - Window enumeration, frame math, display coordinate conversion via `CGWindowListCopyWindowInfo`. Used in `BoosterSimApp/Services/WindowEnumerator.swift`
-- **ApplicationServices** - Accessibility API (AX) for Simulator inspection and menu automation. `AXUIElement`, `AXObserver` in `BoosterSimApp/Services/AXInspectorService.swift`, `BoosterSimApp/Services/CameraService.swift`, `BoosterSimApp/Services/WindowObserver.swift`
-- **Foundation** - Process execution (`Process`), file I/O, JSON parsing, UserDefaults
-- **QuartzCore** - CADisplayLink for spring physics animation in `BoosterSimApp/Utilities/SpringAnimator.swift`
-- **ServiceManagement** - Launch-at-login via `SMAppService` in `BoosterSimApp/Models/AppSettings.swift`
-- **UniformTypeIdentifiers** - File type checking for macOS permission dialogs
+**Core (Apple):**
+- SwiftUI — All UI views in `BoosterSimApp/Views/`
+- AppKit — NSWindow, NSApplication, NSPanel, NSImage, AXUIElement integration
+- Combine — Reactive state management across all services (`@Published`, `AnyPublisher`, `sink`)
+- Network framework (`Network`) — TCP listener/server in `BoosterSimApp/Services/PulseServer.swift`
+
+**System APIs (Apple):**
+- ScreenCaptureKit — Screen recording in `BoosterSimApp/Services/CaptureService.swift`
+- ApplicationServices / Accessibility (`AXUIElement`, `AXObserver`) — Window tracking, menu automation, accessibility inspection
+- CoreGraphics (`CGWindowListCopyWindowInfo`, `CGPreflightScreenCaptureAccess`) — Window discovery, screen recording permission
+- CryptoKit — SHA-256 fingerprinting in `BoosterSimApp/Services/CertificateStore.swift`
+- Security framework (`SecCertificate*`) — Certificate parsing and metadata extraction in `BoosterSimApp/Services/CertificateStore.swift`
+- AVFoundation — Video export (MP4) in `BoosterSimApp/Services/CaptureService.swift`
+- OSLog — Structured logging in `BoosterSimApp/Utilities/AppLogger.swift`
+- UniformTypeIdentifiers — File type handling in `BoosterSimApp/Services/DesignComparisonService.swift`
+
+**Testing:**
+- Swift Testing (`import Testing`, `@Test func`) — Unit tests in `BoosterSimAppTests/CertificateServiceTests.swift`
+- XCTest — UI tests in `BoosterSimAppUITests/ScreenshotTests.swift`
+
+**Build/Dev:**
+- Xcode — Primary IDE and build system
+- xcodebuild — CI build commands in `.github/workflows/ci.yml`
+- xcbeautify — Build output formatting in CI
 
 ## Key Dependencies
 
-**Critical (system frameworks):**
-- **CGWindowList polling** - Detects Simulator windows every 0.5s via `WindowEnumerator`. Location: `BoosterSimApp/Services/WindowEnumerator.swift`
-- **AXObserver** - Real-time window move/resize callbacks per Simulator PID. Location: `BoosterSimApp/Services/WindowObserver.swift`
-- **xcrun simctl** - External process calls for device list, environment overrides, status bar features. Wrapper: `BoosterSimApp/Services/SimCtlService.swift`
-- **Xcode DerivedData** - Build history polling via plist parsing at `~/Library/Developer/Xcode/DerivedData/*/Logs/Build/LogStoreManifest.plist`. Location: `BoosterSimApp/Services/BuildStatsService.swift`
+**Critical:**
+- [Pulse](https://github.com/kean/Pulse) 5.2.2 — Network logging SDK. Used in two ways:
+  1. **macOS host app:** Custom TCP server (`PulseServer.swift`) receives network events from Simulator via Pulse's binary protocol, parsed by `PulsePacketDecoder.swift`
+  2. **iOS companion framework** (`BoosterSimConnect/BoosterSimConnect.swift`): Loaded into Simulator apps via `Bundle.load()` in DEBUG builds; activates `URLSessionProxyDelegate.enableAutomaticRegistration()` for URLSession swizzling and `RemoteLogger` for Bonjour-based broadcasting
+  - Products linked: `Pulse`, `PulseProxy`
+
+- [swift-argument-parser](https://github.com/apple/swift-argument-parser) 1.2.0+ — CLI command parsing for `booster-sim-cli`
+
+**Infrastructure:**
+- None (no backend, no cloud services)
 
 ## Configuration
 
 **Environment:**
-- Bundle ID: `sim-dev.BoosterSimApp`
-- App version: 1.0
-- Development Team: EQ8B89SPCX (Xcode auto-signing)
-- LSUIElement: true (no Dock icon, menu bar only)
-- Code signing: Automatic (Xcode managed)
+- No `.env` files in use
+- Configuration is code-level constants and `UserDefaults` for persistence
+- Sensitive header/query redaction configured in `BoosterSimConnect/BoosterSimConnect.swift`
 
-**Build Settings:**
-- Swift version: 5.0 (Xcode 16.3 compatibility)
-- Swift concurrency: Strict (Swift 6 mode)
-- Swift default actor isolation: `@MainActor`
-- Swift upcoming features: `SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY`
-- Deployment target: macOS 15.0 (but runtime requires 26.2)
-- Asset catalog: `BoosterSimApp/Assets.xcassets`
-- String catalog: Generated (Swift native strings)
-
-**Entitlements:**
-- App Sandbox: Enabled (`ENABLE_APP_SANDBOX`)
-- Hardened Runtime: Enabled (`ENABLE_HARDENED_RUNTIME`)
-- User-selected files: Read-only (for DerivedData/Xcode path selection)
-
-## Build & Execution
-
-**Build Command:**
-```bash
-xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -configuration Debug build
-```
-
-**Run:**
-```bash
-open BoosterSimApp.xcodeproj  # Opens in Xcode, then Cmd+R
-```
-
-**Requirements:**
-- Xcode 16.3+ (Swift 6 toolchain)
-- macOS 15 Sequoia host
-- iOS Simulator running (for live behavior)
+**Build:**
+- `BoosterSimApp.xcodeproj/project.pbxproj` — Xcode project file (4 targets: app, tests, UI tests, iOS framework)
+- `booster-sim-cli/Package.swift` — SPM package for CLI tool (swift-tools-version: 5.8, macOS 13+)
+- `BoosterHealth-Entitlements.plist` — HealthKit entitlements (for health data generation feature)
+- Code signing: Automatic, Hardened Runtime enabled
+- `INFOPLIST_KEY_LSUIElement = YES` — Menu-bar app (no Dock icon)
+- Bundle IDs: `sim-dev.BoosterSimApp`, `sim-dev.BoosterSimAppTests`, `sim-dev.BoosterSimAppUITests`, `sim-dev.BoosterSimConnect`
 
 ## Platform Requirements
 
 **Development:**
-- Xcode 16.3+ with Swift 6 toolchain
-- macOS 15 Sequoia or later
+- macOS 26.2+
+- Xcode (any recent version with Swift 5.0+ support)
+- `/usr/bin/xcrun` — Required for all `simctl` operations
+- `/usr/bin/openssl` — Required for certificate generation in `CertificateStore`
+- Xcode DerivedData directory at `~/Library/Developer/Xcode/DerivedData/` — For build stats monitoring
 
-**Runtime:**
-- macOS 15.0 deployment target
-- iOS Simulator app (appears as window with owner name "Simulator")
-- Accessibility permission (required for AXObserver, AXInspector)
-- Screen Recording permission (required for window name via CGWindowList)
-
-**No External Services:**
-- Zero cloud APIs
-- Zero third-party SDKs
-- Local-only operation; no network calls
+**Production:**
+- macOS menu-bar app (not distributed via App Store based on code signing setup)
+- Runs alongside Xcode's iOS Simulator
+- Requires Accessibility permission (for window tracking, AX inspection, camera toggle)
+- Requires Screen Recording permission (for screen capture/recording)
+- Security-scoped bookmark for DerivedData directory access
 
 ---
 
-*Stack analysis: 2025-03-25*
+*Stack analysis: 2026-08-29*

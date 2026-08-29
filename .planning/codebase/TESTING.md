@@ -1,291 +1,191 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-25
+**Analysis Date:** 2026-08-29
 
 ## Test Framework
 
 **Runner:**
-- Swift Testing framework (iOS 18+, macOS 15+)
-- Xcode 16.0+ native support (no external test runner required)
-- Config: Auto-detected; no explicit config file present
+- Swift Testing (new framework) for unit tests — `import Testing`, `@Test` macro, `#expect(...)`
+- XCTest for UI tests — `import XCTest`, `XCTestCase` subclass
 
-**Assertion Library:**
-- Swift Testing `#expect()` macro (replaces XCTest assertions)
-- Example from `BoosterSimAppTests.swift` line 13: `#expect(...)`
+**Config:**
+- No test configuration files — uses Xcode default test schemes
+- Unit test target: `BoosterSimAppTests`
+- UI test target: `BoosterSimAppUITests`
 
 **Run Commands:**
 ```bash
-# Run all tests (from Xcode project root)
-xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -configuration Debug test
+# Build + test (from terminal)
+xcodebuild test \
+  -project BoosterSimApp.xcodeproj \
+  -scheme BoosterSimApp \
+  -destination 'platform=macOS' \
+  -only-testing:BoosterSimAppTests
 
-# Run tests in Xcode (Cmd+U)
-# Opens Test Navigator (Cmd+6) to run/debug specific tests
-
-# Watch mode (via Xcode)
-# Not automated; manual re-run via Cmd+U
+# UI tests (as run in CI)
+xcodebuild test \
+  -project BoosterSimApp.xcodeproj \
+  -scheme BoosterSimApp \
+  -destination 'platform=macOS' \
+  -only-testing:BoosterSimAppUITests/ScreenshotTests
 ```
 
 ## Test File Organization
 
 **Location:**
-- `BoosterSimAppTests/` — Unit tests for main app
-- `BoosterSimAppUITests/` — UI tests (present but minimal)
-- Tests are **separate from source** (not co-located)
-- Target: `BoosterSimAppTests` (created by Xcode template)
+- Unit tests: `BoosterSimAppTests/` (Xcode target, sibling to `BoosterSimApp/`)
+- UI tests: `BoosterSimAppUITests/` (separate Xcode target)
+- CLI tests: none — `booster-sim-cli/` has no test target
 
 **Naming:**
-- Test file: `[Module]Tests.swift`
-- Example: `BoosterSimAppTests.swift`
-- Struct pattern: `struct [Feature]Tests` or `struct BoosterSimAppTests`
+- `[TypeName]Tests.swift` for unit tests: `CertificateServiceTests.swift`
+- `[Feature]Tests.swift` for UI tests: `ScreenshotTests.swift`
+- Xcode-generated boilerplate: `BoosterSimAppTests.swift`, `BoosterSimAppUITests.swift`, `BoosterSimAppUITestsLaunchTests.swift`
 
 **Structure:**
 ```
 BoosterSimAppTests/
-├── BoosterSimAppTests.swift        # Main test suite
-├── BoosterSimAppUITests/
-│   ├── BoosterSimAppUITests.swift  # UI test cases
-│   └── BoosterSimAppUITestsLaunchTests.swift  # Launch tests (Xcode template)
+├── BoosterSimAppTests.swift            # Xcode boilerplate (empty @Test)
+└── CertificateServiceTests.swift      # Only meaningful unit test
+
+BoosterSimAppUITests/
+├── BoosterSimAppUITests.swift         # Xcode boilerplate (empty test)
+├── BoosterSimAppUITestsLaunchTests.swift  # Xcode boilerplate (launch screenshot)
+└── ScreenshotTests.swift              # CI visual regression screenshots
 ```
 
 ## Test Structure
 
-**Suite Organization (Swift Testing):**
+**Unit test pattern (Swift Testing):**
 ```swift
 import Testing
 @testable import BoosterSimApp
 
-struct BoosterSimAppTests {
-
-    @Test func example() async throws {
-        // Test implementation
+struct CertificateServiceTests {
+    @Test func certificateOperationAllowsExpectedTransitions() {
+        #expect(CertificateOperation.idle.canTransition(to: .generating))
+        #expect(!CertificateOperation.installing.canTransition(to: .generating))
     }
 }
 ```
 
-**Key characteristics:**
-- Tests are `@Test` decorated async functions (no `func test*()` naming required)
-- Can be `async throws` for async operations and error handling
-- No setup/teardown methods observed yet (project is MVP with minimal tests)
-- Each test is independent
-
-**Patterns observed:**
-- **No setup pattern yet** — project has no configured test fixtures
-- **No teardown pattern yet** — no resource cleanup tests
-- **Placeholder test structure** — current test is a template placeholder (line 13):
+**UI test pattern (XCTest):**
 ```swift
-@Test func example() async throws {
-    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+import XCTest
+
+final class ScreenshotTests: XCTestCase {
+    var app: XCUIApplication!
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+    }
+
+    @MainActor
+    func testLaunchScreen() throws {
+        app.launch()
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "01-launch"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
 }
 ```
 
+**Patterns:**
+- **Setup:** `setUpWithError()` for XCTest; no setup needed for Swift Testing structs
+- **Teardown:** Not used — no `tearDownWithError()` implementations with cleanup logic
+- **Assertions:** `#expect(...)` in Swift Testing; `XCTAssertTrue`/`XCTAssertEqual` in XCTest
+
 ## Mocking
 
-**Framework:**
-- None configured
-- No mock library imports observed in test files
+**Framework:** None — no mocking library is used or configured
 
 **Patterns:**
-- Not yet implemented in this project
-- Would require dependency injection at service level (which exists: see `SideWindowController.init()` constructor injection)
+- No mocks, stubs, or fakes exist in the codebase
+- `SimCtlService` is concrete and spawns real `xcrun simctl` processes — not mockable without protocol extraction
+- `CertificateServiceTests` tests only pure model logic (enum transitions, computed properties) that requires no mocking
 
-**What to Mock (future pattern):**
-- Services with external dependencies: `PermissionManager`, `WindowEnumerator`, `SimCtlService`
-- Network/file I/O: `BuildStatsService` file reads
-- System APIs: `CGWindowListCopyWindowInfo`, `AXObserver` callbacks
+**What to Mock (when adding tests):**
+- `SimCtlService` — extract a protocol to mock simctl process spawning
+- `SimulatorWindowTracker` — inject mock window enumeration for view tests
+- `CertificateStore` — already initialized with default `UserDefaults = .standard` but accepts injection: `init(simCtl:, defaults:)`
 
 **What NOT to Mock:**
-- Model types (`SimulatorWindow`, `AppSettings`, `BuildRecord`) — use real instances
-- UI components (SwiftUI views) — defer to UI testing framework
-- Pure utility functions (`PositionCalculator`, `DesignTokens`) — test directly
+- Pure value types (`SimulatorWindow`, `BuildRecord`, `AXNode`, `CertificateMetadata`) — test directly
+- Enum transition logic (`CertificateOperation.canTransition(to:)`) — already tested without mocks
+- Design token enums (`Spacing`, `CornerRadius`) — constant values, no behavior to mock
 
 ## Fixtures and Factories
 
 **Test Data:**
-- Not yet defined in project
-- Would follow `SimulatorWindow` structure if added:
-```swift
-// Proposed (not yet implemented):
-let testSimulator = SimulatorWindow(
-    id: 100,
-    pid: 1234,
-    deviceName: "iPhone 16 Pro",
-    frame: CGRect(x: 100, y: 100, width: 393, height: 852),
-    isOnScreen: true,
-    isMinimized: false,
-    deviceType: .iOS,
-    udid: "ABCD1234-5678-90EF-GHIJ-KLMNOPQRSTUV"
-)
-```
+- No shared test fixtures or factory methods exist
+- Test data is constructed inline within each test:
+  ```swift
+  let expiry = Date(timeIntervalSince1970: 1_234_567)
+  let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
+  ```
 
 **Location:**
-- Would belong in `BoosterSimAppTests/` directory
-- Proposed file: `TestFixtures.swift` or `MockData.swift`
+- No fixture files or test resource directories
 
 ## Coverage
 
-**Requirements:**
-- No coverage targets configured
-- No code coverage reporting set up
-- MVP phase — focus on happy path testing
+**Requirements:** None enforced
 
-**View Coverage (future):**
-```bash
-# Coverage not yet available
-# Future: xcodebuild test with -resultBundlePath and .xccoverage report
-```
+**View Coverage:**
+- No coverage tool configured
+- CI does not measure or report coverage
+- `CLAUDE.md` explicitly states: "No tests, linting, or package manager configured"
 
 ## Test Types
 
 **Unit Tests:**
-- **Scope:** Single service or utility in isolation
-- **Approach:** Direct function calls + `#expect()` assertions
-- **Example target:** `PositionCalculator.panelFrame()` — pure function returning CGRect
-- **Example target:** `WindowEnumerator.enumerateSimulatorWindows()` — with mocked CGWindowList
+- Framework: Swift Testing (`@Test`, `#expect`)
+- Scope: Pure model logic only — enum state transitions and computed properties
+- 2 test functions in `CertificateServiceTests.swift` covering `CertificateOperation` transitions and `CertificateStatus` metadata extraction
+- All 15+ services, all views, and all utilities have zero unit test coverage
 
 **Integration Tests:**
-- **Scope:** Multi-service interaction (tracker + window controller + animation)
-- **Approach:** Combine observables, test state transitions
-- **Example target:** SimulatorWindowTracker + SideWindowController positioning
-  - Inject tracker into controller
-  - Publish simulator change
-  - Assert position updates via spring animator
-- **Example target:** AppDelegate + all services
-  - Test full app lifecycle on launch
-  - Assert services start/stop correctly
+- Not used — no integration test target exists
 
 **E2E Tests:**
-- **Framework:** `BoosterSimAppUITests` (XCTest UI automation)
-- **Current state:** Template/placeholder only (`BoosterSimAppUITestsLaunchTests.swift`)
-- **Would test:**
-  - App launches and menu bar icon appears
-  - Side panel shows when Simulator opens
-  - Position tracks correctly as Simulator moves
-  - Preferences changes persist
+- Framework: XCTest UI testing (`XCUIApplication`, `XCTAttachment`)
+- Purpose: CI visual regression screenshots, not behavioral verification
+- `ScreenshotTests.swift` captures 5 screenshots: launch, default tab, each of 4 tabs, window resize, full screen
+- Tests use `Thread.sleep(forTimeInterval: 0.5)` for tab transitions (fragile)
+- Tests use `waitForExistence(timeout: 5)` for window appearance
+- Screenshot results uploaded as CI artifacts with 14-day retention
+- Tests pass regardless of content (`|| true` on xcodebuild in CI) — screenshot capture is the goal, not assertions
 
-## Common Patterns (Expected)
+## Common Patterns
 
 **Async Testing:**
-```swift
-@Test func testSimulatorTracking() async throws {
-    let tracker = SimulatorWindowTracker()
-    tracker.startTracking()
+- No async test patterns — project prohibits async/await
+- Swift Testing `@Test` functions are synchronous
+- XCTest UI tests use `@MainActor` annotation
 
-    // Wait for async detection
-    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+**Error Testing:**
+- No error-path tests exist
+- `SimCtlError` and `CertificateError` enums are untested
+- Error state transitions in `CertificateOperation` are only partially covered (one `.error` case tested)
 
-    #expect(!tracker.simulators.isEmpty)
+## CI Integration
 
-    tracker.stopTracking()
-}
-```
+**Pipeline:** `.github/workflows/ci.yml`
 
-**Error Testing (Optional Handling):**
-```swift
-@Test func testPermissionCheckWithoutGrant() async throws {
-    let manager = PermissionManager()
-    manager.checkAccessibility()
+**Test execution in CI:**
+- Build job: Debug + Release matrix, no tests run
+- UI test job: runs `ScreenshotTests` only, with `|| true` (non-blocking)
+- Build benchmark job: measures build time on PRs, no tests
+- UI test screenshots extracted via `xcrun xcresulttool export` and uploaded as artifacts
 
-    // No throw expected; should return gracefully with false
-    #expect(manager.accessibilityGranted == false)
-}
-```
-
-**Service State Testing:**
-```swift
-@Test func testAppSettingsStorage() async throws {
-    let settings = AppSettings()
-    settings.position = .left
-
-    #expect(settings.position == .left)
-
-    // @AppStorage persists; would need UserDefaults reset between tests
-}
-```
-
-**Combine Observation Testing (Future):**
-```swift
-@Test func testTrackerPublishes() async throws {
-    let tracker = SimulatorWindowTracker()
-    var published: [SimulatorWindow]?
-
-    let cancellable = tracker.$simulators.sink { value in
-        published = value
-    }
-
-    tracker.scanAndUpdate()
-
-    #expect(published != nil)
-    cancellable.cancel()
-}
-```
-
-## Test Organization Guidance (For Future Implementation)
-
-**Directory structure to establish:**
-```
-BoosterSimAppTests/
-├── BoosterSimAppTests.swift              # Main test file (entry point)
-├── Fixtures/
-│   ├── TestFixtures.swift                # Shared test data (SimulatorWindow, AppSettings)
-│   └── MockServices.swift                # Mock services (WindowEnumerator, PermissionManager)
-├── Services/
-│   ├── SimulatorWindowTrackerTests.swift # SimulatorWindowTracker tests
-│   ├── PermissionManagerTests.swift      # PermissionManager tests
-│   ├── BuildStatsServiceTests.swift      # BuildStatsService tests
-│   └── WindowObserverTests.swift         # WindowObserver integration tests
-├── Utilities/
-│   ├── PositionCalculatorTests.swift     # PositionCalculator frame math tests
-│   └── SpringAnimatorTests.swift         # SpringAnimator physics tests
-└── Views/
-    └── (UI tests belong in BoosterSimAppUITests/)
-```
-
-## Current Test Status
-
-**Present Files:**
-- `BoosterSimAppTests/BoosterSimAppTests.swift` — Template with 1 placeholder test
-- `BoosterSimAppUITests/BoosterSimAppUITests.swift` — Empty UI test suite
-- `BoosterSimAppUITests/BoosterSimAppUITestsLaunchTests.swift` — Xcode auto-generated launch test
-
-**Test Coverage:**
-- **0% code coverage** — no meaningful tests yet
-- **All features untested** — unit, integration, and E2E coverage gaps
-
-**High-Priority Test Targets (MVP Phase):**
-1. **WindowEnumerator.enumerateSimulatorWindows()** — Core detection logic
-2. **SimulatorWindowTracker state publishing** — Observable updates when simulator list changes
-3. **PositionCalculator.panelFrame()** — Frame math for all positions (left/right/bottom/dynamic)
-4. **SideWindowController positioning** — Integration: tracker → position → panel frame update
-5. **SpringAnimator physics** — Ensure spring easing smooth and stops at rest
-6. **PermissionManager state checks** — Accessibility, Screen Recording, Xcode, DerivedData
-
-**Secondary Targets (Phase 2):**
-- AppSettings persistence + Combine updates
-- BuildStatsService plist parsing
-- WindowObserver AXObserver callback delivery
-- Onboarding window lifecycle
-- Preferences scene state sync
-
-## Notes for Test Implementation
-
-**No test framework installed yet:**
-- Swift Testing is built-in (Xcode 16+)
-- No external packages (Combine, AppKit are system frameworks)
-
-**Key considerations for future tests:**
-- **Main thread enforcement:** Services marked @MainActor require test code on main thread
-  - Use `@MainActor` on test functions that create @MainActor services
-  - Or dispatch to main: `DispatchQueue.main.async { ... }`
-- **UserDefaults isolation:** Tests using AppSettings (@AppStorage) need to reset UserDefaults between tests
-  - Consider adding test helper: `UserDefaults.standard.removePersistentDomain(forName:)`
-- **Timer/polling cleanup:** Services with `Timer` properties (tracker, services) must call `stopMonitoring()` in cleanup
-  - Example: `tracker.stopTracking()` in test teardown (via deinit if needed)
-- **Weak self capture testing:** Verify reference cycles don't prevent deallocation
-  - Use `weak` references in test assertions to ensure cleanup
-- **Display link testing:** `SpringAnimator` uses `CADisplayLink` — may need mocking for deterministic tests
-- **System permissions:** Tests cannot check actual system grants (Accessibility, Screen Recording)
-  - Assume false by default; mock permission checks for tests
+**What CI does NOT test:**
+- Unit tests are not run in CI
+- No test failure blocks the merge
 
 ---
 
-*Testing analysis: 2026-03-25*
+*Testing analysis: 2026-08-29*

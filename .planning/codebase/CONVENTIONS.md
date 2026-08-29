@@ -1,307 +1,192 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-25
+**Analysis Date:** 2026-08-29
 
 ## Naming Patterns
 
 **Files:**
-- PascalCase with `.swift` extension (Swift convention)
-- Example: `AppDelegate.swift`, `SimulatorWindowTracker.swift`, `AccentButton.swift`
-- Descriptive names that indicate purpose/class name immediately
-- No abbreviations in most filenames (full names preferred: `PermissionManager` not `PermMgr`)
-
-**Functions:**
-- camelCase, action-based for public methods
-- Example: `startTracking()`, `checkAccessibility()`, `attachToSimulator()`
-- Private methods use camelCase with leading underscore style avoided; marked `private`
-- Example in `WindowObserver`: `registerWindowNotifications()`, `readWindowFrame()`, `handleNotification()`
-
-**Variables:**
-- camelCase throughout
-- Clear, semantic names: `activeSimulator`, `currentSimulator`, `isVisible`, `isCollapsed`
-- Boolean properties prefixed with `is` or use past tense: `isOnScreen`, `isMinimized`, `isAccessibilityGranted`
-- Published properties prefix with `@Published`: `@Published var simulators: [SimulatorWindow]`
-- Storage properties prefixed with underscore in some cases: `@Published private(set) var simulators`
+- PascalCase `.swift` matching primary type: `SideWindowController.swift`, `CaptureService.swift`, `FeatureRowView.swift`
+- One primary type per file; companion types (enums, helpers) may coexist
+- File header comment: `// FileName.swift — single-line purpose description`
 
 **Types:**
-- PascalCase for all types (classes, structs, enums)
-- Example: `SimulatorWindowTracker`, `AppSettings`, `PermissionManager`
-- Enum cases use camelCase
-- Example in `SimulatorDeviceType`: `case iOS, watchOS, tvOS, visionOS`
-- Example in `SideWindowPosition`: `case left, right, bottom, dynamic`
+- `final class` for all services and controllers (never open inheritance)
+- `struct` for value types: models (`SimulatorWindow`, `BuildRecord`, `AXNode`), enums (`SideTab`, `SimulatorDeviceType`)
+- Enums use `camelCase` cases with `rawValue` where needed for persistence/serialization
+- `enum` as namespace for constants: `Spacing`, `CornerRadius`, `SideWindowMetrics`, `OnboardingMetrics`, `PreferencesMetrics`
+
+**Functions:**
+- `camelCase` for all functions and methods
+- Action methods: verb phrases — `startTracking()`, `loadCurrentState(udid:)`, `toggleCollapsed()`
+- Boolean properties: `is`/`has` prefix — `isLoading`, `isCollapsed`, `hasChildren`, `isOnScreen`
+- Computed properties for derived display values — `formattedDuration`, `displayName`, `currentSizeName`
+
+**Variables:**
+- `camelCase` throughout
+- `private(set)` on `@Published` state that should not be mutated externally: `@Published private(set) var isVisible = false`
+- Combine cancellation sets named `cancellables`
+- Timer references: `pollTimer`
+
+**Types:**
+- Swift-native types preferred — no third-party DTO libraries
+- `LocalizedError` conformance on error enums for user-facing descriptions: `SimCtlError`, `CertificateError`
 
 ## Code Style
 
 **Formatting:**
-- 4-space indentation (Swift standard)
-- No linting configuration detected (`.swiftformat`, `.swiftlint` not present)
-- Blank line between logical sections within methods
-- Method parameters on separate lines when multiple
-- Example in `SideWindowController.init()` — 9 parameters across lines
+- No external formatter configured (no `.swiftformat`, no SwiftLint)
+- Xcode default indentation (4 spaces)
+- Single newline between `MARK` sections, no blank lines between consecutive `MARK` blocks
 
-**Concurrency Model (Swift 6 Strict):**
-- **@MainActor required on UI/AppKit classes:**
-  - `AppDelegate` — `@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject`
-  - `SideWindowController` — implicitly main-thread only (manages NSPanel)
-  - `SpringAnimator` — `@MainActor final class SpringAnimator` (CADisplayLink requires main thread)
-  - `BuildStatsService` — `@MainActor final class BuildStatsService: ObservableObject`
-- **Non-MainActor classes for background work:**
-  - `SimulatorWindowTracker` — not @MainActor; performs background process (`xcrun simctl list`)
-  - `PermissionManager` — not @MainActor; runs checks on main thread but inits without constraint
-  - `WindowObserver` — not @MainActor; handles AXObserver callbacks
-- **No async/await used** — project uses Combine `@Published` + Timer polling instead
-- DispatchQueue.main.async for main-thread hops: See `SimulatorWindowTracker.refreshDeviceTypeCache()` line 56–92
-- Weak self capture pattern: `[weak self]` in all closures to prevent retain cycles
-- Example: `tracker.$activeSimulator.receive(on: DispatchQueue.main).sink { [weak self] sim in`
+**Linting:**
+- No linter configured
+- `CLAUDE.md` states: "No tests, linting, or package manager configured"
 
-**Combine Patterns:**
-- Services inherit `ObservableObject` and use `@Published` for state
-- Example: `SimulatorWindowTracker: ObservableObject` with `@Published private(set) var simulators`
-- Read-only published state uses `private(set)`: `@Published private(set) var simulators: [SimulatorWindow] = []`
-- Subscribers use `.sink()` with weak self: Stored in `Set<AnyCancellable>` property
-- Example in `AppDelegate.applicationDidFinishLaunching()` lines 53–64 and 67–73
-- Timer polling: `Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in ... }`
-
-**AppStorage for Persistence:**
-- `@AppStorage` used for persistent user settings in `AppSettings` class
-- Example: `@AppStorage("sideWindowPosition") var position: SideWindowPosition = .dynamic`
-- Enums backing AppStorage must conform to `RawRepresentable` (typically `.String` case iterable enum)
-- Example in `AppSettings`: `enum SideWindowPosition: String, CaseIterable`
-
-## MARK Sections
-
-**Required Structure (observed pattern):**
-All files follow this ordering:
-
-1. **// Comment line** — One-line file purpose at top
-2. **Imports** — All imports grouped (no blank lines between related imports)
-3. **MARK: - [Top-level Model/Constants]** — Enums, typealiases, private structs (if any)
-4. **MARK: - [Class/Struct Name]** — Class/struct definition opens
-5. **MARK: - Published State** — @Published properties (first in ObservableObject classes)
-6. **MARK: - Private** — Private properties and stored state
-7. **MARK: - Init** — Initializer(s)
-8. **MARK: - Public API** — Public methods (feature-grouped if large class)
-9. **MARK: - Public Methods (feature name)** — e.g., "MARK: - Accessibility", "MARK: - Tracker Integration"
-10. **MARK: - Private [Feature Name]** — Private helper methods for a feature
-11. **MARK: - Lifecycle** or **MARK: - NSApplicationDelegate** — Protocol methods
-12. **Extensions** — Separate extension blocks at EOF with `extension ClassName { ... }`
-
-**Example from AppDelegate.swift:**
-```
-MARK: - Core Services
-MARK: - Feature Services
-MARK: - Windows
-MARK: - Private
-MARK: - NSApplicationDelegate
-MARK: - Onboarding Window
-```
-
-**Example from SimulatorWindowTracker.swift:**
-```
-MARK: - Device Info Cache Entry
-MARK: - Tracker
-MARK: - Published State
-MARK: - Private
-MARK: - Public API
-MARK: - Device Classification
-MARK: - Scanning
-MARK: - Polling Fallback
-MARK: - Workspace Notifications
-```
+**Target file size:**
+- 200 LOC guideline from `docs/code-standards.md`
+- Several files exceed this: `CaptureService.swift` (312 LOC), `TrafficDetailView.swift` (295 LOC), `EnvironmentOverrideService.swift` (279 LOC)
 
 ## Import Organization
 
-**Order (observed):**
-1. `import AppKit` / `import SwiftUI` (platform frameworks first)
-2. `import Combine` (Apple frameworks in alphabetical order)
-3. `import CoreGraphics` / `import ApplicationServices` / `import UniformTypeIdentifiers` / etc.
-4. `import ServiceManagement` (last if present)
+**Order:**
+1. Apple framework imports (`Foundation`, `AppKit`, `SwiftUI`, `Combine`, `CoreGraphics`, `ApplicationServices`, etc.)
+2. No third-party imports — project uses zero external dependencies in the main app target
 
-**No aliases or conditional imports observed**
+**Observations from codebase:**
+- Imports are alphabetical within the Apple framework group
+- No unused imports detected in reviewed files
+- CLI target (`booster-sim-cli/`) imports `ArgumentParser` (only external dependency)
 
 **Path Aliases:**
-- Not used in this project (no package manager, no Xcode path mappings configured)
-- All imports are standard Apple frameworks
+- None — no module aliases or custom import paths
 
 ## Error Handling
 
-**Pattern: Guard-let with early return**
-- Used throughout for optional unwrapping
-- Example in `WindowEnumerator.parseSimulatorWindow()` lines 23–54:
-```swift
-guard let ownerName = info[kCGWindowOwnerName as String] as? String,
-      ownerName == "Simulator" else { return nil }
-```
+**Patterns:**
+- Custom `enum` errors conforming to `LocalizedError` with `errorDescription` computed property
+- Example from `BoosterSimApp/Services/SimCtlService.swift`:
+  ```swift
+  enum SimCtlError: Error, LocalizedError {
+      case commandFailed(String)
+      case xcrunNotFound
+      case timeout
+      var errorDescription: String? { ... }
+  }
+  ```
+- `do/catch` for throwing APIs — `try!` and `as!` prohibited per `docs/code-standards.md`
+- Permission failures are non-fatal: log and continue with degraded state
+- Combine `receiveCompletion` handlers typically discard errors with `{ _ in }` for fire-and-forget simctl calls
+- `CertificateService` uses a state machine (`CertificateOperation`) with explicit `canTransition(to:)` guard to prevent invalid operations
 
-**Pattern: Silent failure (no throws)**
-- Most parsing/enumeration methods return optional types instead of throwing
-- `WindowEnumerator.parseSimulatorWindow()` returns `SimulatorWindow?` (nil on parse failure)
-- `WindowObserver.readWindowFrame()` returns `CGRect?` (nil if AX read fails)
-- No custom Error types defined; no try/catch blocks observed
+## Logging
 
-**Pattern: Logged errors (print + continue)**
-- Low-level failures logged to console, execution continues
-- Example in `WindowObserver.startObserving()` lines 51–52:
-```swift
-guard result == .success, let obs = observer else {
-    print("[WindowObserver] Failed to create AXObserver for PID \(pid): \(result.rawValue)")
-    return
-}
-```
-- Example in `AppSettings.setLaunchAtLogin()` line 49:
-```swift
-} catch {
-    print("[AppSettings] Launch at login error: \(error)")
-}
-```
+**Framework:** Dual approach — `os.Logger` for structured logging, `print()` for debug output
 
-**Pattern: Assertions for invariants**
-- Not heavily used; code relies on early returns and guards instead
-- No assertionFailure() or precondition() calls observed in analyzed files
+**Structured logging:**
+- `AppLogger` enum in `BoosterSimApp/Utilities/AppLogger.swift` — centralized `os.Logger` instances per concern
+- Subsystem: `com.nextlabs.BoosterSimApp`
+- Categories: `WindowTracking`, `Permissions`, `Settings`, `Certificates`
+- Usage: `AppLogger.settings.error("Launch at login error: \(error, privacy: .public)")`
 
-**Safe memory management (AX/C APIs):**
-- `Unmanaged.passRetained()` + `.release()` pattern used for AX callbacks
-- Example in `WindowObserver` lines 57 and 82:
-```swift
-selfPtr = Unmanaged.passRetained(self).toOpaque()
-...
-Unmanaged<WindowObserver>.fromOpaque(ptr).release()
-```
-- Careful frame conversion between Quartz (Y=top) and AppKit (Y=bottom) coordinates documented
-- Example: `WindowEnumerator.parseSimulatorWindow()` line 44 computes `appKitY = primaryHeight - quartzY - height`
+**Debug print logging:**
+- `print("[ClassName] message")` pattern used throughout services
+- Example: `print("[SimCtl] xcrun simctl \(args.joined(separator: " "))")`
+- Example: `print("[EnvOverride] setAppearance: \(style.rawValue) (udid: \(udid))")`
+- Prefix format: `[ShortClassName]` or `[ServiceName]`
+
+**Patterns:**
+- Structured `AppLogger` used for errors and lifecycle events
+- `print()` used for command tracing and debug state changes
+- Never log sensitive data (UDIDs, file paths, user tokens) per code standards
 
 ## Comments
 
 **When to Comment:**
-- Complex coordinate system conversions
-  - Example in `WindowEnumerator` line 34: "// kCGWindowBounds is a CFDictionary in Quartz space..."
-  - Example in `WindowObserver` line 136: "// Flip Y: Quartz counts from top..."
-- Low-level system API usage (AX, CGWindow, etc.)
-  - Example in `WindowObserver` line 18: "// Lifecycle notifications — registered on the app element"
-- Non-obvious design decisions
-  - Example in `SpringAnimator` line 82: "// Spring force: F = -k * displacement - c * velocity"
-- Temporal state caching explanations
-  - Example in `SimulatorWindowTracker` line 29: "// Device info cache: device name → (type, UDID)"
+- File header: single-line purpose description on line 1 — `// SideWindowController.swift — Manages SideWindowPanel lifecycle, position sync, and collapse state`
+- `MARK` sections used consistently for code organization
+- Inline comments for non-obvious decisions: `// NOTE: envOverrideService.loadCurrentState is called from EnvironmentOverridesView (onAppear + onChange) — no need to duplicate here.`
+- Workarounds documented: `// Uses raw AX attribute string constants for macOS 26 SDK compatibility.`
 
-**When NOT to Comment:**
-- Straightforward property declarations
-- Self-explanatory method names (e.g., `startTracking()` doesn't need comment)
-- Loop logic (for-in, map, filter)
-
-**Header comments (file-level):**
-- Single-line purpose comment at top of every file
-- Example: `// BoosterSimAppApp.swift — @main SwiftUI App entry point`
-- Example: `// AppDelegate.swift — NSApplicationDelegate hosting all AppKit services`
-- Additional one-liner for key design note if needed
-- Example: `// WindowObserver.swift — Wraps AXObserver to get real-time window move/resize events`
-
-**No JSDoc/TSDoc observed** — Swift comments are minimal, focused on "why" not "what"
+**JSDoc/TSDoc:**
+- Not applicable (Swift)
+- `///` doc comments used sparingly on public API: `/// Runs xcrun simctl <args> on background queue; delivers result on main.`
+- `///` used on computed properties with return semantics: `/// Number of currently connected clients`
 
 ## Function Design
 
-**Size Guidelines:**
-- Observed functions under 30 lines (most under 20)
-- Example: `SideWindowController.updatePosition()` is 26 lines (calculation-heavy)
-- Example: `PermissionManager.checkAccessibility()` is 1 line
-- Larger methods (50+ lines) split using MARK sections for logical blocks
-- Example: `SimulatorWindowTracker.refreshDeviceTypeCache()` is 38 lines but clearly separated: setup → process → cache update → main thread sync
+**Size:**
+- Functions kept focused — most under 30 lines
+- Longer functions are sequential Combine chains (e.g., `setBoldText` in `EnvironmentOverrideService.swift` uses `flatMap` chains)
 
-**Parameter Guidelines:**
-- Max 5 parameters before wrapping to multiple lines
-- Example: `SideWindowController.init()` has 7 parameters, each on own line (lines 32–40)
-- Callback/closure parameters placed last
-- Example: `WindowObserver.startObserving(callback: @escaping (String, AXUIElement) -> Void)`
+**Parameters:**
+- `udid: String` is the most common parameter — passed to nearly all simctl-facing service methods
+- Callback closures used for event handling: `onHeightChanged: (() -> Void)?`, `onFrameUpdate: ((CGRect) -> Void)?`
+- Label-based navigation uses `@Binding var selectedTab: SideTab`
 
 **Return Values:**
-- Optionals used for "may not exist" results: `SimulatorWindow?`, `CGRect?`
-- Published properties for state: `@Published var activeSimulator: SimulatorWindow?`
-- Void implied for actions: `func toggleCollapsed()`
-- Array returns with empty default: `enumerateSimulatorWindows() -> [SimulatorWindow]` returns `[]` on failure
+- Combine publishers: `AnyPublisher<String, SimCtlError>` from `SimCtlService.run()`
+- `Void` convenience: `AnyPublisher<Void, SimCtlError>` from `SimCtlService.runVoid()`
+- Fire-and-forget: methods that `sink` into `&cancellables` and return nothing
+- `@Published private(set)` for read-only external state
 
 ## Module Design
 
 **Exports:**
-- All public types are top-level in their files (no nested structs in separate files)
-- Internal/private types nested only when single-use
-- Example: `DeviceInfo` struct nested in `SimulatorWindowTracker` file (private)
-- Example: `PanelSide` enum nested in `SideWindowController` (private, computation helper)
+- No explicit export lists — standard Swift module visibility
+- `@MainActor` isolation on all service classes restricts cross-actor access
+- `nonisolated fileprivate static` used for background-queue-callable helpers (see `AXInspectorService`)
 
 **Barrel Files:**
-- Not used; no `__init__.swift` or re-export pattern observed
-- Each service/view imported directly: `import BoosterSimApp` then `SimulatorWindowTracker()`
+- None — no index files or re-export modules
+- Each file is imported individually through the Xcode target membership
 
-**Service Injection:**
-- Constructor injection for dependencies
-- Example: `SideWindowController.init(settings:, tracker:, statusBarService:, ...)`
-- Services stored as properties, not singletons
-- Example: `AppDelegate` creates all services and passes them down
+## MARK Section Convention
 
-**EnvironmentObject pattern for SwiftUI:**
-- Services injected via `.environmentObject()` in view hierarchy
-- Example in `SideWindowController.embedSwiftUIContent()` lines 163–167:
+Every file follows this `MARK` structure (from `docs/code-standards.md`):
+
 ```swift
-.environmentObject(statusBarService)
-.environmentObject(envOverrideService)
-```
-- Views read via `@EnvironmentObject var serviceName: ServiceType`
-
-## DesignTokens Usage (Critical)
-
-**All layout values come from `Utilities/DesignTokens.swift`:**
-- **Never hardcode** spacing, corner radius, or dimensions
-- Use enum static properties only
-
-**Spacing (4pt grid):**
-```swift
-Spacing.xxs    // 2
-Spacing.xs     // 4
-Spacing.sm     // 8
-Spacing.md     // 12
-Spacing.lg     // 16
-Spacing.xl     // 20
-Spacing.xxl    // 24
+// MARK: - Properties
+// MARK: - Lifecycle (init, deinit)
+// MARK: - Public Methods
+// MARK: - Private Methods
+// MARK: - Extensions
 ```
 
-**Corner Radius:**
-```swift
-CornerRadius.small      // 4
-CornerRadius.medium     // 6
-CornerRadius.large      // 8
-CornerRadius.panel      // 10
-CornerRadius.onboarding // 12
-```
+Additional observed sections:
+- `// MARK: - Published State` — at top of class, grouping all `@Published` properties
+- `// MARK: - Constants` — static constants within a class
+- `// MARK: - Types` — nested enums/structs (e.g., `CaptureService.ExportFormat`)
+- `// MARK: - Helpers` — private utility methods
 
-**Dimensions:**
-```swift
-SideWindowMetrics.expandedWidth  // 260
-SideWindowMetrics.collapsedWidth // 28
-SideWindowMetrics.minHeight      // 400
-SideWindowMetrics.rowHeight      // 32
+## Concurrency Patterns
 
-OnboardingMetrics.width  // 480
-OnboardingMetrics.height // 520
+- **No async/await** — project explicitly prohibits it per `docs/code-standards.md`
+- `@MainActor` on all service/controller classes that touch UI or own AppKit objects
+- Combine `@Published` + `Timer` for all asynchronous patterns
+- `DispatchQueue.global(qos: .userInitiated)` for CPU-bound work (simctl process spawning, plist parsing)
+- Results dispatched back to main via `DispatchQueue.main.async` or Combine's `.receive(on: DispatchQueue.main)`
+- `[weak self]` in all Combine sinks and timer callbacks
+- `final class` enforced — no inheritance-based concurrency boundaries
 
-PreferencesMetrics.width  // 500
-PreferencesMetrics.height // 380
-```
+## View Patterns
 
-**Color:**
-- Accent color: `Color.accentColor` (maps to asset `AccentColor`, defined as #E8720C light / #F59E0B dark)
-- Never hardcode hex colors
-- Text colors use semantic names: `.foregroundStyle(.primary)`, `.foregroundStyle(.secondary)`, `.foregroundStyle(.tertiary)`
-- Example in `AccentButton.swift` line 14: `.foregroundStyle(.white)` (only for white text on colored bg)
-- Example in `SideWindowView.swift` line 156: `.foregroundStyle(.secondary)` (for secondary text)
+- SwiftUI views are `struct` conforming to `View`
+- State ownership: `@EnvironmentObject` for shared services, `@ObservedObject` for passed-in dependencies, `@State` for local view state only
+- `@ViewBuilder` used for computed properties returning conditional view content (`tabContent` in `SideWindowView`)
+- `Group` used for conditional top-level view switching with transitions
+- `withAnimation` wraps all state mutations that drive visual changes
+- Reduce Motion respected everywhere: ternary `reduceMotion ? .linear(duration: 0.1) : .spring(response: ..., dampingFraction: ...)`
+- `#Preview` macro for SwiftUI previews — constructs full dependency graph inline
+- `.buttonStyle(.plain)` on interactive containers using `.contentShape(Rectangle())`
+- `Spacer()` for flexible layout, `Frame` with `DesignTokens` constants for fixed dimensions
 
-**Typography:**
-- SF Pro + SF Symbols exclusively
-- Font sizes via `.font()` modifier: `.font(.body)`, `.font(.subheadline)`, `.font(.caption)`
-- FontWeights via `.fontWeight()`: `.fontWeight(.medium)`, `.fontWeight(.semibold)`
-- Example in `AccentButton.swift` lines 12–13:
-```swift
-.font(.body)
-.fontWeight(.medium)
-```
+## Dependency Injection
+
+- **Constructor injection:** Services receive dependencies via `init` parameters
+- **AppDelegate** is the composition root — creates all services and wires them into `SideWindowController`
+- **EnvironmentObject injection:** Services passed down through SwiftUI environment via `.environmentObject()`
+- **No DI framework** — manual wiring in `AppDelegate.init` and `SideWindowController.embedSwiftUIContent()`
 
 ---
 
-*Convention analysis: 2026-03-25*
+*Convention analysis: 2026-08-29*

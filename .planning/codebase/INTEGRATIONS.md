@@ -1,136 +1,118 @@
 # External Integrations
 
-**Analysis Date:** 2025-03-25
+**Analysis Date:** 2026-08-29
 
-## System APIs & Local Services
+## APIs & External Services
 
-**macOS Window System:**
-- Quartz Window Services (`CGWindowListCopyWindowInfo`)
-  - What it's used for: Polling open windows every 0.5s to detect iOS Simulator instances
-  - Client: `BoosterSimApp/Services/WindowEnumerator.swift`
-  - Permissions: Screen Recording (macOS Ventura+) for window names
-  - Data: Window ID, PID, frame (Y-flip from Quartz to AppKit space), owner name
+**iOS Simulator Control (xcrun simctl):**
+- All Simulator control is routed through `xcrun simctl` CLI commands
+- macOS host service: `BoosterSimApp/Services/SimCtlService.swift` — Combine-based async wrapper spawning `Process` for each command
+- CLI tool service: `booster-sim-cli/Sources/boostersim/Services/SimCtlService.swift` — Synchronous `Process` wrapper
+- Commands used: `simctl io tap/swipe/type/screenshot`, `simctl ui appearance/increase_contrast/content_size`, `simctl status_bar`, `simctl spawn`, `simctl list devices --json`, `simctl openurl`, `simctl keychain reset`
+- Authentication: None (local tool)
 
-**macOS Accessibility API:**
-- Apple Accessibility (`AXObserver`, `AXUIElement`)
-  - What it's used for: Real-time window move/resize events; menu automation for camera routing; UI tree inspection
-  - Locations:
-    - `BoosterSimApp/Services/WindowObserver.swift` - Per-PID AXObserver for live Simulator window tracking
-    - `BoosterSimApp/Services/AXInspectorService.swift` - Accessibility tree walker for UI inspection
-    - `BoosterSimApp/Services/CameraService.swift` - Menu item navigation to toggle camera routing
-  - Permissions: Accessibility (System Preferences > Security & Privacy > Accessibility)
-  - Auth: `AXIsProcessTrusted()` check; prompt via `AXIsProcessTrustedWithOptions()`
-
-**iOS Simulator Control:**
-- Xcode toolchain (`xcrun simctl`)
-  - What it's used for: List Simulator devices, get device types/UDIDs; toggle environment overrides; read status bar features
-  - Client: `BoosterSimApp/Services/SimCtlService.swift` (wrapper with Combine publishers)
-  - Used by:
-    - `BoosterSimApp/Services/SimulatorWindowTracker.swift` - Device classification (iPhone, iPad, Watch, TV, Vision)
-    - `BoosterSimApp/Services/StatusBarService.swift` - Toggle time/battery override
-    - `BoosterSimApp/Services/EnvironmentOverrideService.swift` - Set locale, appearance, connectivity
-  - Execution: `Process` spawning `/usr/bin/xcrun` with args; output parsed as JSON or plain text
-  - Timeout: 2.0s for AX element operations
-
-**Xcode Installation Detection:**
-- File system check
-  - What it's used for: Detecting active Xcode path; accessing DerivedData for build history
-  - Client: `BoosterSimApp/Services/XcodeDetector.swift` (reads `xcode-select -p` output)
-  - Permission check: `PermissionManager.checkXcode()`
-
-**Xcode DerivedData:**
-- Local file system (plist parsing)
-  - What it's used for: Build history with duration, warnings, errors
-  - Path: `~/Library/Developer/Xcode/DerivedData/*/Logs/Build/LogStoreManifest.plist`
-  - Client: `BoosterSimApp/Services/BuildStatsService.swift`
-  - Poll interval: 5.0s
-  - Permissions: Security-scoped bookmark storage in UserDefaults (key: `derivedDataBookmark`)
+**OpenSSL (system):**
+- CA certificate generation via `/usr/bin/openssl` CLI
+- Implementation: `BoosterSimApp/Services/CertificateStore.swift`
+- Command: `openssl req -x509 -newkey rsa:2048 -keyout ... -out ... -days 90 -nodes -subj /CN=BoosterSim CA/O=BoosterSim`
+- Authentication: None (local tool)
 
 ## Data Storage
 
-**Local Storage Only:**
-- **UserDefaults** - App settings (side window position, launch-at-login toggle, Xcode path)
-  - Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`, `derivedDataBookmark`, `completedOnboarding`
-  - Location: `BoosterSimApp/Models/AppSettings.swift`
-  - Scope: `@AppStorage` backed by UserDefaults (sandboxed app domain)
+**Databases:**
+- None. No database dependencies.
 
-**No Databases:**
-- No SQL, SQLite, Core Data, or Realm
-- No remote sync or cloud storage
+**File Storage:**
+- **Local filesystem only** — All persistent data stored locally:
+  - `~/Library/Application Support/BoosterSimApp/Certificates/` — CA key and certificate (`ca.key`, `ca.pem`) with 0o600 permissions, excluded from backup
+  - `UserDefaults` — Deep link history/favorites, design comparison presets, onboarding completion, certificate install status
+  - `~/Library/Developer/Xcode/DerivedData/` — Read-only access for Xcode build stats monitoring
+
+**Caching:**
+- In-memory only:
+  - `SimulatorWindowTracker` — Device info cache (`deviceInfoCache: [String: DeviceInfo]`)
+  - `BuildStatsService` — Manifest mtime cache and record cache for 5-second polling
 
 ## Authentication & Identity
 
-**System-Level Only:**
-- No user authentication required
-- Runs as current macOS user
-- Permissions handled via macOS security prompts (Accessibility, Screen Recording)
+**Auth Provider:**
+- None. The app has no user authentication.
 
-**Launch at Login:**
-- Service: `ServiceManagement.SMAppService`
-- Implementation: `BoosterSimApp/Models/AppSettings.swift` lines 38-51
-- Registers/unregisters with system launch daemon
+**System Permissions (macOS):**
+- Accessibility (AXIsProcessTrusted) — Required for window tracking, AX inspection, camera toggle
+  - Requested via `AXIsProcessTrusted()` in `BoosterSimApp/Services/PermissionManager.swift`
+- Screen Recording (CGPreflightScreenCaptureAccess / CGRequestScreenCaptureAccess) — Required for screen capture
+  - Requested in `BoosterSimApp/Services/PermissionManager.swift`
+- DerivedData access — Security-scoped bookmark for `~/Library/Developer/Xcode/DerivedData/`
+  - Managed in `BoosterSimApp/Services/PermissionManager.swift`
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None implemented
-- Errors logged to console via `print()` statements
+- None. No third-party error tracking service.
 
 **Logs:**
-- Console output only (no persistent logging)
-- No error tracking service
+- `OSLog` via `BoosterSimApp/Utilities/AppLogger.swift`
+  - Subsystem: `com.nextlabs.BoosterSimApp`
+  - Categories: `WindowTracking`, `Permissions`, `Settings`, `Certificates`
+  - Filter in Console.app by subsystem
+- `print()` statements used extensively throughout services for debug logging
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Local macOS execution only
-- No deployment platform configured
+- Not deployed to any hosting platform. This is a local macOS application.
 
 **CI Pipeline:**
-- None configured
-- Xcode build phases only
+- GitHub Actions — `.github/workflows/ci.yml`
+  - Runs on `macos-26` runners
+  - 3 jobs: `build` (Debug + Release matrix), `ui-tests` (screenshot capture), `build-benchmark` (PR-only build time measurement)
+  - SPM package caching via `actions/cache@v4`
+  - Build artifacts: `actions/upload-artifact@v4` for xcresult bundles and screenshots
+  - Code signing disabled in CI (`CODE_SIGN_IDENTITY=""`)
+  - Uses `xcbeautify` for build output formatting
 
 ## Environment Configuration
 
-**Required Permissions (Runtime):**
-- `Accessibility` - For AXObserver and UI automation
-- `Screen Recording` - For window name retrieval via CGWindowList
-- `DerivedData Access` - For build history (via security-scoped bookmark)
-- `Xcode Path` - Manual selection if not auto-detected
+**Required env vars:**
+- None. The app requires no environment variables.
 
-**Permission Check Locations:**
-- `BoosterSimApp/Services/PermissionManager.swift` - Centralized permission state and prompts
-- Onboarding flow: `BoosterSimApp/Views/Onboarding/OnboardingContainerView.swift`
+**Required system tools:**
+- `/usr/bin/xcrun` — Must be present for all Simulator operations
+- `/usr/bin/openssl` — Must be present for certificate generation
+- Xcode.app — Must be installed at a known path (detected by `BoosterSimApp/Services/XcodeDetector.swift`)
 
-**Secrets/Credentials:**
-- None required (no external APIs)
-- Development Team ID (EQ8B89SPCX) hardcoded in Xcode project for code signing
+**Secrets location:**
+- No secrets management. The app generates its own self-signed CA certificate locally.
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None
+- None.
 
 **Outgoing:**
-- None (all operations are local to macOS)
+- None.
 
-## System Integration Points
+## Inter-Process Communication
 
-**Simulator Process Detection:**
-- Process owner name: `"Simulator"` (hardcoded filter in `WindowEnumerator`)
-- UDID/device type mapping: Parsed from `xcrun simctl list devices --json`
-- Real-time tracking: `AXObserver` per PID with ref-counting via `Unmanaged.passRetained()`
+**Pulse TCP Protocol (custom):**
+- macOS app hosts a TCP server (`BoosterSimApp/Services/PulseServer.swift`) using Apple's `Network` framework
+- Bonjour service type: `_pulse._tcp.` with name "BoosterSimApp"
+- iOS companion framework (`BoosterSimConnect/BoosterSimConnect.swift`) broadcasts via Pulse's `RemoteLogger`
+- Binary protocol parsed by `BoosterSimApp/Services/PulsePacketDecoder.swift` — implements Pulse's packet codes (clientHello, serverHello, ping, store events for network task lifecycle)
+- Connection management in `BoosterSimApp/Services/PulseClientConnection.swift`
 
-**Frame Coordinate System:**
-- **Quartz space** (CGWindowList output): Y=0 at top, increases downward
-- **AppKit space** (NSPanel/NSWindow): Y=0 at bottom, increases upward
-- Conversion in `WindowEnumerator.swift`: `appKitY = primaryHeight - quartzY - height`
+**Accessibility API (AXUIElement):**
+- Reads Simulator window hierarchy and properties via `AXUIElementCopyAttributeValue`
+- Real-time window notifications via `AXObserverCreate` + `AXObserverAddNotification` in `BoosterSimApp/Services/WindowObserver.swift`
+- Menu automation (camera toggle) via `AXUIElementPerformAction` in `BoosterSimApp/Services/CameraService.swift`
+- Simulator window tracking via `CGWindowListCopyWindowInfo` polling + AXObserver in `BoosterSimApp/Services/SimulatorWindowTracker.swift`
 
-**Menu Bar Integration:**
-- SwiftUI `MenuBarExtra` (macOS 13+)
-- No launch agent or helper app required
-- LSUIElement=true suppresses Dock icon
+**Xcode Simulator (xcrun simctl):**
+- Deep link opening via `simctl openurl <udid> <url>` in `BoosterSimApp/Services/DeepLinkService.swift`
+- Environment overrides via `simctl spawn <udid> defaults write/notifyutil` in `BoosterSimApp/Services/EnvironmentOverrideService.swift`
+- Certificate install/keychain reset via `simctl addrootcert/simctl keychain reset` in `BoosterSimApp/Services/CertificateService.swift`
 
 ---
 
-*Integration audit: 2025-03-25*
+*Integration audit: 2026-08-29*
