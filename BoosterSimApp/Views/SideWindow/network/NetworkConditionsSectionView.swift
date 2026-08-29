@@ -19,6 +19,10 @@ struct NetworkConditionsSectionView: View {
                 airplaneRow
                     .padding(.horizontal, Spacing.md)
                     .padding(.top, Spacing.sm)
+                profilePillsRow
+                    .padding(.horizontal, Spacing.md)
+                effectiveConditionCaption
+                    .padding(.horizontal, Spacing.md)
                 statusRow
                     .padding(.horizontal, Spacing.md)
                 scopeCaption
@@ -26,6 +30,7 @@ struct NetworkConditionsSectionView: View {
             }
             .padding(.bottom, Spacing.sm)
             .animation(animation, value: networkConditionService.state)
+            .animation(animation, value: networkConditionService.selectedProfile)
         }
     }
 
@@ -46,6 +51,64 @@ struct NetworkConditionsSectionView: View {
             get: { networkConditionService.airplane },
             set: { networkConditionService.setAirplane($0) }
         )
+    }
+
+    // MARK: - Throttle Profile Pills
+
+    /// One tap selects and applies (≤2-click rule). Airplane ON outranks
+    /// throttle (verdict order) — the row disables while airplane is active.
+    private var profilePillsRow: some View {
+        HStack(spacing: Spacing.xs) {
+            ForEach(NetworkConditionProfile.allCases) { profile in
+                profilePill(profile)
+            }
+        }
+        .disabled(networkConditionService.airplane)
+        .opacity(networkConditionService.airplane ? 0.5 : 1)
+    }
+
+    private func profilePill(_ profile: NetworkConditionProfile) -> some View {
+        let isSelected = networkConditionService.selectedProfile == profile
+        return Button {
+            networkConditionService.selectProfile(profile)
+        } label: {
+            Text(profile.displayName)
+                .font(.caption2.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+                .padding(.horizontal, Spacing.sm)
+                .frame(minHeight: SideWindowMetrics.compactRowHeight)
+                .background(
+                    isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(Color.secondary.opacity(0.15)),
+                    in: Capsule()
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(pillAccessibilityLabel(profile))
+    }
+
+    /// VoiceOver caption, e.g. "3G, 400 milliseconds latency, 750 kilobits per second".
+    private func pillAccessibilityLabel(_ profile: NetworkConditionProfile) -> String {
+        guard let spec = profile.throttleSpec else { return "Off, no throttling" }
+        return "\(profile.displayName), \(spec.latencyMs) milliseconds latency, \(spec.downloadKbps) kilobits per second"
+    }
+
+    // MARK: - Effective Condition
+
+    /// Current effective condition: airplane outranks throttle (verdict order).
+    private var effectiveConditionCaption: some View {
+        Text(effectiveConditionText)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+
+    private var effectiveConditionText: String {
+        if networkConditionService.airplane {
+            return "Airplane Mode on"
+        }
+        if networkConditionService.selectedProfile.throttleSpec != nil {
+            return "Throttling: \(networkConditionService.selectedProfile.caption)"
+        }
+        return "No conditions applied"
     }
 
     // MARK: - Status

@@ -55,6 +55,7 @@ final class NetworkConditionService: ObservableObject {
     @Published private(set) var state: NetworkConditionState = .idle
     @Published private(set) var airplane: Bool
     @Published private(set) var rules: [BlockRule]
+    @Published private(set) var selectedProfile: NetworkConditionProfile
 
     private let commandServer = CommandServer()
     private let defaults: UserDefaults
@@ -62,10 +63,12 @@ final class NetworkConditionService: ObservableObject {
     private enum StorageKey {
         static let airplane = "networkConditionAirplane"
         static let rules = "networkBlockRules"
+        static let profile = "networkConditionProfile"
     }
 
     // MARK: - Lifecycle
 
+    /// Reads persisted condition state (persist + re-apply, Open Question 2)
     /// Reads persisted condition state (persist + re-apply, Open Question 2)
     /// and starts the command channel. The first client connect triggers the
     /// reconcile push of the persisted snapshot.
@@ -73,6 +76,9 @@ final class NetworkConditionService: ObservableObject {
         self.defaults = defaults
         self.airplane = defaults.bool(forKey: StorageKey.airplane)
         self.rules = Self.decodeRules(from: defaults.data(forKey: StorageKey.rules))
+        self.selectedProfile = NetworkConditionProfile(
+            rawValue: defaults.string(forKey: StorageKey.profile) ?? ""
+        ) ?? .off
 
         commandServer.onClientConnect = { [weak self] in
             self?.pushSnapshot()
@@ -88,6 +94,21 @@ final class NetworkConditionService: ObservableObject {
         guard begin() else { return }
         airplane = enabled
         defaults.set(enabled, forKey: StorageKey.airplane)
+        pushSnapshot()
+        finish()
+    }
+
+    // MARK: - Throttle Profile
+
+    /// Single-tap selection: persists under the user-facing key
+    /// "networkConditionProfile" (renaming strands stored selections) and
+    /// broadcasts the full snapshot — `off` maps to a nil throttle. The
+    /// switch applies to the NEXT request; in-flight paced responses keep
+    /// their original spec (snapshot semantics).
+    func selectProfile(_ profile: NetworkConditionProfile) {
+        guard begin() else { return }
+        selectedProfile = profile
+        defaults.set(profile.rawValue, forKey: StorageKey.profile)
         pushSnapshot()
         finish()
     }
@@ -121,9 +142,10 @@ final class NetworkConditionService: ObservableObject {
 
     // MARK: - Snapshot
 
-    /// Total snapshot build: airplane + rules in one BoosterCommand.
+    /// Total snapshot build: airplane + throttle profile + rules in one
+    /// BoosterCommand (single writer — never torn).
     func snapshot() -> BoosterCommand {
-        BoosterCommand(airplane: airplane, throttle: nil, blockRules: rules)
+        BoosterCommand(airplane: airplane, throttle: selectedProfile.throttleSpec, blockRules: rules)
     }
 
     // MARK: - State Machine

@@ -61,6 +61,45 @@ struct NetworkConditionServiceTests {
         #expect(second.airplane == false)
     }
 
+    // MARK: - Throttle Profile Persistence
+
+    @MainActor
+    @Test func profileSelectionPersistsAcrossServiceReInit() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = NetworkConditionService(defaults: defaults)
+        #expect(first.selectedProfile == .off)
+        #expect(first.snapshot().throttle == nil)
+
+        first.selectProfile(.threeG)
+        #expect(first.selectedProfile == .threeG)
+        #expect(first.state == .applied)
+        #expect(first.snapshot().throttle == ThrottleSpec(latencyMs: 400, downloadKbps: 750, uploadKbps: nil))
+        #expect(defaults.string(forKey: "networkConditionProfile") == "threeG")
+
+        // Re-initialize from the same suite: persisted profile must re-apply
+        // into the snapshot (reconcile-on-connect pushes it to the next client).
+        let second = NetworkConditionService(defaults: defaults)
+        #expect(second.selectedProfile == .threeG)
+        #expect(second.snapshot().throttle == first.snapshot().throttle)
+    }
+
+    @MainActor
+    @Test func selectingOffClearsThrottleFromSnapshot() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = NetworkConditionService(defaults: defaults)
+
+        service.selectProfile(.lte)
+        #expect(service.snapshot().throttle != nil)
+
+        service.selectProfile(.off)
+        #expect(service.selectedProfile == .off)
+        #expect(service.snapshot().throttle == nil)
+        #expect(defaults.string(forKey: "networkConditionProfile") == "off")
+    }
+
     // MARK: - Rules Persistence
 
     @MainActor
