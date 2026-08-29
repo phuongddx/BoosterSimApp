@@ -97,16 +97,19 @@ enum CommandFrame {
 // MARK: - Verdict
 
 /// Enforcement decision for a request under a condition snapshot.
-/// Gains `.throttle(ThrottleSpec)` additively in plan 05-02.
 enum ConditionVerdict: Equatable {
     case passThrough
     case fail(URLError.Code)
+    /// Pace this request per the spec: latency delay before the first
+    /// response callback, then chunked body delivery (plan 05-02).
+    case throttle(ThrottleSpec)
 }
 
-/// Pure, synchronous decision function. Order is contract:
-/// guard marker first (anti-recursion), then airplane
+/// Pure, synchronous decision function. Order is contract: guard marker
+/// first (anti-recursion), then airplane
 /// (`NSURLErrorNotConnectedToInternet`, -1009), then first enabled matching
-/// rule (`NSURLErrorCannotConnectToHost`, -1004), then pass-through.
+/// rule (`NSURLErrorCannotConnectToHost`, -1004), then throttle (when a
+/// spec is set), then pass-through.
 func evaluate(request: URLRequest, snapshot: BoosterCommand) -> ConditionVerdict {
     if URLProtocol.property(forKey: BoosterInternalGuard.markerKey, in: request) != nil {
         return .passThrough
@@ -116,6 +119,9 @@ func evaluate(request: URLRequest, snapshot: BoosterCommand) -> ConditionVerdict
     }
     if snapshot.blockRules.first(where: { $0.isEnabled && $0.matches(request) }) != nil {
         return .fail(.cannotConnectToHost)
+    }
+    if let throttle = snapshot.throttle {
+        return .throttle(throttle)
     }
     return .passThrough
 }

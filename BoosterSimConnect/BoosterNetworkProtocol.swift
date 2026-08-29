@@ -6,9 +6,11 @@
 import Foundation
 import ObjectiveC
 
-/// Fails URLSession requests per the current condition snapshot (airplane →
-/// NSURLErrorNotConnectedToInternet, matching block rule →
-/// NSURLErrorCannotConnectToHost); forwards everything else. Installed via a
+/// Enforces network conditions on URLSession requests per the current
+/// snapshot: airplane fails everything (`NSURLErrorNotConnectedToInternet`),
+/// matching block rules fail per-host (`NSURLErrorCannotConnectToHost`),
+/// throttle paces delivery (latency delay, then chunked body at profile
+/// bandwidth); everything else forwards untouched. Installed via a
 /// URLSession init method exchange that chains with Pulse's exchange — our
 /// body calls the renamed selector, so both protocol prepends apply.
 public final class BoosterNetworkProtocol: URLProtocol {
@@ -75,12 +77,16 @@ public final class BoosterNetworkProtocol: URLProtocol {
         switch NetworkConditionController.shared.evaluate(request: request) {
         case .fail(let code):
             client?.urlProtocol(self, didFailWithError: URLError(code))
+        case .throttle(let spec):
+            forwardThrottled(request, spec: spec)
         case .passThrough:
             forward(request)
         }
     }
 
     public override func stopLoading() {
+        pacing?.cancel()
+        pacing = nil
         innerTask?.cancel()
         innerTask = nil
         innerSession?.invalidateAndCancel()
@@ -91,6 +97,11 @@ public final class BoosterNetworkProtocol: URLProtocol {
 
     private var innerSession: URLSession?
     private var innerTask: URLSessionDataTask?
+    private var pacing: ThrottlePacing?
+
+    /// Body chunk size for paced delivery — the plan's canonical vector.
+    /// Scheduled work stays bounded by response body size (T-05-06).
+    private static let chunkBytes = 1500
 
     /// Forwards via an inner ephemeral session. Double defense (Pitfall 2):
     /// the inner request carries the guard property AND the literal header,
@@ -118,6 +129,90 @@ public final class BoosterNetworkProtocol: URLProtocol {
                 self.client?.urlProtocol(self, didLoad: data)
             }
             self.client?.urlProtocolDidFinishLoading(self)
+        }
+        innerTask = task
+        task.resume()
+    }
+
+    // MARK: - Throttled Forwarding
+
+    /// Throttled variant (research Pattern 4): same guard-marked inner
+    /// session, then paced delivery — `latencyMs` before the first
+    /// `didReceive` callback, body in `chunkBytes` slices at `chunkInterval`
+    /// spacing via `urlProtocol(_:didLoad:)`, finish after the last chunk.
+    /// The spec snapshot applies per request; later profile switches never
+    /// mutate an in-flight paced response. Outer timeouts firing during the
+    /// latency phase are the app's own realism (Pitfall 7).
+    private func forwardThrottled(_ request: URLRequest, spec: ThrottleSpec) {
+        var inner = Self.markedInternal(request)
+        inner.setValue("1", forHTTPHeaderField: BoosterInternalGuard.markerKey)
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = []
+        let session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
+        innerSession = session
+
+        let task = session.dataTask(with: inner) { [weak self] data, response, error in
+            guard let self else { return }
+            if let error {
+                // Inner failure propagates immediately, unpaced.
+                self.client?.urlProtocol(self, didFailWithError: error)
+                return
+            }
+
+            let body = data ?? Data()
+            // Malformed spec (T-05-07): pacing plan rejected — degrade to
+            // unpaced delivery instead of trusting the values.
+            guard let plan = ThrottlePacing.plan(
+                spec: spec,
+                chunkBytes: Self.chunkBytes,
+                totalBytes: body.count
+            ) else {
+                if let response {
+                    self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                }
+                if !body.isEmpty {
+                    self.client?.urlProtocol(self, didLoad: body)
+                }
+                self.client?.urlProtocolDidFinishLoading(self)
+                return
+            }
+
+            let pacing = ThrottlePacing()
+            self.pacing = pacing
+
+            var steps: [(delay: TimeInterval, action: () -> Void)] = []
+            if let response {
+                steps.append((plan.firstByteDelay, { [weak self] in
+                    guard let self else { return }
+                    self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+                }))
+            }
+
+            let chunkBytes = Self.chunkBytes
+            for (index, delay) in plan.chunkDelays.enumerated() {
+                let rangeEnd = min((index + 1) * chunkBytes, body.count)
+                let chunk = body.subdata(in: index * chunkBytes..<rangeEnd)
+                let isLastChunk = index == plan.chunkDelays.count - 1
+                steps.append((delay, { [weak self] in
+                    guard let self else { return }
+                    self.client?.urlProtocol(self, didLoad: chunk)
+                    if isLastChunk {
+                        self.client?.urlProtocolDidFinishLoading(self)
+                    }
+                }))
+            }
+
+            // Headers-only response (no body chunks): finish at the latency
+            // delay, right after the response callback.
+            if plan.chunkDelays.isEmpty {
+                steps.append((plan.firstByteDelay, { [weak self] in
+                    guard let self else { return }
+                    self.client?.urlProtocolDidFinishLoading(self)
+                }))
+            }
+
+            pacing.schedule(steps)
         }
         innerTask = task
         task.resume()

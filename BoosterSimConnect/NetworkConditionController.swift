@@ -58,6 +58,9 @@ struct BlockRule: Codable, Identifiable, Equatable {
 enum ConditionVerdict: Equatable {
     case passThrough
     case fail(URLError.Code)
+    /// Pace this request per the spec: latency delay before the first
+    /// response callback, then chunked body delivery (plan 05-02).
+    case throttle(ThrottleSpec)
 }
 
 /// Marker for tool-internal requests that must never be intercepted
@@ -68,9 +71,9 @@ enum BoosterInternalGuard {
 
 /// Same decision order as the Mac-side pure evaluate: guard marker, airplane
 /// (NSURLErrorNotConnectedToInternet, -1009), first enabled matching rule
-/// (NSURLErrorCannotConnectToHost, -1004), then pass-through. Named
-/// `evaluateCondition` (not `evaluate`) so it never collides with the
-/// controller method of the same shape.
+/// (NSURLErrorCannotConnectToHost, -1004), throttle (when a spec is set),
+/// then pass-through. Named `evaluateCondition` (not `evaluate`) so it never
+/// collides with the controller method of the same shape.
 func evaluateCondition(request: URLRequest, snapshot: BoosterCommand) -> ConditionVerdict {
     if URLProtocol.property(forKey: BoosterInternalGuard.markerKey, in: request) != nil {
         return .passThrough
@@ -80,6 +83,9 @@ func evaluateCondition(request: URLRequest, snapshot: BoosterCommand) -> Conditi
     }
     if snapshot.blockRules.first(where: { $0.isEnabled && $0.matches(request) }) != nil {
         return .fail(.cannotConnectToHost)
+    }
+    if let throttle = snapshot.throttle {
+        return .throttle(throttle)
     }
     return .passThrough
 }

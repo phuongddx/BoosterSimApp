@@ -59,6 +59,56 @@ struct ConditionVerdictTests {
         #expect(evaluate(request: makeRequest("https://api.example.com/anything"), snapshot: snapshot) == .passThrough)
     }
 
+
+    private let throttleSpec = ThrottleSpec(latencyMs: 400, downloadKbps: 750, uploadKbps: nil)
+
+    @Test func throttleSpecReturnsThrottleVerdictWhenNoHarsherConditionApplies() {
+        let snapshot = BoosterCommand(airplane: false, throttle: throttleSpec, blockRules: [])
+
+        let verdict = evaluate(
+            request: makeRequest("https://api.example.com/v1/users"),
+            snapshot: snapshot
+        )
+
+        #expect(verdict == .throttle(throttleSpec))
+    }
+
+    @Test func airplaneOutranksThrottle() {
+        let snapshot = BoosterCommand(airplane: true, throttle: throttleSpec, blockRules: [])
+
+        let verdict = evaluate(
+            request: makeRequest("https://api.example.com/"),
+            snapshot: snapshot
+        )
+
+        #expect(verdict == .fail(.notConnectedToInternet))
+    }
+
+    @Test func enabledMatchingRuleOutranksThrottle() {
+        let snapshot = BoosterCommand(
+            airplane: false,
+            throttle: throttleSpec,
+            blockRules: [BlockRule(id: UUID(), domain: "api.example.com", pathPrefix: nil, isEnabled: true)]
+        )
+
+        let verdict = evaluate(
+            request: makeRequest("https://api.example.com/api/v2/feed"),
+            snapshot: snapshot
+        )
+
+        #expect(verdict == .fail(.cannotConnectToHost))
+    }
+
+    @Test func internalGuardedRequestPassesThroughEvenUnderThrottle() {
+        let mutable = NSMutableURLRequest(url: URL(string: "https://api.example.com/v1/users")!)
+        URLProtocol.setProperty(true, forKey: BoosterInternalGuard.markerKey, in: mutable)
+        let guarded = mutable.copy() as! URLRequest
+
+        let snapshot = BoosterCommand(airplane: false, throttle: throttleSpec)
+
+        #expect(evaluate(request: guarded, snapshot: snapshot) == .passThrough)
+    }
+
     // MARK: - Clean State
 
     @Test func noConditionsPassThrough() {

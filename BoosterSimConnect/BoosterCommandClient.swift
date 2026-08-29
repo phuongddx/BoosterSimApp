@@ -152,6 +152,14 @@ final class BoosterCommandClient {
     // MARK: - Frame Decode
     // Schema-synced mirror of the Mac-side CommandFrame codec.
 
+    private static let prefixLength = 4
+    private static let maxPayloadSize = 10 * 1024 * 1024
+
+    private enum FrameError: Error {
+        case incomplete
+        case payloadTooLarge
+    }
+
     private static func decodeFrame(from buffer: inout Data) throws -> Data {
         guard buffer.count >= prefixLength else { throw FrameError.incomplete }
         // Copy into a re-based index space: a Data produced by removeFirst can
