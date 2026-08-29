@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 current_phase: 5
 current_phase_name: Network Tools
 status: executing
-stopped_at: Completed 05-01 — Task 3 smoke approved, tracer plan complete; wave 2 ready
-last_updated: "2026-08-29T16:24:30.488Z"
+stopped_at: Completed 05-02 — throttle profiles delivered (34 unit tests green, both targets build); next 05-03
+last_updated: "2026-08-29T16:48:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: 05-01 complete — Task 3 smoke approved by user; wave 2 ready
-state_head: 4f6b9070974d3ec7f69c9bb31f50638eaa49f18e
+last_activity_desc: 05-02 complete — .throttle verdict + paced enforcement + profile picker
+state_head: 08e9fcf691e36adaa0d541f29de07ed83d11ba94
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -28,30 +28,31 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 5 (Network Tools) — EXECUTING
-Plan: 05-01 COMPLETE (1 of 4); next up 05-02 throttle profiles (wave 2)
-Status: Task 3 blocking-human Simulator smoke APPROVED 2026-08-29 ("approved" — 7/7 steps pass); wave 2 (plans 02/03) unblocked
-Last activity: 2026-08-29 — 05-01 closed by continuation agent (commits 7a8da29, ea7b024, 4f6b907 + closure docs)
+Plan: 05-02 COMPLETE (2 of 4); next up 05-03 block rules (wave 2)
+Status: throttle profiles delivered end-to-end (pills → snapshot → .throttle verdict → paced chunks); 34/34 unit tests green, both targets build, no SPM changes
+Last activity: 2026-08-29 — 05-02 executed (commits 726289c, 3a1bb34, 08e9fcf)
 
-Progress: [██▓░░░░░░░░] 1 of 4 Phase-5 plans complete (05-01 command channel tracer)
+Progress: [█████░░░░░] 2 of 4 Phase-5 plans complete (05-01 command channel tracer, 05-02 throttle profiles)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 2 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Average duration: 26min
+- Total execution time: 52min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 5 | 1 | 37min | 37min |
+| 5 | 2 | 52min | 26min |
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 05 P01 | 37min | 3 tasks | 17 files |
+| Phase 05 P02 | 15min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5]: Command channel bound to loopback 127.0.0.1 with Bonjour ("_booster-cmd._tcp.") — T-05-01 mitigation; fallback to default interface documented if smoke fails discovery
 - [Phase 5]: Framework sources behind #if DEBUG && targetEnvironment(simulator) (macOS app target compiles the same folder — prevents duplicate schema symbols); pbxproj uses synchronized groups so new files need no project edits
 - [Phase 5]: Framing decode must copy Data to re-based [UInt8] before offset math (Data-slice startIndex trap, SIGTRAP) — fixed in CommandFrame + framework mirror
+- [Phase 5]: Throttle pacing contract = chunkInterval chunkBytes*8/kbps s, completion latencyMs + totalBytes*8/kbps (plan truths #1–2; the Task-1 bullet's "1.6s" tail was an internal arithmetic slip) — rescale note for plan-04 smoke in 05-02 SUMMARY
+- [Phase 5]: Pacing constructor rejects invalid specs by returning nil (never traps on wire data); framework degrades to unpaced delivery; enforcement chunkBytes = 1500
+- [Phase 5]: 05-01's ea7b024 accidentally deleted BoosterCommandClient's private frame constants — framework target had not compiled since; restored in 3a1bb34 (always build the BoosterSimConnect scheme, the macOS app compiles that folder empty)
 
 ### Pending Todos
 
@@ -85,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-29T16:24:30.475Z
-Stopped at: Completed 05-01 — Task 3 smoke approved, tracer plan complete; wave 2 ready
+Last session: 2026-08-29T16:48:00.000Z
+Stopped at: Completed 05-02 — throttle profiles (pills → snapshot → .throttle verdict → paced chunks); next 05-03
 Resume file: None
