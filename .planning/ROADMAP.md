@@ -103,11 +103,11 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   4. User can toggle per-app Simulator Airplane Mode with no impact on Mac connectivity
   5. User can block requests by domain/path rules
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 05-01-command-channel-tracer-PLAN.md — Tracer: command channel (_booster-cmd._tcp.) + Airplane Mode end-to-end (engine: payload, transport, verdict enforcement, Network tab toggle)
+- [x] 05-01-command-channel-tracer-PLAN.md — Tracer: command channel (_booster-cmd._tcp.) + Airplane Mode end-to-end (engine: payload, transport, verdict enforcement, Network tab toggle)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -164,6 +164,6 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 2. Capture Tools | 0/TBD | Not started | - |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
-| 5. Network Tools | 0/TBD | In progress | - |
+| 5. Network Tools | 1/4 | In Progress|  |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |

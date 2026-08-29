@@ -17,8 +17,8 @@ affects: [05-02-throttle-profiles, 05-03-block-rules, 05-04-phase-gate-closure]
 
 actuals:
   tokens: 14646   # chars/4 over the realized two-commit diff (58,586 chars)
-  tasks: 2        # of 3; Task 3 is the blocking-human Simulator smoke (pending)
-  commits: 2      # production commits; SUMMARY commit separate
+  tasks: 3        # of 3; Task 3 human smoke approved 2026-08-29
+  commits: 2      # production commits (Task 3 is verification-only, no code); SUMMARY/docs commits separate
 
 tech-stack:
   added: []        # no packages — REQ-nfr-03 honored (Pulse stays sole exception, 5.2.2)
@@ -62,7 +62,7 @@ patterns-established:
   - "State machine quartet (begin/finish/fail/transition) reused from CertificateService for NetworkConditionService"
   - "Persistence: UserDefaults-backed @Published (networkConditionAirplane / networkBlockRules) read in init, written on every mutation"
 
-requirements-completed: []   # REQ-roadmap-phase5-network-tools (phase-level) and REQ-nfr-03 remain open: smoke + plans 02–04 outstanding. REQ-nfr-03 was honored by this plan (Package.resolved byte-identical) but is verified phase-wide at plan 04.
+requirements-completed: []   # REQ-roadmap-phase5-network-tools (phase-level) and REQ-nfr-03 remain open: plans 02–04 outstanding. REQ-nfr-03 was honored by this plan (Package.resolved byte-identical) but is verified phase-wide at plan 04.
 
 coverage:
   - id: D1
@@ -88,25 +88,28 @@ coverage:
     human_judgment: false
   - id: D4
     description: "End-to-end airplane proof on a live Simulator: app URLSession request fails (-1009), traffic viewer stays connected, Mac browsing unaffected, OFF recovers, relaunch reconciles"
-    verification: []
+    verification:
+      - kind: manual-e2e
+        ref: "User-run live-Simulator smoke — 7/7 steps approved 2026-08-29 (see Checkpoint Resolution)"
+        status: pass
     human_judgment: true
     rationale: "Requires a booted iOS Simulator running a DEBUG app embedding BoosterSimConnect plus visual confirmation of the traffic viewer — not automatable in this harness (research marks e2e Connect verification manual-only)"
 
 duration: 37min
 completed: 2026-08-29
-status: halted   # designed stop: Task 3 blocking-human Simulator smoke pending; flip to complete after approval
+status: complete  # Task 3 blocking-human Simulator smoke APPROVED by user 2026-08-29
 ---
 
 # Phase 5 Plan 01: Command Channel Tracer Summary
 
-**Airplane Mode end-to-end slice: Network tab toggle → NetworkConditionService → CommandServer ("_booster-cmd._tcp.", loopback) → BoosterCommandClient → NetworkConditionController → BoosterNetworkProtocol failing URLSession requests; all 19 unit tests green, both targets build — halted at the blocking-human Simulator smoke.**
+**Airplane Mode end-to-end slice: Network tab toggle → NetworkConditionService → CommandServer ("_booster-cmd._tcp.", loopback) → BoosterCommandClient → NetworkConditionController → BoosterNetworkProtocol failing URLSession requests; all 19 unit tests green, both targets build, live-Simulator smoke approved 2026-08-29 — plan complete.**
 
 ## Performance
 
 - **Duration:** 37 min (15:37–16:14 UTC)
 - **Started:** 2026-08-29T15:37:39Z
-- **Completed:** 2026-08-29T16:14:36Z (Tasks 1–2)
-- **Tasks:** 2 of 3 (Task 3 = human smoke, pending)
+- **Completed:** 2026-08-29T16:14:36Z (Tasks 1–2); Task 3 smoke approved 2026-08-29 (continuation closure)
+- **Tasks:** 3 of 3 (Task 3 = human smoke, approved)
 - **Files modified:** 17 (11 created, 6 modified; pbxproj intentionally untouched — synchronized groups)
 
 ## Accomplishments
@@ -120,9 +123,9 @@ status: halted   # designed stop: Task 3 blocking-human Simulator smoke pending;
 
 1. **Task 1: Airplane Mode end-to-end tracer** — `7a8da29` (feat)
 2. **Task 2: State-machine, persistence, framing-robustness hardening** — `ea7b024` (test)
-3. **Task 3: Live-Simulator smoke** — *pending human verification (blocking-human checkpoint)*
+3. **Task 3: Live-Simulator smoke** — *approved by user 2026-08-29 (verification-only — no code commit)*
 
-**Plan metadata:** (this commit)
+**Plan metadata:** 4f6b907 (halted snapshot) + this closure commit (checkpoint approved — tracer plan complete)
 
 ## Files Created/Modified
 
@@ -180,21 +183,29 @@ status: halted   # designed stop: Task 3 blocking-human Simulator smoke pending;
 - The plan's `xcodebuild test … exits 0` acceptance literal is not achievable on this machine even on pristine HEAD (see deviation 3). All 19 cases pass; 3 consecutive clean runs recorded.
 - SideWindowView's `#Preview` also constructs `SideWindowController` — migrated as a caller (clean cutover) though the plan didn't name the file.
 
-## Task 3 — Simulator Smoke (PENDING HUMAN VERIFICATION)
+## Task 3 — Simulator Smoke (APPROVED)
 
 Prerequisites: BoosterSimApp running; a booted iOS Simulator with a DEBUG app embedding BoosterSimConnect that can trigger a URLSession request on demand.
 
 | # | Step | Result |
 |---|------|--------|
-| 1 | App traffic appears in the traffic viewer (chained swizzle healthy) | ⏳ pending |
-| 2 | Toggle Airplane Mode ON in the Network tab | ⏳ pending |
-| 3 | Trigger a request in the app → fails with NSURLErrorNotConnectedToInternet, error row in viewer | ⏳ pending |
-| 4 | Traffic viewer / connection banner stays connected while airplane is ON | ⏳ pending |
-| 5 | Mac browser loads any website normally (no Mac impact) | ⏳ pending |
-| 6 | Toggle Airplane Mode OFF → next app request succeeds | ⏳ pending |
-| 7 | With airplane ON, relaunch the Simulator app → condition re-applies within ~1 s (reconcile) | ⏳ pending |
+| 1 | App traffic appears in the traffic viewer (chained swizzle healthy) | ✅ pass |
+| 2 | Toggle Airplane Mode ON in the Network tab | ✅ pass |
+| 3 | Trigger a request in the app → fails with NSURLErrorNotConnectedToInternet, error row in viewer | ✅ pass |
+| 4 | Traffic viewer / connection banner stays connected while airplane is ON | ✅ pass |
+| 5 | Mac browser loads any website normally (no Mac impact) | ✅ pass |
+| 6 | Toggle Airplane Mode OFF → next app request succeeds | ✅ pass |
+| 7 | With airplane ON, relaunch the Simulator app → condition re-applies within ~1 s (reconcile) | ✅ pass |
 
-**Resume signal:** reply "approved" to unblock wave 2 (plans 02/03), or describe the failing step — a failure invalidates architecture assumption A3 and halts expansion for replan.
+## Checkpoint Resolution
+
+- **Checkpoint:** Task 3 blocking-human gate — live-Simulator airplane-mode smoke
+- **Gate:** human-verify (blocking-human)
+- **Result:** approved
+- **Date:** 2026-08-29
+- **Verified by:** the user (live manual smoke on a booted iOS Simulator)
+- **User response:** "approved" — all 7 smoke steps behaved as specified (traffic in viewer; airplane ON → NSURLErrorNotConnectedToInternet + error row; viewer stays connected; Mac unaffected; OFF → next request succeeds; relaunch reconciles ≤1 s)
+- **Outcome:** Architecture assumption A3 holds (loopback bind + Bonjour discovery worked — fallback never needed); wave 2 (plans 02/03) unblocked; ROADMAP plan-progress flipped to complete.
 
 ## User Setup Required
 
@@ -203,7 +214,7 @@ See plan frontmatter `user_setup`: a booted Simulator running a DEBUG app embedd
 ## Next Phase Readiness
 
 - Engine complete and unit-proven; plans 02 (throttle) and 03 (block rules UI) are additive by design (`.throttle` verdict case, BlockRulesView).
-- **Blocker:** Task 3 smoke must pass before wave 2 dispatch (plan resume-signal). ROADMAP plan-progress flip deliberately deferred until the smoke is approved (this SUMMARY records `status: halted`).
+- **Gate cleared:** Task 3 smoke approved 2026-08-29 — wave 2 (plans 02/03) unblocked and dispatchable; ROADMAP plan-progress flipped to 1/4 complete.
 - Loopback-bind fallback: if smoke step 1/2 fails discovery/connect, plan 05-01 specifies falling back to default-interface bind + LAN-trust note (threat T-05-01 disposition change).
 
 ## Self-Check: PASSED
@@ -216,4 +227,4 @@ See plan frontmatter `user_setup`: a booted Simulator running a DEBUG app embedd
 
 ---
 *Phase: 05-network-tools — Plan: 01 (command channel tracer)*
-*Completed (Tasks 1–2): 2026-08-29 — Task 3 awaiting human smoke*
+*Completed: 2026-08-29 — Task 3 smoke approved; plan closed by continuation agent*

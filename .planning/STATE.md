@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 current_phase: 5
 current_phase_name: Network Tools
 status: executing
-stopped_at: .planning bootstrap complete — PROJECT/REQUIREMENTS/ROADMAP/STATE written from docs ingest
-last_updated: "2026-08-29T15:27:02.265Z"
+stopped_at: Completed 05-01 — Task 3 smoke approved, tracer plan complete; wave 2 ready
+last_updated: "2026-08-29T16:24:30.488Z"
 last_activity: 2026-08-29
-last_activity_desc: Phase 5 execution started
-state_head: 825303a4d491c37c2f82f4c890a0cb88603aff92
+last_activity_desc: 05-01 complete — Task 3 smoke approved by user; wave 2 ready
+state_head: 4f6b9070974d3ec7f69c9bb31f50638eaa49f18e
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 5 (Network Tools) — EXECUTING
-Plan: 1 of 4 — BLOCKED at Task 3 (blocking-human Simulator smoke)
-Status: Awaiting human smoke verification for 05-01 (resume signal: "approved")
-Last activity: 2026-08-29 — 05-01 Tasks 1–2 complete (commits 7a8da29, ea7b024)
+Plan: 05-01 COMPLETE (1 of 4); next up 05-02 throttle profiles (wave 2)
+Status: Task 3 blocking-human Simulator smoke APPROVED 2026-08-29 ("approved" — 7/7 steps pass); wave 2 (plans 02/03) unblocked
+Last activity: 2026-08-29 — 05-01 closed by continuation agent (commits 7a8da29, ea7b024, 4f6b907 + closure docs)
 
-Progress: [██▓░░░░░░░░] 2 of 7 phases complete, Phase 5 in progress
+Progress: [██▓░░░░░░░░] 1 of 4 Phase-5 plans complete (05-01 command channel tracer)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Total plans completed: 1 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
 - Average duration: —
 - Total execution time: —
 
@@ -46,7 +46,12 @@ Progress: [██▓░░░░░░░░] 2 of 7 phases complete, Phase 5 in
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 5 | 1 | 37min | 37min |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 05 P01 | 37min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -68,7 +73,7 @@ None yet.
 
 - [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — pick a wiring point during Phase 5 completion or Phase 3 planning.
 - [Phase 5]: TrafficDetailView shows placeholder timing metrics (real PulseMetrics is a v2 candidate, NET-02).
-- [Phase 5]: 05-01 Task 3 blocking-human Simulator smoke PENDING (7 steps; resume signal "approved"; failure invalidates assumption A3 → replan). Details: 05-01-command-channel-tracer-SUMMARY.md.
+- ~~[Phase 5]: 05-01 Task 3 blocking-human Simulator smoke~~ RESOLVED 2026-08-29 — user approved all 7 steps; loopback bind held (A3 valid, fallback unused). Details: 05-01-command-channel-tracer-SUMMARY.md §Checkpoint Resolution.
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD; unit suites themselves green (19/19). See deferred-items.md.
 
 ## Deferred Items
@@ -80,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-29
-Stopped at: 05-01 Tasks 1–2 complete; BLOCKED at Task 3 blocking-human Simulator smoke (resume signal: "approved")
-Resume file: .planning/phases/05-network-tools/05-01-command-channel-tracer-PLAN.md (Task 3)
+Last session: 2026-08-29T16:24:30.475Z
+Stopped at: Completed 05-01 — Task 3 smoke approved, tracer plan complete; wave 2 ready
+Resume file: None
