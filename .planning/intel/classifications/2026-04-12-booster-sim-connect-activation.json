@@ -1,0 +1,12 @@
+{
+  "file": "docs/journals/2026-04-12-booster-sim-connect-activation.md",
+  "type": "DOC",
+  "title": "BoosterSimConnect: From Broken NWBrowser to Working Pulse Protocol Server",
+  "scope_summary": "Post-incident retrospective on rewriting the network traffic inspection pipeline from NWBrowser client-mode discovery to NWListener server-mode (Bonjour-advertised TCP). Covers reverse-engineering the Pulse binary protocol, fixing an alignment crash in packet decoding, cross-platform iOS-framework-in-macOS-app embedding, and the full UI layer for traffic inspection. Includes root cause analysis and 5 lessons learned.",
+  "cross_references": [
+    "docs/journals/2026-04-11-* (journal entry 0411-1218 referenced for prior lesson)",
+    "PulseServer.swift, PulseClientConnection.swift, PulsePacketDecoder.swift, ConnectService.swift (source files described)",
+    "TrafficList.swift, TrafficRowView.swift, TrafficDetailView.swift, TrafficFilterBar.swift, ConnectSetupView.swift, ConnectStatusBanner.swift, CurlExporter.swift (UI files described)",
+    "BoosterSimConnect iOS framework (cross-platform dependency described)"
+  ]
+}

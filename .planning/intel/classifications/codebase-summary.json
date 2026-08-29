@@ -1,0 +1,7 @@
+{
+  "file": "docs/codebase-summary.md",
+  "type": "DOC",
+  "title": "Codebase Summary",
+  "scope_summary": "Inventory of the BoosterSimApp macOS menu-bar project: project stats (Swift 6, 73 files, ~6,556 LOC, two targets), full directory tree with per-file LOC annotations, key-file-by-role reference table, largest-files ranking, and feature-section status matrix for the side panel tabs (Capture/Design/Actions/Network). No decisions, requirements, or behavioral specifications — purely structural documentation.",
+  "cross_references": []
+}

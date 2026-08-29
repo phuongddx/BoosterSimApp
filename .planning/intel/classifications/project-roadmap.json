@@ -1,0 +1,7 @@
+{
+  "file": "docs/project-roadmap.md",
+  "type": "PRD",
+  "title": "Project Roadmap",
+  "scope_summary": "Phased delivery roadmap for BoosterSimApp, a macOS menu-bar app for iOS Simulator control. Covers 7 phases: Foundation (complete), Capture Tools, App Actions, Design Tools, Network Tools (in progress), Platform & System (complete), and Polish & Distribution. Includes milestone tracking table with per-phase checkbox task lists.",
+  "cross_references": []
+}

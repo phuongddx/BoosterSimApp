@@ -1,0 +1,13 @@
+{
+  "file": "docs/design-guidelines.md",
+  "type": "SPEC",
+  "title": "Design Guidelines",
+  "scope_summary": "Visual and interaction design specification for the BoosterSimApp macOS menu-bar panel: design principles, color palette (amber accent, semantic system colors), SF Pro typography scale, SF Symbols icon assignments per feature phase, 4pt spacing grid, corner radii, side panel dimensions (260pt expanded/28pt collapsed), component patterns (FeatureRow, CollapsibleSection, TabBarView, StatusBadge), animation curves with Reduce Motion support, onboarding flow, and preferences window layout.",
+  "cross_references": [
+    "DesignTokens.swift (Spacing enum, CornerRadius enum, SideWindowMetrics)",
+    "Views/Shared/CollapsibleSection.swift",
+    "EnvironmentOverridesView",
+    "BuildStatsSectionView",
+    "AccentButton (onboarding CTA)"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "file": "docs/deployment-guide.md",
+  "type": "DOC",
+  "title": "Deployment Guide",
+  "scope_summary": "How to build, run, and distribute the BoosterSimApp macOS menu-bar app. Covers development build prerequisites (macOS 15, Xcode 16.3+), build commands, first-run onboarding with Accessibility and Screen Recording permissions, and future distribution plans including code signing, notarization, DMG creation, sandboxing tradeoffs, and semantic versioning.",
+  "cross_references": [
+    "Phase 7 (distribution, referenced but not yet configured)"
+  ]
+}
