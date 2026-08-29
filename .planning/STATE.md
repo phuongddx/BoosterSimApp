@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 current_phase: 5
 current_phase_name: Network Tools
 status: executing
-stopped_at: Completed 05-03 — block rules delivered (44/44 unit tests green, both targets build); next 05-04 phase-gate closure
-last_updated: "2026-08-29T16:56:59.971Z"
+stopped_at: 05-04 halted at Task 3 blocking-human phase-gate smoke — Tasks 1-2 done (docs commit 209fa8e, suite 44/44, pin clean)
+last_updated: "2026-08-29T17:10:12.393Z"
 last_activity: 2026-08-29
-last_activity_desc: 05-03 complete — hardened matcher + BlockRulesView editor
-state_head: b7ebad843c4a663e82b111bb1f81049bbac2fe30
+last_activity_desc: 05-04 halted at phase-gate smoke — docs + automated gate done
+state_head: 209fa8e112cf1712d9e6c9a146d301d56b4e8545
 progress:
   total_phases: 7
   completed_phases: 0
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 ## Current Position
 
 Phase: 5 (Network Tools) — EXECUTING
-Plan: 05-03 COMPLETE (3 of 4); next up 05-04 phase-gate closure (wave 3)
-Status: block rules delivered end-to-end (BlockRulesView editor → service mutations → snapshot → .fail(.cannotConnectToHost) verdict); 44/44 unit tests green, both targets build, no SPM changes
-Last activity: 2026-08-29 — 05-03 executed (commits aec8f94, 99b3aee, b7ebad8)
+Plan: 05-04 phase-gate closure — Tasks 1-2 COMPLETE, Task 3 (blocking-human six-group Simulator smoke) PENDING
+Status: docs updated to landed reality (commit 209fa8e); automated phase gate green — unit bundle 44/44 exit 0, both schemes build, Package.resolved byte-identical (REQ-nfr-03 closed); phase closes on smoke approval
+Last activity: 2026-08-29 — 05-04 Tasks 1-2 executed (docs commit 209fa8e); smoke checklist in 05-04-phase-gate-closure-SUMMARY.md
 
-Progress: [███████░░░] 3 of 4 Phase-5 plans complete (05-01 command channel tracer, 05-02 throttle profiles, 05-03 block rules)
+Progress: [███████░░] 3 of 4 Phase-5 plans complete; 05-04 halted at the human gate (05-01 precedent — closure commit follows approval)
 
 ## Performance Metrics
 
@@ -70,6 +70,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5]: Pacing constructor rejects invalid specs by returning nil (never traps on wire data); framework degrades to unpaced delivery; enforcement chunkBytes = 1500
 - [Phase 5]: 05-01's ea7b024 accidentally deleted BoosterCommandClient's private frame constants — framework target had not compiled since; restored in 3a1bb34 (always build the BoosterSimConnect scheme, the macOS app compiles that folder empty)
 - [Phase 5]: BlockRule.matches owns the isEnabled check + field trimming (safe for UI and decode paths); every semantic change mirrors identically into NetworkConditionController's framework copy (schema-sync pair, cross-referenced)
+- [Phase 5]: 05-04: docs state the AS-SHIPPED pacing contract truthfully (chunkInterval = chunkBytes*8/kbps s, no ÷1000 kilo factor — 3G paces 16 s per 1500 B chunk, 15 KB ≈ 160 s); documented as a known fidelity gap, smoke judges visibility not physical 3G timing
+- [Phase 5]: 05-04 phase-gate automated standard: unit bundle via -only-testing:BoosterSimAppTests -skip-testing:BoosterSimAppUITests (exit 0, 44/44) + both scheme builds + Package.resolved sha256 70386616a707… clean across phase (REQ-nfr-03 closed); unfiltered test exits 65 on pristine HEAD (pre-existing UI-test env issue, documented)
 
 ### Pending Todos
 
@@ -91,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-29T16:56:59.959Z
-Stopped at: Completed 05-03 — block rules delivered (44/44 unit tests green, both targets build); next 05-04 phase-gate closure
+Last session: 2026-08-29T17:10:12.379Z
+Stopped at: 05-04 halted at Task 3 blocking-human phase-gate smoke — Tasks 1-2 done (docs commit 209fa8e, suite 44/44, pin clean)
 Resume file: None
