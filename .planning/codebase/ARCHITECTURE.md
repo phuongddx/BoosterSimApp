@@ -5,273 +5,255 @@
 ## System Overview
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                     Menu Bar Layer                          │
-│  `BoosterSimApp/BoosterSimAppApp.swift`                     │
-│  `BoosterSimApp/Views/MenuBar/MenuBarView.swift`            │
-├──────────────────┬──────────────────────────────────────────┤
-│  MenuBarExtra    │  Preferences (Settings scene)            │
-│  Cmd+B toggle    │  `BoosterSimApp/Views/Preferences/`      │
-└────────┬─────────┴────────────────┬─────────────────────────┘
-         │                          │
-         ▼                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│               AppDelegate (Service Orchestrator)            │
-│       `BoosterSimApp/App/AppDelegate.swift`                 │
-│  Instantiates all services; wires to SideWindowController   │
-├─────────────────────────────────────────────────────────────┤
-│  Services:                                                  │
-│  ┌───────────────┐ ┌──────────────┐ ┌────────────────────┐ │
-│  │ WindowTracker  │ │ SimCtlService │ │ ConnectService     │ │
-│  │ (AX + polling) │ │ (xcrun simctl)│ │ (Pulse TCP server)│ │
-│  └───────┬───────┘ └──────┬───────┘ └────────┬───────────┘ │
-│  ┌───────────────┐ ┌──────────────┐ ┌────────────────────┐ │
-│  │ AXInspector    │ │ CaptureSvc   │ │ CertService        │ │
-│  │ (AX tree walk) │ │ (SCStream)   │ │ (CA trust)         │ │
-│  └───────┬───────┘ └──────┬───────┘ └────────────────────┘ │
-│  ┌───────────────┐ ┌──────────────┐ ┌────────────────────┐ │
-│  │ EnvOverride    │ │ DeepLinkSvc  │ │ DesignComparison   │ │
-│  │ (simctl ui)    │ │ (URL open)   │ │ (screenshot diff)  │ │
-│  └───────────────┘ └──────────────┘ └────────────────────┘ │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 SideWindowController                        │
-│       `BoosterSimApp/Windows/SideWindowController.swift`    │
-│  Manages SideWindowPanel; injects services as @Environment  │
-├─────────────────────────────────────────────────────────────┤
-│  SideWindowView → TabBarView → 4 tabs:                     │
-│  CaptureTabView, DesignTabView, ActionsTabView,             │
-│  NetworkTabView                                             │
-└─────────────────────────────────────────────────────────────┘
-         │                              │
-         ▼                              ▼
-┌─────────────────────┐    ┌──────────────────────────────────┐
-│  iOS Simulator.app  │    │  BoosterSimConnect (iOS fwk)     │
-│  (via AX + simctl)  │    │  `BoosterSimConnect/`            │
-│                     │    │  PulseProxy swizzle → TCP        │
-└─────────────────────┘    └──────────────────────────────────┘
-
-Separate: boostersim CLI (`booster-sim-cli/`) — standalone SPM binary
+┌──────────────────────────────────────────────────────────────┐
+│                    Menu Bar Layer (SwiftUI)                   │
+│           `BoosterSimApp/BoosterSimAppApp.swift`              │
+│  ┌─────────────────┐  ┌──────────────────────────────────┐   │
+│  │  MenuBarExtra   │  │  Settings scene (Cmd+,)          │   │
+│  │ `MenuBarView`    │  │  `PreferencesView`              │   │
+│  └─────────────────┘  └──────────────────────────────────┘   │
+├──────────────────────────────────────────────────────────────┤
+│                  AppDelegate (AppKit Hub)                     │
+│              `BoosterSimApp/App/AppDelegate.swift`             │
+│  Instantiates & owns all services; bridges AppKit ↔ SwiftUI   │
+├──────────┬──────────┬──────────┬──────────┬─────────────────┤
+│ Tracker  │ Services │ Services │ Services │ Windows          │
+│          │ (simctl) │ (AX/OS)  │ (Network)│                  │
+│ SimWin-  │ StatusBar│ AXIns-   │ Connect  │ SideWindow-      │
+│ dowTrack-│ Service  │ pector   │ Service  │ Controller       │
+│ er       │ EnvOver- │ Camera   │ Pulse-   │ SideWindowPanel  │
+│          │ rideSrv  │ Capture  │ Server   │ AXHighlight-     │
+│          │ BuildSt- │ Design-  │ Pulse-   │ Panel            │
+│          │ ats      │ Compar-  │ Client   │                  │
+│          │ Cert-    │ ison     │ Connect  │                  │
+│          │ ificate  │ DeepLink │          │                  │
+│          │ Service  │ Service  │          │                  │
+├──────────┴──────────┴──────────┴──────────┴─────────────────┤
+│                    View Layer (SwiftUI)                       │
+│         `BoosterSimApp/Views/SideWindow/`                     │
+│  SideWindowView → TabBarView → [Capture|Design|Actions|      │
+│                                   Network]TabView             │
+└──────────────────────────────────────────────────────────────┘
+         │                                     │
+         ▼                                     ▼
+┌────────────────────┐          ┌──────────────────────────┐
+│  macOS System APIs │          │  iOS Simulator (remote)  │
+│  CGWindowList      │          │  BoosterSimConnect SPM   │
+│  AXUIElement       │◄────────│  (PulseProxy swizzling)  │
+│  ScreenCaptureKit  │  TCP    │  Bonjour _pulse._tcp     │
+│  xcrun simctl      │          │  Pulse binary protocol   │
+└────────────────────┘          └──────────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| `BoosterSimAppApp` | SwiftUI `@main` entry; declares `MenuBarExtra` + `Settings` scenes | `BoosterSimApp/BoosterSimAppApp.swift` |
-| `AppDelegate` | Service orchestrator: instantiates all services, starts tracking/monitoring/server, manages onboarding | `BoosterSimApp/App/AppDelegate.swift` |
-| `SideWindowController` | NSPanel lifecycle, position tracking (spring-animated), collapse/expand, SwiftUI hosting, keyboard shortcuts | `BoosterSimApp/Windows/SideWindowController.swift` |
-| `SideWindowPanel` | `NSPanel` subclass: floating level, non-activating, no title bar | `BoosterSimApp/Windows/SideWindowPanel.swift` |
-| `PositionCalculator` | Pure frame math for 4 panel positions (left/right/bottom/dynamic) | `BoosterSimApp/Windows/PositionCalculator.swift` |
-| `SpringAnimator` | Display-link driven spring physics for panel position tracking | `BoosterSimApp/Utilities/SpringAnimator.swift` |
-| `SimulatorWindowTracker` | Detects Simulator windows via `CGWindowList` + `AXObserver`; classifies device type via `simctl list devices --json` | `BoosterSimApp/Services/SimulatorWindowTracker.swift` |
-| `WindowObserver` | Per-PID `AXObserver` wrapper for real-time window move/resize notifications | `BoosterSimApp/Services/WindowObserver.swift` |
-| `SimCtlService` | Shared async `xcrun simctl` process executor (Combine `Future`) | `BoosterSimApp/Services/SimCtlService.swift` |
-| `EnvironmentOverrideService` | Appearance/accessibility overrides via `simctl ui` commands | `BoosterSimApp/Services/EnvironmentOverrideService.swift` |
-| `StatusBarService` | Carrier/wifi/battery status via `simctl status_bar` | `BoosterSimApp/Services/StatusBarService.swift` |
-| `BuildStatsService` | Xcode build time monitoring from `LogStoreManifest.plist` | `BoosterSimApp/Services/BuildStatsService.swift` |
-| `AXInspectorService` | Accessibility tree walker for Simulator (background queue, depth-limited) | `BoosterSimApp/Services/AXInspectorService.swift` |
-| `CaptureService` | Screen recording via `ScreenCaptureKit` (`SCStream`); MP4/GIF export | `BoosterSimApp/Services/CaptureService.swift` |
-| `ConnectService` | Manages Pulse TCP server, buffers decoded network events (max 500) | `BoosterSimApp/Services/ConnectService.swift` |
-| `PulseServer` | `NWListener` TCP server with Bonjour registration (`_pulse._tcp`) | `BoosterSimApp/Services/PulseServer.swift` |
-| `PulsePacketDecoder` | Decodes Pulse protocol packets from connected clients | `BoosterSimApp/Services/PulsePacketDecoder.swift` |
-| `PulseClientConnection` | Single TCP client connection handler, feeds decoded events to publisher | `BoosterSimApp/Services/PulseClientConnection.swift` |
-| `CertificateService` | CA certificate generation, install, rotation, and keychain reset for Simulator | `BoosterSimApp/Services/CertificateService.swift` |
-| `CertificateStore` | Keychain-backed certificate data persistence | `BoosterSimApp/Services/CertificateStore.swift` |
-| `CertificateModels` | Certificate status and operation enum types | `BoosterSimApp/Services/CertificateModels.swift` |
-| `DeepLinkService` | Deep link testing: URL parsing, history/favorites persistence, `simctl openurl` | `BoosterSimApp/Services/DeepLinkService.swift` |
-| `DesignComparisonService` | Screenshot capture and visual diff comparison | `BoosterSimApp/Services/DesignComparisonService.swift` |
-| `CameraService` | Simulator camera simulation via `simctl` | `BoosterSimApp/Services/CameraService.swift` |
-| `PermissionManager` | macOS permission checks/requests: Accessibility, Screen Recording, Xcode, DerivedData | `BoosterSimApp/Services/PermissionManager.swift` |
-| `WindowEnumerator` | `CGWindowListCopyWindowInfo` wrapper for window discovery | `BoosterSimApp/Services/WindowEnumerator.swift` |
-| `XcodeDetector` | Locates Xcode via `xcode-select -p` | `BoosterSimApp/Services/XcodeDetector.swift` |
-| `BoosterSimConnect` | iOS framework loaded into Simulator app; activates PulseProxy URL swizzling | `BoosterSimConnect/BoosterSimConnect.swift` |
-| `boostersim` CLI | Standalone SPM tool for AI agents to control Simulator (tap/swipe/type/screenshot) | `booster-sim-cli/Sources/boostersim/boostersim.swift` |
+| `BoosterSimAppApp` | `@main` SwiftUI entry; defines `MenuBarExtra` scene and `Settings` scene; adapts `AppDelegate` | `BoosterSimApp/BoosterSimAppApp.swift` |
+| `AppDelegate` | Service container (lazy init); wires services to `SideWindowController`; starts tracking/monitoring/server; manages onboarding; singleton enforcement | `BoosterSimApp/App/AppDelegate.swift` |
+| `SimulatorWindowTracker` | Detects iOS/watchOS/tvOS/visionOS Simulator windows via `CGWindowList` + `AXObserver`; publishes `activeSimulator` and `simulators`; classifies device types via `simctl list devices --json` | `BoosterSimApp/Services/SimulatorWindowTracker.swift` |
+| `WindowObserver` | Wraps `AXObserver` C API for real-time window move/resize events on a specific Simulator PID; delivers fast-path `onFrameChanged` callback bypassing full CGWindowList scans | `BoosterSimApp/Services/WindowObserver.swift` |
+| `WindowEnumerator` | Pure static scanner: `CGWindowListCopyWindowInfo` → `[SimulatorWindow]`; converts Quartz to AppKit coordinates | `BoosterSimApp/Services/WindowEnumerator.swift` |
+| `SimCtlService` | Shared `xcrun simctl` process executor; returns `AnyPublisher<String, SimCtlError>` on background queue, delivered on main | `BoosterSimApp/Services/SimCtlService.swift` |
+| `StatusBarService` | Applies status bar presets/configs via `simctl status_bar` | `BoosterSimApp/Services/StatusBarService.swift` |
+| `EnvironmentOverrideService` | Reads/writes appearance, contrast, content size, and 8 accessibility toggles via `simctl ui` + `simctl spawn defaults` | `BoosterSimApp/Services/EnvironmentOverrideService.swift` |
+| `BuildStatsService` | Polls `DerivedData/Logs/Build/LogStoreManifest.plist` every 5s for Xcode build history; caches by mtime; keeps top 30 sorted builds | `BoosterSimApp/Services/BuildStatsService.swift` |
+| `AXInspectorService` | Walks Simulator AX tree lazily to max depth 5; publishes `rootNodes` and `highlightFrame`; dispatches AX calls to background queue | `BoosterSimApp/Services/AXInspectorService.swift` |
+| `CameraService` | AX menu automation to toggle Simulator's Features → Camera → Front/Back Mac camera | `BoosterSimApp/Services/CameraService.swift` |
+| `CertificateService` | Orchestrates CA certificate generation (via OpenSSL), installation (via `simctl addrootcert`), rotation, and status reconciliation per simulator UDID | `BoosterSimApp/Services/CertificateService.swift` |
+| `CertificateStore` | Manages `ca.pem`/`ca.key` on disk in `~/Library/Application Support/BoosterSimApp/Certificates/`; atomic install via stage-then-rename; reads cert metadata via Security framework | `BoosterSimApp/Services/CertificateStore.swift` |
+| `CaptureService` | Screen recording via `ScreenCaptureKit` with configurable quality/FPS; supports MP4/GIF export and device bezel overlay | `BoosterSimApp/Services/CaptureService.swift` |
+| `DesignComparisonService` | Manages design overlay image, opacity, split-view comparison, grid overlay, color picker, and saved presets | `BoosterSimApp/Services/DesignComparisonService.swift` |
+| `DeepLinkService` | Opens URLs in Simulator via `xcrun simctl openurl`; manages URL history and favorites with `@AppStorage` persistence | `BoosterSimApp/Services/DeepLinkService.swift` |
+| `ConnectService` | Hosts `PulseServer`; converts `PulseDecodedEvent` → `NetworkEvent`; manages connection state machine (disconnected → searching → connected); caps events at 500 | `BoosterSimApp/Services/ConnectService.swift` |
+| `PulseServer` | `NWListener` TCP server with Bonjour `_pulse._tcp.` service; accepts connections, wraps each in `PulseClientConnection`; publishes decoded events via `PassthroughSubject` | `BoosterSimApp/Services/PulseServer.swift` |
+| `PulseClientConnection` | Per-client state machine (connecting → waitingHello → active → disconnected); receive loop with buffer; dispatches packet codes (0=clientHello, 6=ping, 8=taskCreated, 10=taskCompleted) | `BoosterSimApp/Services/PulseClientConnection.swift` |
+| `PulsePacketDecoder` | Pure static functions for Pulse binary protocol: 5-byte header parsing, zlib decompression, JSON decoding of `PulseNetworkEvent`, serverHello/pong encoding | `BoosterSimApp/Services/PulsePacketDecoder.swift` |
+| `SideWindowController` | Manages `SideWindowPanel` lifecycle, position sync with Simulator window, collapse/expand state, keyboard shortcuts; hosts SwiftUI content via `NSHostingView` | `BoosterSimApp/Windows/SideWindowController.swift` |
+| `SideWindowPanel` | `NSPanel` subclass: floating level, non-activating, hidesOnDeactivate=false, canJoinAllSpaces | `BoosterSimApp/Windows/SideWindowPanel.swift` |
+| `AXHighlightPanel` | Transparent floating `NSPanel` that draws orange rounded-rect highlight over selected AX element; auto-dismisses after 2.5s | `BoosterSimApp/Windows/AXHighlightPanel.swift` |
+| `PositionCalculator` | Pure static frame math for 4 side-window positions (left/right/bottom/dynamic) | `BoosterSimApp/Windows/PositionCalculator.swift` |
+| `PermissionManager` | Checks/requests Accessibility, Screen Recording, Xcode detection, DerivedData security-scoped bookmark | `BoosterSimApp/Services/PermissionManager.swift` |
+| `XcodeDetector` | Detects Xcode installation path via filesystem checks at common paths | `BoosterSimApp/Services/XcodeDetector.swift` |
 
 ## Pattern Overview
 
-**Overall:** Service-orchestrator with `ObservableObject`/`@EnvironmentObject` injection
+**Overall:** Service-Container + Observable-Object Injection
 
 **Key Characteristics:**
-- Single `AppDelegate` class owns and wires all service singletons — manual dependency injection at construction time
-- All services are `final class: ObservableObject` with `@Published` state; consumed by SwiftUI views via `@EnvironmentObject` or `@ObservedObject`
-- Views are pure SwiftUI; no view models — services serve as view models
-- `@MainActor` isolation on all services and the side window controller
-- Combine used for async `simctl` process execution and service-to-service communication
-- `NSPanel` (not `NSWindow`) for the side window, hosted via `NSHostingView`
-- Separate Swift Package (`booster-sim-cli`) for the CLI tool, sharing no code with the app target
+- `AppDelegate` is the **single service container** — every service is `lazy var`-instantiated there and injected downward
+- All services are `@MainActor final class: ObservableObject` — views observe published state via `@EnvironmentObject` or `@ObservedObject`
+- Services communicate outward via **Combine `@Published` properties**, not delegates
+- `SideWindowController` receives all services in its `init` and hosts a single `NSHostingView<SideWindowView>` where services are injected as `.environmentObject()`
+- The app uses `LSUIElement = true` (no Dock icon); `applicationShouldTerminateAfterLastWindowClosed` returns `false`
+- Singleton enforcement on launch: terminates duplicate instances
 
 ## Layers
 
-**App Entry Layer:**
-- Purpose: SwiftUI scene declaration, app lifecycle
-- Location: `BoosterSimApp/BoosterSimAppApp.swift`, `BoosterSimApp/App/AppDelegate.swift`
-- Contains: `@main` struct, `NSApplicationDelegate` implementation, service wiring, onboarding
-- Depends on: All services, `SideWindowController`
-- Used by: macOS runtime
+**App Layer:**
+- Purpose: Application lifecycle, service wiring, onboarding
+- Location: `BoosterSimApp/App/`
+- Contains: `AppDelegate.swift`, `BoosterSimAppApp.swift` (at `BoosterSimApp/` root)
+- Depends on: All service and window layers
+- Used by: SwiftUI scene system
 
-**Service Layer:**
-- Purpose: Business logic, system integration, external process management
+**Services Layer:**
+- Purpose: Business logic, external process orchestration, protocol handling
 - Location: `BoosterSimApp/Services/`
-- Contains: 21 service files covering window tracking, simctl commands, network capture, certificates, accessibility, screen recording
-- Depends on: `Models/`, `Utilities/`, macOS frameworks (AppKit, ScreenCaptureKit, Network, ApplicationServices)
-- Used by: `AppDelegate`, `SideWindowController`, SwiftUI views via `@EnvironmentObject`
+- Contains: 21 service files covering simulator control (via `simctl`), accessibility inspection, screen capture, certificate management, network protocol, deep links, design comparison, permissions
+- Depends on: Models, macOS system APIs (`AXUIElement`, `CGWindowList`, `ScreenCaptureKit`, `Network` framework, `Security`)
+- Used by: AppDelegate, Views (via environment objects)
 
-**View Layer:**
-- Purpose: SwiftUI UI declarations
-- Location: `BoosterSimApp/Views/`
-- Contains: SideWindow tabs (capture, design, actions, network), menu bar, preferences, onboarding, shared components
-- Depends on: Services (via `@EnvironmentObject`), `Models/`, `Utilities/DesignTokens.swift`
-- Used by: `SideWindowController` (hosts `SideWindowView`), `BoosterSimAppApp` (hosts `MenuBarView`)
-
-**Window Management Layer:**
-- Purpose: NSPanel lifecycle, positioning math, spring animation
+**Windows Layer:**
+- Purpose: AppKit window management, panel configuration, position math, spring animation
 - Location: `BoosterSimApp/Windows/`
-- Contains: `SideWindowController`, `SideWindowPanel`, `PositionCalculator`, `AXHighlightPanel`
-- Depends on: `Utilities/SpringAnimator.swift`, `SimulatorWindowTracker`, `DesignTokens`
-- Used by: `AppDelegate`
+- Contains: `SideWindowController`, `SideWindowPanel`, `AXHighlightPanel`, `PositionCalculator`
+- Depends on: Services (for data binding), Utilities (`SpringAnimator`, `DesignTokens`)
+- Used by: AppDelegate
 
-**Model Layer:**
-- Purpose: Value types and persisted settings
+**Views Layer:**
+- Purpose: SwiftUI presentation — side window tabs, menu bar, preferences, onboarding, shared components
+- Location: `BoosterSimApp/Views/`
+- Contains: `SideWindow/` (main UI with 4 tabs + tab content), `MenuBar/`, `Preferences/`, `Onboarding/`, `Shared/`
+- Depends on: Services (via `@EnvironmentObject`), Models, DesignTokens
+- Used by: SideWindowController (hosted), SwiftUI scene system (MenuBar, Preferences)
+
+**Models Layer:**
+- Purpose: Value types and data structures
 - Location: `BoosterSimApp/Models/`
-- Contains: `AppSettings`, `SimulatorWindow`, `AXNode`, `BuildRecord`
-- Depends on: Foundation, CoreGraphics, SwiftUI (for `@AppStorage`)
-- Used by: Services and views
+- Contains: `SimulatorWindow`, `AXNode`, `BuildRecord`, `AppSettings`, `SideWindowPosition` enum
+- Depends on: Foundation, CoreGraphics
+- Used by: Services and Views
 
-**Utility Layer:**
-- Purpose: Cross-cutting helpers
+**Utilities Layer:**
+- Purpose: Cross-cutting helpers — logging, animation, design constants
 - Location: `BoosterSimApp/Utilities/`
-- Contains: `AppLogger` (os.Logger), `DesignTokens` (spacing/radii/metrics), `SpringAnimator` (CADisplayLink physics)
+- Contains: `AppLogger`, `SpringAnimator`, `DesignTokens`
 - Depends on: OSLog, QuartzCore, Foundation
-- Used by: All layers
-
-**iOS Framework Layer (separate target):**
-- Purpose: Network capture injection into Simulator apps
-- Location: `BoosterSimConnect/`
-- Contains: `BoosterSimConnect.swift` — activates PulseProxy swizzling in DEBUG builds
-- Depends on: Pulse, PulseProxy (SPM dependencies, simulator-only)
-- Used by: Loaded into Simulator app via `Bundle.load()`/`dlopen`
-
-**CLI Layer (separate SPM package):**
-- Purpose: AI-agent-friendly Simulator control
-- Location: `booster-sim-cli/`
-- Contains: ArgumentParser commands, standalone `SimCtlService` (synchronous, no Combine)
-- Depends on: ArgumentParser, Foundation
-- Used by: Terminal invocation (`boostersim tap --udid ... --x ... --y ...`)
+- Used by: Services, Windows, Views
 
 ## Data Flow
 
-### Primary Request Path — Simulator Detection → Side Window Display
+### Primary Request Path (e.g., Apply Status Bar Preset)
 
-1. `SimulatorWindowTracker.startTracking()` (`BoosterSimApp/Services/SimulatorWindowTracker.swift`) begins `CGWindowList` scan + `AXObserver` registration
-2. Simulator window found → publishes `activeSimulator` change
-3. `SideWindowController.attach(to:)` (`BoosterSimApp/Windows/SideWindowController.swift`) receives via Combine `sink`
-4. `attachToSimulator(_:)` calls `updatePosition()` → `PositionCalculator.panelFrame(...)` computes frame → `SpringAnimator.setTarget(frame:)` animates panel
-5. `SideWindowView` renders tab content with `@EnvironmentObject` services
+1. User taps preset in `StatusBarSectionView` (`BoosterSimApp/Views/SideWindow/StatusBarSectionView.swift`)
+2. Calls `statusBarService.applyPreset(_:to:)` (`BoosterSimApp/Services/StatusBarService.swift`)
+3. `StatusBarService` calls `simCtl.run(["status_bar", udid, ...])` (`BoosterSimApp/Services/SimCtlService.swift`)
+4. `SimCtlService` spawns `Process("/usr/bin/xcrun", ["simctl", ...])` on background queue, delivers stdout/stderr via Combine publisher
 
-### Network Capture Path — Simulator App → BoosterSimApp
+### Simulator Window Detection Flow
 
-1. `BoosterSimConnect` (`BoosterSimConnect/BoosterSimConnect.swift`) activates `URLSessionProxyDelegate.enableAutomaticRegistration()` and `RemoteLogger.shared.enable()` inside Simulator app
-2. `PulseServer` (`BoosterSimApp/Services/PulseServer.swift`) listens on TCP with Bonjour `_pulse._tcp`
-3. Simulator app connects → `PulseClientConnection` (`BoosterSimApp/Services/PulseClientConnection.swift`) receives raw bytes
-4. `PulsePacketDecoder` (`BoosterSimApp/Services/PulsePacketDecoder.swift`) decodes Pulse protocol
-5. `ConnectService` (`BoosterSimApp/Services/ConnectService.swift`) receives decoded events via Combine publisher, buffers in `networkEvents` array
-6. `NetworkTabView` (`BoosterSimApp/Views/SideWindow/tabs/NetworkTabView.swift`) displays filtered traffic list
+1. `AppDelegate.applicationDidFinishLaunching` calls `tracker.startTracking()` (`BoosterSimApp/App/AppDelegate.swift:60`)
+2. `SimulatorWindowTracker.startTracking` calls `WindowEnumerator.enumerateSimulatorWindows()` for initial scan, then sets up `AXObserver` via `WindowObserver` for real-time move/resize, plus a polling fallback timer
+3. On detection, publishes `activeSimulator: SimulatorWindow?` via `@Published`
+4. `SideWindowController` subscribes to `tracker.$activeSimulator` → calls `attachToSimulator()` → `updatePosition()` to snap the floating panel to the Simulator window
 
-### SimCtl Command Path — User Toggle → xcrun simctl
+### Network Event Capture Flow (BoosterSimConnect)
 
-1. User toggles a setting in `EnvironmentOverrideService` view
-2. Service calls `simCtl.run(["ui", udid, "appearance", value])` (`BoosterSimApp/Services/SimCtlService.swift`)
-3. `SimCtlService` spawns `Process` for `xcrun simctl` on background queue
-4. Result delivered to main thread via Combine `Future`
+1. iOS app links `BoosterSimConnect` SPM framework in DEBUG builds → `URLSessionProxyDelegate.enableAutomaticRegistration()` swizzles all `URLSession` traffic
+2. `RemoteLogger.shared.enable()` starts Bonjour broadcasting on `_pulse._tcp.`
+3. `ConnectService.startServer()` creates `PulseServer` (NWListener TCP, ephemeral port, Bonjour `_pulse._tcp.`)
+4. iOS client connects → `PulseClientConnection` runs receive loop → parses 5-byte header + zlib-compressed JSON body via `PulsePacketDecoder`
+5. Decoded `PulseDecodedEvent` flows: `PulseClientConnection.onEvent` → `PulseServer.eventSubject` → `ConnectService.handleDecodedEvent` → converts to `NetworkEvent` → appends to `networkEvents` array
+6. `NetworkTabView` reads `connectService.networkEvents` and `connectService.connectionState` via `@EnvironmentObject`
 
 **State Management:**
-- All mutable state lives in `@Published` properties on `ObservableObject` services
-- Persistence: `@AppStorage` for settings, `UserDefaults` for certificate data and deep link history, Keychain (via `CertificateStore`) for certificate material
-- No external database; no server-side state
-- `Combine` `Set<AnyCancellable>` for subscription lifecycle management in each service
+- All mutable state lives in `@MainActor ObservableObject` services
+- Persistence: `@AppStorage` for user settings (position, launch-at-login, onboarding flag) and `UserDefaults` for deep link history/favorites, design presets
+- Certificate files on disk at `~/Library/Application Support/BoosterSimApp/Certificates/`
+- No database; no external state store
 
 ## Key Abstractions
 
-**SimulatorWindowTracker (window detection):**
-- Purpose: Central source of truth for which Simulator windows exist and which is active
+**BoosterNetworkProtocol (Pulse):**
+- Purpose: Binary TCP protocol for capturing iOS URLSession traffic from Simulator apps
+- Wire format: 5-byte header `[code: UInt8][contentSize: UInt32 BE]` + zlib-compressed JSON body
+- Packet codes: 0=clientHello, 1=serverHello, 6=ping, 7=messageStored, 8=networkTaskCreated, 9=taskProgressUpdated, 10=networkTaskCompleted
+- `networkTaskCompleted` body: 12-byte manifest (3×UInt32 BE: messageSize, requestBodySize, responseBodySize) followed by concatenated payloads
+- Examples: `BoosterSimApp/Services/PulsePacketDecoder.swift`, `BoosterSimApp/Services/PulseClientConnection.swift`
+- Pattern: State machine per connection (`connecting → waitingHello → active → disconnected`)
+
+**SimCtlService (Command Executor):**
+- Purpose: Centralized `xcrun simctl` process execution with Combine-based async delivery
+- All simulator control services (`StatusBarService`, `EnvironmentOverrideService`, `CertificateService`) delegate to this
+- Examples: `BoosterSimApp/Services/SimCtlService.swift`
+- Pattern: `AnyPublisher<String, SimCtlError>` returned; background `Process` execution, main-queue delivery
+
+**SimulatorWindowTracker (Window Detection Hub):**
+- Purpose: Detects and tracks Simulator windows using dual strategy: `CGWindowList` polling + `AXObserver` real-time callbacks
+- Classifies device type (iOS/watchOS/tvOS/visionOS) via `simctl list devices --json` cache
+- Publishes `activeSimulator`, `simulators`, `isSimulatorFocused`
 - Examples: `BoosterSimApp/Services/SimulatorWindowTracker.swift`
-- Pattern: `ObservableObject` with `@Published` arrays; dual detection via `CGWindowList` polling + `AXObserver` real-time callbacks
-
-**SimCtlService (process execution):**
-- Purpose: Shared async wrapper around `xcrun simctl` CLI
-- Examples: `BoosterSimApp/Services/SimCtlService.swift` (app version), `booster-sim-cli/Sources/boostersim/Services/SimCtlService.swift` (CLI version — synchronous, separate implementation)
-- Pattern: Combine `Future` wrapping `Process` execution; app version is `@MainActor`, CLI version is synchronous
-
-**PulseServer + PulseClientConnection + PulsePacketDecoder (network capture):**
-- Purpose: TCP server receiving Pulse-protocol network events from Simulator
-- Examples: `BoosterSimApp/Services/PulseServer.swift`, `PulseClientConnection.swift`, `PulsePacketDecoder.swift`
-- Pattern: `NWListener`-based server; per-connection `NWConnection` handlers; Combine `PassthroughSubject` for event fan-out
-
-**SideWindowController (panel management):**
-- Purpose: Orchestrates side window visibility, positioning, and content
-- Examples: `BoosterSimApp/Windows/SideWindowController.swift`
-- Pattern: `ObservableObject` that owns an `NSPanel`, embeds SwiftUI via `NSHostingView`, uses `CADisplayLink` spring physics for animated tracking
+- Pattern: ObservableObject with Combine publishers; owns `WindowObserver` instances keyed by PID
 
 ## Entry Points
 
-**macOS App — `@main` SwiftUI:**
+**`BoosterSimAppApp` (@main SwiftUI App):**
 - Location: `BoosterSimApp/BoosterSimAppApp.swift`
-- Triggers: App launch via `LSUIElement = true` (no Dock icon, agent app)
-- Responsibilities: Declares `MenuBarExtra` scene and `Settings` scene; delegates all setup to `AppDelegate`
+- Triggers: Automatic on app launch
+- Responsibilities: Defines `MenuBarExtra` scene (with `MenuBarView`) and `Settings` scene (with `PreferencesView`); bridges `AppDelegate` via `@NSApplicationDelegateAdaptor`
 
-**CLI Tool — `@main` ParsableCommand:**
-- Location: `booster-sim-cli/Sources/boostersim/boostersim.swift`
-- Triggers: Terminal invocation (`boostersim <subcommand>`)
-- Responsibilities: Argument parsing; delegates to command structs that call `SimCtlService` static methods
+**`AppDelegate.applicationDidFinishLaunching`:**
+- Location: `BoosterSimApp/App/AppDelegate.swift:54`
+- Triggers: System call on launch
+- Responsibilities: Singleton enforcement, attaches side window to tracker, starts tracking/build monitoring/connect server, wires AX highlight panel, shows onboarding on first launch
 
-**iOS Framework — `@objc` class:**
+**BoosterSimConnect (iOS framework activation):**
 - Location: `BoosterSimConnect/BoosterSimConnect.swift`
-- Triggers: `Bundle.load()` / `dlopen` injection in DEBUG Simulator builds
-- Responsibilities: Activates PulseProxy URL swizzling and RemoteLogger Bonjour broadcasting
+- Triggers: `Bundle.load()` / `dlopen` in DEBUG Simulator builds
+- Responsibilities: Activates PulseProxy URLSession swizzling, configures sensitive header redaction, enables Bonjour remote logging
+
+**`boostersim` CLI:**
+- Location: `booster-sim-cli/Sources/boostersim/boostersim.swift`
+- Triggers: `boostersim <subcommand>` in terminal
+- Responsibilities: ArgumentParser-based CLI with 8 subcommands (tap, swipe, type, screenshot, list-elements, list-devices, press, doctor) for AI agent simulator control
 
 ## Architectural Constraints
 
-- **Threading:** All app services are `@MainActor` isolated. `AXInspectorService` dispatches AX calls to background queue via `nonisolated fileprivate static` methods. `SimCtlService.run()` spawns `Process` on `DispatchQueue.global(qos: .userInitiated)`. `CaptureService` uses `SCStream` (system-managed threads).
-- **Global state:** No module-level mutable singletons. All state is instance-based, owned by `AppDelegate` or individual services. `BoosterSimConnect.shared` is a singleton but only within the Simulator process (separate target).
-- **Circular imports:** None detected — clean layering from Models → Utilities → Services → Views → Windows → App.
-- **`LSUIElement = true`:** App runs as menu-bar agent, not Dock app. Single-instance enforcement via `NSRunningApplication.runningApplications(withBundleIdentifier:)` check in `applicationDidFinishLaunching`.
-- **`@MainActor` on all services:** Required because SwiftUI `@Published` properties and `@EnvironmentObject` injection demand main-thread isolation. Background work dispatched explicitly within services.
+- **Threading:** Single `@MainActor` for all services and UI. Background work dispatched explicitly via `DispatchQueue.global()` (e.g., `SimCtlService` process spawning, `AXInspectorService` tree walking, `CameraService` AX menu automation). `CertificateStore` uses a dedicated serial `DispatchQueue` for OpenSSL file I/O.
+- **Global state:** `AppDelegate` is the de facto singleton service container. No other module-level singletons exist (services are instance-based). `AppLogger` is a pure-enum namespace (no mutable state).
+- **Circular imports:** None detected. Dependency flows strictly downward: App → Windows → Services → Models/Utilities. Views depend on Services (via environment objects) but services never import Views.
+- **Process spawning:** Multiple services spawn external processes (`xcrun simctl`, `openssl`). All use `Process` with timeout handling and stderr capture.
 
 ## Anti-Patterns
 
-### Service Explosion in AppDelegate Constructor
+### `PulseDecodedEvent` Not `Sendable`
 
-**What happens:** `AppDelegate` instantiates 12+ services as `lazy var` properties and passes all of them into `SideWindowController.init(...)`. The `SideWindowController` constructor accepts 11 service parameters.
-**Why it's wrong:** Adding a new feature service requires modifying both `AppDelegate` and `SideWindowController.init`, plus `embedSwiftUIContent(...)`. The constructor signature grows linearly with feature count.
-**Do this instead:** Consider a service container/registry pattern, or pass services via SwiftUI `@EnvironmentObject` injection (already used downstream) rather than constructor threading.
+**What happens:** `PulseDecodedEvent` enum in `BoosterSimApp/Services/PulseClientConnection.swift` carries `PulseNetworkEvent` (which is `Sendable`) and raw `Data?` but the enum itself is not marked `Sendable`, despite being created on a background `DispatchQueue` and consumed on `@MainActor`.
+**Why it's wrong:** Violates Swift 6 concurrency safety; the compiler should diagnose this with strict concurrency checking.
+**Do this instead:** Mark `PulseDecodedEvent` as `Sendable` (its associated values are already `Sendable`).
 
-### Dual SimCtlService Implementations
+### Domain Model in View Subdirectory
 
-**What happens:** The app target has `BoosterSimApp/Services/SimCtlService.swift` (Combine-based, async, `@MainActor`) and the CLI package has `booster-sim-cli/Sources/boostersim/Services/SimCtlService.swift` (synchronous, `Process`-based). Both wrap `xcrun simctl` with different APIs.
-**Why it's wrong:** Divergent implementations of the same concept; changes to one are not reflected in the other.
-**Do this instead:** Extract a shared SPM package for `simctl` process execution, used by both targets.
+**What happens:** `NetworkEvent`, `HTTPMethod`, `StatusRange`, `TrafficFilter`, and `ConnectionState` are defined in `BoosterSimApp/Views/SideWindow/network/NetworkEventModel.swift` — a view-layer file — but are consumed by `ConnectService` in the Services layer.
+**Why it's wrong:** Services import types from Views, creating a reverse dependency. These are domain models, not view code.
+**Do this instead:** Move these types to `BoosterSimApp/Models/` (e.g., `NetworkEvent.swift`). The view file can still exist for view-specific helpers, but service-layer types belong in Models.
+
+### Sidebar Types Defined in Service Files
+
+**What happens:** `StatusBarConfig` and `StatusBarPreset` enums are defined inside `BoosterSimApp/Services/StatusBarService.swift`; `AppearanceStyle` is in `BoosterSimApp/Services/EnvironmentOverrideService.swift`; `CertificateMetadata`, `CertificateStatus`, `CertificateOperation`, `CertificateError` are in `BoosterSimApp/Services/CertificateModels.swift`.
+**Why it's wrong:** Models co-located with services make reuse and testing harder. Some types (like `CertificateError`) are clearly domain models.
+**Do this instead:** Move pure data types to `BoosterSimApp/Models/`. Service files should contain only the service class. Small service-specific enums (like `AppearanceStyle`) are acceptable in-place.
 
 ## Error Handling
 
-**Strategy:** Combine-based error propagation with `AnyPublisher<Value, Error>`. `SimCtlError` enum for simctl failures. `CertificateService` uses a state machine (`CertificateOperation`/`CertificateStatus`) with retry support.
+**Strategy:** Typed error enums per concern with `LocalizedError` conformance.
 
 **Patterns:**
-- `SimCtlService.run()` returns `AnyPublisher<String, SimCtlError>` — callers use `.sink(receiveCompletion:, receiveValue:)` or `.map`/`.tryMap`
-- `CaptureService` publishes `lastError: String?` for UI display
-- `CertificateService.begin(_:)` guards against concurrent operations and returns `Bool`
-- `ConnectService.handleStreamError(_:)` for stream failure reporting
-- Many services silently ignore Combine completion errors (e.g., `receiveCompletion: { _ in }`)
+- `SimCtlError` (`.commandFailed`, `.xcrunNotFound`, `.timeout`) — propagated via Combine `Failure` type
+- `CertificateError` (`.invalidCertFormat`, `.noUDIDSelected`, `.opensslFailed`, `.simctlFailed`, `.timeout`) — handled in UI with user-facing messages
+- `PulseClientConnection` silently drops malformed packets (returns early from buffer processing)
+- `CaptureService` publishes `lastError: String?` — displayed in UI when non-nil
+- `StatusBarService` publishes `lastError: String?`
+- `XcodeDetector` returns `String?` (nil = not found) — no error type
 
 ## Cross-Cutting Concerns
 
-**Logging:** `os.Logger` via `AppLogger` enum (`BoosterSimApp/Utilities/AppLogger.swift`). Four categories: `windowTracking`, `permissions`, `settings`, `certificates`. Filter in Console.app by subsystem `com.nextlabs.BoosterSimApp`. Some services use bare `print()` for debug output.
+**Logging:** `AppLogger` enum in `BoosterSimApp/Utilities/AppLogger.swift` — 4 `os.Logger` instances (`windowTracking`, `permissions`, `settings`, `certificates`) under subsystem `com.nextlabs.BoosterSimApp`. Not all services use it; some use `print()`.
 
-**Validation:** Minimal. `DeepLinkService.parseURL(_:)` validates URL format. `PermissionManager` checks system permission status. `SimCtlService` validates `xcrun` existence and process exit code. No input validation framework.
+**Validation:** Minimal. `TrafficFilter.matches(_:)` validates network events against filter. `EnvironmentOverrideService` does not validate content size index bounds. `PositionCalculator` clamps panel position within screen bounds.
 
-**Authentication:** Not applicable — the app is a local macOS tool with no user accounts. Certificate trust management for HTTPS interception in Simulator is handled by `CertificateService`/`CertificateStore`.
+**Authentication:** None. The app is a local developer tool with no user authentication. Certificate trust is managed via `simctl addrootcert`.
 
 ---
 

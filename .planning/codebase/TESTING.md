@@ -2,77 +2,96 @@
 
 **Analysis Date:** 2026-08-29
 
-## Test Framework
+## Test Frameworks
 
-**Runner:**
-- Swift Testing (new framework) for unit tests — `import Testing`, `@Test` macro, `#expect(...)`
-- XCTest for UI tests — `import XCTest`, `XCTestCase` subclass
+**Unit Tests:**
+- Framework: Swift Testing (`import Testing`)
+- Location: `BoosterSimAppTests/`
+- Assertion macro: `#expect(...)`
+- No mocking framework in use
+- No test config file — uses Xcode default Swift Testing runner
 
-**Config:**
-- No test configuration files — uses Xcode default test schemes
-- Unit test target: `BoosterSimAppTests`
-- UI test target: `BoosterSimAppUITests`
+**UI Tests:**
+- Framework: XCTest (`import XCTest`)
+- Location: `BoosterSimAppUITests/`
+- Assertion: `XCTAssertTrue`, `XCAssertEqual`, etc.
+- `XCTApplicationLaunchMetric()` for launch performance
 
-**Run Commands:**
+## Run Commands
+
 ```bash
-# Build + test (from terminal)
+# Unit tests (Swift Testing)
 xcodebuild test \
   -project BoosterSimApp.xcodeproj \
   -scheme BoosterSimApp \
   -destination 'platform=macOS' \
   -only-testing:BoosterSimAppTests
 
-# UI tests (as run in CI)
+# UI tests
 xcodebuild test \
   -project BoosterSimApp.xcodeproj \
   -scheme BoosterSimApp \
   -destination 'platform=macOS' \
-  -only-testing:BoosterSimAppUITests/ScreenshotTests
+  -only-testing:BoosterSimAppUITests
+
+# UI tests with screenshots (as used in CI)
+xcodebuild test \
+  -project BoosterSimApp.xcodeproj \
+  -scheme BoosterSimApp \
+  -destination 'platform=macOS' \
+  -only-testing:BoosterSimAppUITests/ScreenshotTests \
+  -resultBundlePath UITestResults
 ```
 
 ## Test File Organization
 
-**Location:**
-- Unit tests: `BoosterSimAppTests/` (Xcode target, sibling to `BoosterSimApp/`)
-- UI tests: `BoosterSimAppUITests/` (separate Xcode target)
-- CLI tests: none — `booster-sim-cli/` has no test target
+**Location pattern:** Tests live in separate directories mirroring the Xcode target structure:
 
-**Naming:**
-- `[TypeName]Tests.swift` for unit tests: `CertificateServiceTests.swift`
-- `[Feature]Tests.swift` for UI tests: `ScreenshotTests.swift`
-- Xcode-generated boilerplate: `BoosterSimAppTests.swift`, `BoosterSimAppUITests.swift`, `BoosterSimAppUITestsLaunchTests.swift`
-
-**Structure:**
 ```
 BoosterSimAppTests/
-├── BoosterSimAppTests.swift            # Xcode boilerplate (empty @Test)
-└── CertificateServiceTests.swift      # Only meaningful unit test
+├── BoosterSimAppTests.swift            # Xcode-generated scaffold (empty @Test)
+└── CertificateServiceTests.swift      # Real unit tests
 
 BoosterSimAppUITests/
-├── BoosterSimAppUITests.swift         # Xcode boilerplate (empty test)
-├── BoosterSimAppUITestsLaunchTests.swift  # Xcode boilerplate (launch screenshot)
-└── ScreenshotTests.swift              # CI visual regression screenshots
+├── BoosterSimAppUITests.swift          # Xcode-generated scaffold (empty test)
+├── BoosterSimAppUITestsLaunchTests.swift  # Launch + performance test
+└── ScreenshotTests.swift               # Screenshot capture for visual regression
 ```
+
+**Naming:** `{TargetName}Tests.swift` for unit tests, `{Purpose}Tests.swift` for UI tests. File names are PascalCase.
 
 ## Test Structure
 
-**Unit test pattern (Swift Testing):**
+**Unit Tests (Swift Testing):**
 ```swift
 import Testing
 @testable import BoosterSimApp
 
 struct CertificateServiceTests {
+
     @Test func certificateOperationAllowsExpectedTransitions() {
         #expect(CertificateOperation.idle.canTransition(to: .generating))
+        #expect(CertificateOperation.generating.canTransition(to: .error("failed")))
         #expect(!CertificateOperation.installing.canTransition(to: .generating))
+    }
+
+    @Test func certificateStatusExposesMetadataWhenAvailable() {
+        let expiry = Date(timeIntervalSince1970: 1_234_567)
+        let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
+        #expect(generated.certificateMetadata?.commonName == "BoosterSim CA")
     }
 }
 ```
 
-**UI test pattern (XCTest):**
-```swift
-import XCTest
+**Patterns:**
+- `struct` (value type) for test suites — not `class`
+- `@Test` macro on each test function (no `func test...` naming required)
+- `#expect(...)` for assertions
+- `@testable import BoosterSimApp` for access to internal types
+- No `setUp`/`tearDown` — state created inline per test
 
+**UI Tests (XCTest):**
+```swift
 final class ScreenshotTests: XCTestCase {
     var app: XCUIApplication!
 
@@ -95,96 +114,100 @@ final class ScreenshotTests: XCTestCase {
 ```
 
 **Patterns:**
-- **Setup:** `setUpWithError()` for XCTest; no setup needed for Swift Testing structs
-- **Teardown:** Not used — no `tearDownWithError()` implementations with cleanup logic
-- **Assertions:** `#expect(...)` in Swift Testing; `XCTAssertTrue`/`XCTAssertEqual` in XCTest
+- `final class` conforming to `XCTestCase`
+- `@MainActor` on test methods that interact with the app
+- `setUpWithError()` for per-test setup; `continueAfterFailure = false`
+- Screenshot capture via `XCTAttachment(screenshot:).lifetime = .keepAlways`
+- Sequential naming: `01-launch`, `02-side-window-default`, `03-side-window-tab-{n}`
 
 ## Mocking
 
-**Framework:** None — no mocking library is used or configured
+**No mocking framework** is configured or imported. Current tests test pure model logic (`CertificateOperation` state transitions, `CertificateStatus` metadata) that requires no mocks.
 
-**Patterns:**
-- No mocks, stubs, or fakes exist in the codebase
-- `SimCtlService` is concrete and spawns real `xcrun simctl` processes — not mockable without protocol extraction
-- `CertificateServiceTests` tests only pure model logic (enum transitions, computed properties) that requires no mocking
+**What to mock (when needed):**
+- `SimCtlService` — for services that call xcrun subprocesses
+- `SimulatorWindowTracker` — for view tests that depend on simulator state
+- `CertificateStore` — for `CertificateService` tests
 
-**What to Mock (when adding tests):**
-- `SimCtlService` — extract a protocol to mock simctl process spawning
-- `SimulatorWindowTracker` — inject mock window enumeration for view tests
-- `CertificateStore` — already initialized with default `UserDefaults = .standard` but accepts injection: `init(simCtl:, defaults:)`
+**Approach:** Use protocol-based dependency injection. Create a protocol (e.g., `SimCtlProviding`) and inject a mock conformer. The existing `init` dependency injection pattern in services (e.g., `CertificateService(simCtl:)`) supports this directly.
 
-**What NOT to Mock:**
-- Pure value types (`SimulatorWindow`, `BuildRecord`, `AXNode`, `CertificateMetadata`) — test directly
-- Enum transition logic (`CertificateOperation.canTransition(to:)`) — already tested without mocks
-- Design token enums (`Spacing`, `CornerRadius`) — constant values, no behavior to mock
+**What NOT to mock:**
+- Model types (`CertificateStatus`, `CertificateOperation`, `NetworkEvent`) — test directly
+- Pure utility types (`DesignTokens`, `AppLogger`)
 
 ## Fixtures and Factories
 
-**Test Data:**
-- No shared test fixtures or factory methods exist
-- Test data is constructed inline within each test:
-  ```swift
-  let expiry = Date(timeIntervalSince1970: 1_234_567)
-  let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
-  ```
+**Test data:** Created inline within test functions:
+```swift
+let expiry = Date(timeIntervalSince1970: 1_234_567)
+let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
+```
 
-**Location:**
-- No fixture files or test resource directories
+**Location:** No shared fixture files or factory directories exist. All test data is inline.
 
 ## Coverage
 
-**Requirements:** None enforced
+**Requirements:** No enforced coverage target.
 
-**View Coverage:**
-- No coverage tool configured
-- CI does not measure or report coverage
-- `CLAUDE.md` explicitly states: "No tests, linting, or package manager configured"
+**Current state:** Only model-layer logic is tested (`CertificateOperation` transitions, `CertificateStatus` metadata). Services, views, and controllers have zero test coverage.
 
 ## Test Types
 
 **Unit Tests:**
-- Framework: Swift Testing (`@Test`, `#expect`)
-- Scope: Pure model logic only — enum state transitions and computed properties
-- 2 test functions in `CertificateServiceTests.swift` covering `CertificateOperation` transitions and `CertificateStatus` metadata extraction
-- All 15+ services, all views, and all utilities have zero unit test coverage
+- Framework: Swift Testing
+- Scope: Model logic, enums, state transitions
+- One test file with 2 test functions: `BoosterSimAppTests/CertificateServiceTests.swift`
 
-**Integration Tests:**
-- Not used — no integration test target exists
+**UI Tests:**
+- Framework: XCTest
+- Scope: Screenshot capture for visual regression, launch verification
+- Primary file: `BoosterSimAppUITests/ScreenshotTests.swift` (4 test methods)
+- Secondary: `BoosterSimAppUITests/BoosterSimAppUITestsLaunchTests.swift` (1 launch + 1 performance test)
+- `BoosterSimAppUITests/BoosterSimAppUITests.swift`: Xcode-generated scaffold, empty tests
 
-**E2E Tests:**
-- Framework: XCTest UI testing (`XCUIApplication`, `XCTAttachment`)
-- Purpose: CI visual regression screenshots, not behavioral verification
-- `ScreenshotTests.swift` captures 5 screenshots: launch, default tab, each of 4 tabs, window resize, full screen
-- Tests use `Thread.sleep(forTimeInterval: 0.5)` for tab transitions (fragile)
-- Tests use `waitForExistence(timeout: 5)` for window appearance
-- Screenshot results uploaded as CI artifacts with 14-day retention
-- Tests pass regardless of content (`|| true` on xcodebuild in CI) — screenshot capture is the goal, not assertions
+**E2E Tests:** Not used.
+
+## CI Configuration
+
+**File:** `.github/workflows/ci.yml`
+
+**Jobs:**
+1. **build** — Builds Debug + Release configurations on `macos-26`; code signing disabled; SPM dependency caching
+2. **ui-tests** — Runs `ScreenshotTests` only; extracts PNG screenshots from xcresult; uploads xcresult bundle and screenshots as artifacts (14-day retention)
+3. **build-benchmark** (PR only) — Measures build time in seconds; posts to `$GITHUB_STEP_SUMMARY`
+
+**Notable CI gaps:**
+- Unit tests (`BoosterSimAppTests`) are **not run in CI** — only UI tests and builds execute
+- No coverage reporting
+- Build benchmark runs on PRs only, not on push to main
+
+**UI test output:**
+- xcresult bundle uploaded as `ui-test-results` artifact
+- Screenshots extracted and uploaded as `ui-screenshots` artifact
+- Uses `xcbeautify` for build output formatting (piped with `|| true` so UI test failures don't fail the job)
+
+**Concurrency:** `cancel-in-progress: true` on same ref
 
 ## Common Patterns
 
-**Async Testing:**
-- No async test patterns — project prohibits async/await
-- Swift Testing `@Test` functions are synchronous
-- XCTest UI tests use `@MainActor` annotation
+**State machine testing:**
+```swift
+@Test func certificateOperationAllowsExpectedTransitions() {
+    #expect(CertificateOperation.idle.canTransition(to: .generating))
+    #expect(!CertificateOperation.installing.canTransition(to: .generating))
+}
+```
 
-**Error Testing:**
-- No error-path tests exist
-- `SimCtlError` and `CertificateError` enums are untested
-- Error state transitions in `CertificateOperation` are only partially covered (one `.error` case tested)
+**Metadata extraction testing:**
+```swift
+@Test func certificateStatusExposesMetadataWhenAvailable() {
+    let status = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
+    #expect(status.certificateMetadata?.commonName == "BoosterSim CA")
+    #expect(CertificateStatus.notGenerated.certificateMetadata == nil)
+}
+```
 
-## CI Integration
-
-**Pipeline:** `.github/workflows/ci.yml`
-
-**Test execution in CI:**
-- Build job: Debug + Release matrix, no tests run
-- UI test job: runs `ScreenshotTests` only, with `|| true` (non-blocking)
-- Build benchmark job: measures build time on PRs, no tests
-- UI test screenshots extracted via `xcrun xcresulttool export` and uploaded as artifacts
-
-**What CI does NOT test:**
-- Unit tests are not run in CI
-- No test failure blocks the merge
+**Async testing:** Swift Testing supports `async throws` on `@Test` functions natively. XCTest UI tests use `@MainActor` annotation.
 
 ---
 

@@ -4,186 +4,184 @@
 
 ## Tech Debt
 
-**Debug `print()` statements in production code:**
-- Issue: 16 `print()` calls in production source files instead of `os.Logger`. `AppLogger` exists at `BoosterSimApp/Utilities/AppLogger.swift` but only covers 4 categories — no `AppLogger.environmentOverride` or `AppLogger.simCtl`.
-- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift` (15 calls), `BoosterSimApp/Services/SimCtlService.swift` (1 call)
-- Impact: Debug output leaks to user's stdout in release builds; inconsistent with the `os.Logger` pattern used elsewhere.
-- Fix approach: Add `AppLogger.environmentOverride` and `AppLogger.simCtl` categories; replace all `print()` calls with the appropriate `Logger` calls.
+**Unwired Views — StatusBarSectionView, BuildStatsSectionView, AXTreeView, CameraView:**
+- Issue: Four fully-implemented SwiftUI views exist in `BoosterSimApp/Views/SideWindow/` but are not wired into any tab. `SideTab` enum (`BoosterSimApp/Views/SideWindow/SideTab.swift`) defines only four tabs: `.capture`, `.design`, `.actions`, `.network`. `ActionsTabView` (`BoosterSimApp/Views/SideWindow/tabs/ActionsTabView.swift`) only embeds `EnvironmentOverridesView` and `DeepLinkSectionView`. The services for these views (`StatusBarService`, `BuildStatsService`, `AXInspectorService`, `CameraService`) are instantiated in `AppDelegate` and injected as environment objects in `SideWindowView`, but no tab renders them.
+- Files: `BoosterSimApp/Views/SideWindow/StatusBarSectionView.swift`, `BoosterSimApp/Views/SideWindow/BuildStatsSectionView.swift`, `BoosterSimApp/Views/SideWindow/AXTreeView.swift`, `BoosterSimApp/Views/SideWindow/CameraView.swift`, `BoosterSimApp/Views/SideWindow/SideTab.swift`, `BoosterSimApp/Views/SideWindow/tabs/ActionsTabView.swift`
+- Impact: Users cannot access status bar presets, build stats, VoiceOver navigation, or camera routing. Services run and consume resources (timers, simctl calls) for features nobody can use.
+- Fix approach: Add new `SideTab` cases (e.g. `.tools`, `.a11y`) or consolidate these views into the existing `.actions` tab. Remove services from `AppDelegate` initialization if deferring.
 
-**EnvironmentOverrideService is a 279-line monolith with 12 near-identical setter methods:**
-- Issue: Every accessibility toggle (`setReduceMotion`, `setGrayscale`, `setSmartInvert`, etc.) follows the same pattern of `print` → set published property → call `setAccessibility()`. 10 of 12 setters are mechanically identical except for the key string and notification name.
-- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift`
-- Impact: Adding a new accessibility toggle requires duplicating ~6 lines. Any bug fix in the pattern must be applied 10 times.
-- Fix approach: Extract a single `setAccessibilityToggle(key:notification:enabled:udid:)` method; have the individual setters call it. Remove the `print()` calls at the same time.
+**Placeholder Children in AXTreeView:**
+- Issue: `AXNodeRowView` in `BoosterSimApp/Views/SideWindow/AXTreeView.swift:122-131` renders the text "Children not yet loaded" when a node is expanded. No mechanism exists to load child nodes — `AXInspectorService` (`BoosterSimApp/Services/AXInspectorService.swift`) fetches only root-level nodes via `loadRoot(for:)`.
+- Files: `BoosterSimApp/Views/SideWindow/AXTreeView.swift:122-131`, `BoosterSimApp/Services/AXInspectorService.swift`
+- Impact: The VoiceOver Navigator tree is flat — users can see top-level elements but cannot drill into the hierarchy, which is the primary value of an accessibility inspector.
+- Fix approach: Add a `loadChildren(for:)` method to `AXInspectorService` that calls `fetchChildren(of:depth:)` (already implemented at line 61) on the underlying AXUIElement, and wire it into `AXNodeRowView`'s expand action.
 
-**SideWindowController init takes 12 service parameters:**
-- Issue: `SideWindowController.init` at `BoosterSimApp/Windows/SideWindowController.swift:23-55` receives every service as a constructor argument and passes them to `embedSwiftUIContent`. Adding any new service requires modifying both `AppDelegate.swift` (where it's constructed) and the controller.
-- Files: `BoosterSimApp/Windows/SideWindowController.swift`, `BoosterSimApp/App/AppDelegate.swift`
-- Impact: Constructor grows linearly with each new feature service.
-- Fix approach: Pass an environment container or use SwiftUI's `@Environment` injection at the hosting view level instead of threading through the controller.
+**Placeholder Timing Metrics in TrafficDetailView:**
+- Issue: The Metrics tab in `BoosterSimApp/Views/SideWindow/network/TrafficDetailView.swift:117-127` shows only a total-duration bar (from `PulseNetworkEvent.metrics.taskInterval.duration`) and the static text "Detailed timing requires Pulse integration". No DNS lookup, TLS handshake, TTFB, or download breakdown is displayed.
+- Files: `BoosterSimApp/Views/SideWindow/network/TrafficDetailView.swift:117-127`
+- Impact: The metrics tab provides minimal value for performance debugging. Users must look at raw timing numbers and manually calculate sub-phases.
+- Fix approach: Parse `URLSessionTaskTransactionMetrics` fields (fetch start, connect start, response start) from the Pulse protocol and render per-phase timing bars.
 
-**`loadCurrentState` fires 12 concurrent simctl processes on every call:**
-- Issue: `EnvironmentOverrideService.loadCurrentState(udid:)` at `BoosterSimApp/Services/EnvironmentOverrideService.swift:55-105` launches 12 separate `xcrun simctl` processes simultaneously (3 `simctl ui` + 1 `simctl spawn defaults read` for Smart Invert + 8 more `simctl spawn defaults read` for accessibility keys). Each process is a separate `Future` that spawns `Process()`.
-- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift`
-- Impact: 12 concurrent process spawns when switching simulators. Unnecessary load; could be consolidated into a single `xcrun simctl` call or batched.
-- Fix approach: Use `simctl spawn` with a shell script that reads all keys at once, or consolidate into fewer process invocations.
+**Inconsistent Logging — `print()` vs `AppLogger`:**
+- Issue: `SimCtlService` (`BoosterSimApp/Services/SimCtlService.swift:35`) and `EnvironmentOverrideService` (`BoosterSimApp/Services/EnvironmentOverrideService.swift:109,117,126,133,140,146,155,181,190,198,206,229,237,245,253`) use bare `print("[ServiceName] ...")` statements instead of the project's `AppLogger` utility (`BoosterSimApp/Utilities/AppLogger.swift`). `AppLogger` supports log levels, OSLog integration, and privacy redaction per `docs/code-standards.md`.
+- Files: `BoosterSimApp/Services/SimCtlService.swift:35`, `BoosterSimApp/Services/EnvironmentOverrideService.swift` (16 occurrences)
+- Impact: Log output bypasses OSLog, cannot be filtered in Console.app, and may log sensitive data (UDIDs appear in print statements) without the privacy redaction `AppLogger` provides.
+- Fix approach: Replace all `print("[ClassName] ...")` calls with `AppLogger.<category>.<level>("...")` calls. Use `privacy: .private` for UDID parameters.
+
+**Direct Process Spawning in SimulatorWindowTracker:**
+- Issue: `refreshDeviceTypeCache()` in `BoosterSimApp/Services/SimulatorWindowTracker.swift:60-84` creates a `Process()` directly to run `xcrun simctl list devices --json`, bypassing `SimCtlService` (`BoosterSimApp/Services/SimCtlService.swift`). The project's code standards (`docs/code-standards.md`) and plan reports explicitly prohibit direct subprocess spawning.
+- Files: `BoosterSimApp/Services/SimulatorWindowTracker.swift:60-84`
+- Impact: Error handling is weaker (silently returns on failure), no logging, no timeout support. Inconsistent with all other simctl callers.
+- Fix approach: Route through `SimCtlService.run()` and handle the JSON parsing from the returned string.
+
+## Known Bugs
+
+**`CameraService` dispatches UI work to global queue:**
+- Symptoms: `CameraService` (`BoosterSimApp/Services/CameraService.swift:53-57`) uses `DispatchQueue.global(qos: .userInitiated).async` for `probeSupport()` and `pressItem()`. Inside the global block, it reads AX attributes (which are UI operations on the Simulator process) and calls `AXUIElementPerformAction`. While AX calls are thread-safe, the `Thread.sleep(forTimeInterval: 0.15)` in `pressItem` (line 67) is a fragile timing assumption.
+- Files: `BoosterSimApp/Services/CameraService.swift:53-57,67`
+- Trigger: Toggle camera routing while Simulator is busy or slow to respond.
+- Workaround: None.
+
+**`PulseServer` silently swallows listener state changes and errors:**
+- Symptoms: In `BoosterSimApp/Services/PulseServer.swift:45-52`, the `stateUpdateHandler` has empty `break` branches for `.ready`, `.failed`, and all other states. The `catch` block on line 52 is also empty. There is no logging when the server fails to start or when the Bonjour service encounters an error.
+- Files: `BoosterSimApp/Services/PulseServer.swift:45-52`
+- Trigger: Port conflict, network permission denial, or Bonjour registration failure.
+- Workaround: None — the Connect UI shows "searching" indefinitely with no diagnostic output.
 
 ## Security Considerations
 
-**PulseServer listens on all interfaces with no authentication:**
-- Risk: `PulseServer.start()` at `BoosterSimApp/Services/PulseServer.swift:34` creates an `NWListener` with `params.includePeerToPeer = true` on port 0 (all interfaces, Bonjour-advertised as `_pulse._tcp`). Any process on the machine (or network, with peer-to-peer enabled) can connect and send binary Pulse packets.
-- Files: `BoosterSimApp/Services/PulseServer.swift`, `BoosterSimApp/Services/PulseClientConnection.swift`
-- Current mitigation: 10 MB buffer cap per connection (`PulseClientConnection.swift:24`). Unknown packet codes are silently skipped. No data is written to disk from network input.
-- Recommendations: Restrict to localhost (`NWEndpoint.Host.loopback`) unless Bonjour discovery is required. Add a handshake secret or token validation. Consider restricting `includePeerToPeer` to false.
+**Pulse TCP Server has no authentication or encryption:**
+- Risk: `PulseServer` (`BoosterSimApp/Services/PulseServer.swift:37`) opens a TCP listener with `params.includePeerToPeer = true` on a Bonjour-advertised port (`_pulse._tcp.`). Any process on the local network (or same machine) can connect and inject fabricated `PulseNetworkEvent` data, which populates the network traffic UI in `ConnectService`.
+- Files: `BoosterSimApp/Services/PulseServer.swift:37-40`, `BoosterSimApp/Services/PulseClientConnection.swift`
+- Current mitigation: Only runs on localhost (no explicit TLS). Bonjour `_pulse._tcp.` may advertise on the local network segment.
+- Recommendations: Restrict `NWParameters` to local-only (remove `includePeerToPeer`), add a handshake token, or validate the connecting app's bundle identity.
 
-**CA private key stored with 0o600 but generated with RSA 2048 and 90-day expiry:**
-- Risk: `CertificateStore.runOpenSSL()` at `BoosterSimApp/Services/CertificateStore.swift:78-92` generates a self-signed CA with `rsa:2048` and `-days 90`. RSA 2048 is acceptable but 90 days is very short — users must re-generate and re-install quarterly.
-- Files: `BoosterSimApp/Services/CertificateStore.swift`
-- Current mitigation: Key and cert files stored with `0o600` permissions in `~/Library/Application Support/BoosterSimApp/Certificates/` (excluded from backup). Staging uses `0o700` temp directory with deferred cleanup. Backup/restore during install is atomic.
-- Recommendations: Consider extending to 365 days or making configurable. The certificate is only used for local simulator MITM — the short expiry creates unnecessary re-install friction.
+**`as!` Force Casts on AXValue types:**
+- Risk: `WindowObserver.swift:138-140` and `AXInspectorService.swift:95` use `val as! AXValue` after checking `CFGetTypeID`. While the type check makes the cast safe in practice, the project's code standards (`docs/code-standards.md:162`) explicitly prohibit `as!` on user data. If the AX API returns an unexpected type that happens to share a type ID, this would crash.
+- Files: `BoosterSimApp/Services/WindowObserver.swift:138-140`, `BoosterSimApp/Services/AXInspectorService.swift:95`
+- Current mitigation: Preceding `CFGetTypeID` guard makes this practically safe.
+- Recommendations: Use `guard let axVal = val as? AXValue` or extract the value in a helper that returns `Optional`.
 
-**Deep link input passed directly to `xcrun simctl openurl` without sanitization:**
-- Risk: `DeepLinkService.openInSimulatorAsync(udid:)` at `BoosterSimApp/Services/DeepLinkService.swift:67-94` validates that the URL has a scheme but does not restrict which schemes are allowed. A user could pass `file:///` or other potentially dangerous schemes.
-- Files: `BoosterSimApp/Services/DeepLinkService.swift`
-- Current mitigation: `simctl openurl` itself is sandboxed to the Simulator environment. The URL string is passed as a single argument to `Process.arguments`.
-- Recommendations: Whitelist allowed URL schemes (`http://`, `https://`, and user-defined custom schemes). Reject `file://` and other system schemes.
+**`NWEndpoint.Port` Force Unwrap:**
+- Risk: `PulseServer.swift:36` force-unwraps `NWEndpoint.Port(rawValue: 0)!`. Port 0 is always valid (requests any available port), so this cannot fail, but it violates the code standard.
+- Files: `BoosterSimApp/Services/PulseServer.swift:36`
+- Current mitigation: Port 0 is guaranteed valid by the system.
+- Recommendations: Use `NWEndpoint.Port(rawValue: 0)!` only if necessary, or restructure to avoid the unwrap.
 
-**OpenSSL process invocation for certificate generation:**
-- Risk: `CertificateStore` shells out to `/usr/bin/openssl` at `BoosterSimApp/Services/CertificateStore.swift:78`. If the binary is replaced (unlikely on macOS), arbitrary code executes. The `-subj` flag passes the CN inline, avoiding interactive prompts.
-- Files: `BoosterSimApp/Services/CertificateStore.swift`
-- Current mitigation: Checks `FileManager.default.fileExists(atPath: "/usr/bin/openssl")` before invocation. Output and error are piped (not passed through shell). Timeout of 30 seconds via `DispatchWorkItem`.
-- Recommendations: Consider using `Security` framework's `SecCertificateCreateWithData` with programmatically-constructed ASN.1 to eliminate the subprocess dependency. At minimum, verify the binary's code signature before execution.
+**UDIDs Logged via `print()` in EnvironmentOverrideService:**
+- Risk: `BoosterSimApp/Services/EnvironmentOverrideService.swift` passes UDID strings directly into `print()` calls (lines 109, 117, 126, 133, 140, 146, etc.). The code standards require using `AppLogger` with `privacy: .private` for UDIDs.
+- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift` (16 print statements)
+- Current mitigation: None.
+- Recommendations: Migrate to `AppLogger` with privacy markers.
 
 ## Performance Bottlenecks
 
-**CaptureService accumulates all frames in memory during recording:**
-- Problem: `CaptureService` at `BoosterSimApp/Services/CaptureService.swift:46` stores every captured `CMSampleBuffer` in `capturedFrames: [CMSampleBuffer]`. At 15 FPS with Retina resolution (e.g., 2× a 430×932 iPhone frame = 860×1864), each frame's pixel buffer is ~6 MB uncompressed. A 30-second recording at 15 FPS = 450 frames × ~6 MB = ~2.7 GB of pixel buffer memory.
-- Files: `BoosterSimApp/Services/CaptureService.swift`
-- Cause: `CaptureStreamOutput.onFrame` at line 103 appends each frame to the array. No frame dropping or size limit. Export only happens after recording stops.
-- Improvement path: Write frames to a temporary file-backed buffer during recording (e.g., `AVAssetWriter` in real-time instead of post-hoc). Add a maximum recording duration or memory guard. Downscale before storing (the `quality` setting controls FPS but not resolution — config at line 90 always uses `display.width * 2`).
+**`CaptureService` Accumulates All Frames in Memory:**
+- Problem: `capturedFrames: [CMSampleBuffer]` (`BoosterSimApp/Services/CaptureService.swift:68`) appends every frame during recording into an array held in memory. A 30-second recording at 30fps = 900 `CMSampleBuffer` objects, each potentially holding uncompressed or compressed pixel data.
+- Files: `BoosterSimApp/Services/CaptureService.swift:68,98,223,256`
+- Cause: No streaming write-to-disk during capture; all frames buffered until `exportCapture()` is called.
+- Improvement path: Write frames to a temporary file incrementally via `AVAssetWriter`, or limit the in-memory buffer and spill to disk.
 
-**GIF export creates a new `CIContext()` per frame:**
-- Problem: `CaptureService.exportAsGIF()` at `BoosterSimApp/Services/CaptureService.swift:258` creates `CIContext()` inside the frame loop. `CIContext` allocation is expensive (~tens of ms) and should be created once and reused.
-- Files: `BoosterSimApp/Services/CaptureService.swift:258`
-- Cause: `let context = CIContext()` is inside the `for frame in capturedFrames` loop.
-- Improvement path: Create `CIContext()` once before the loop and reuse it for all frames.
+**`BuildStatsService` Scans Entire DerivedData Every 5 Seconds:**
+- Problem: `scanDerivedData()` (`BoosterSimApp/Services/BuildStatsService.swift:31-63`) enumerates all directories in `~/Library/Developer/Xcode/DerivedData`, checks each for a `LogStoreManifest.plist`, and parses up to 20 manifests every 5 seconds. The `mtimeCache` optimization skips re-parsing unchanged files but still performs `contentsOfDirectory` + 20 `fileExists` calls each cycle.
+- Files: `BoosterSimApp/Services/BuildStatsService.swift:22-63`
+- Cause: No `FSEvents`-based or `DispatchSource` file-watching; relies on polling.
+- Improvement path: Use `DispatchSource.makeFileSystemObjectSource` to watch the DerivedData directory for changes, or increase the poll interval when no Simulator is active.
 
-**BuildStatsService scans all DerivedData projects every 5 seconds:**
-- Problem: `BuildStatsService.scanDerivedData()` at `BoosterSimApp/Services/BuildStatsService.swift:36-63` runs on a 5-second `Timer`, enumerates all directories in `~/Library/Developer/Xcode/DerivedData`, reads `contentModificationDate` for each, and parses `LogStoreManifest.plist` for any changed files. Large DerivedData folders (100+ projects) cause noticeable I/O.
-- Files: `BoosterSimApp/Services/BuildStatsService.swift`
-- Cause: Polling interval is fixed at 5 seconds. The 20-project prefix limit helps but the `contentsOfDirectory` call still enumerates everything.
-- Improvement path: Use `FSEvents` or `DispatchSource.makeFileSystemObjectSource` to watch the DerivedData directory for changes instead of polling. Increase the poll interval to 15-30 seconds as a quick win.
-
-**SimulatorWindowTracker polls CGWindowList every 2 seconds as fallback:**
-- Problem: `SimulatorWindowTracker.startPolling()` at `BoosterSimApp/Services/SimulatorWindowTracker.swift:162-165` runs a 2-second `Timer` that calls `CGWindowListCopyWindowInfo` and `scanAndUpdate()` even when no Simulator windows exist.
-- Files: `BoosterSimApp/Services/SimulatorWindowTracker.swift`
-- Cause: The poll is a fallback for edge cases where AXObserver misses events. It runs unconditionally once `startTracking()` is called.
-- Improvement path: Disable the poll timer when no simulator PIDs are detected and re-enable on `didLaunchApplicationNotification`. Increase interval to 5 seconds.
+**`EnvironmentOverrideService.loadCurrentState` Fires 12 Concurrent simctl Processes:**
+- Problem: `loadCurrentState(udid:)` (`BoosterSimApp/Services/EnvironmentOverrideService.swift:85-105`) creates 12 separate `simCtl.run()` Combine pipelines simultaneously (1 for appearance, 1 for smart invert, 10 for accessibility keys). Each spawns a background `Process` running `xcrun simctl`.
+- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift:85-105`
+- Cause: Individual `simctl spawn` calls for each defaults key.
+- Improvement path: Batch all accessibility reads into a single `simctl spawn` that runs a shell script, or use `simctl spawn udid defaults read com.apple.Accessibility` once and parse all keys.
 
 ## Fragile Areas
 
-**AX API calls use force casts on `AXValue` types:**
-- Files: `BoosterSimApp/Services/AXInspectorService.swift:94`, `BoosterSimApp/Services/WindowObserver.swift:138,140`
-- Why fragile: `AXValueGetValue` requires an `UnsafeMutableRawPointer`, forcing the `as! AXValue` cast. If AX returns an unexpected type (e.g., a different AXValue variant), the force cast crashes. The `CFGetTypeID` guard checks that it's an AXValue but not that it's the correct AXValue type variant.
-- Safe modification: Add a separate `CFGetTypeID` check for the specific AXValue variant (point vs. rect vs. size) before casting, or use a safe wrapper that returns `nil` on type mismatch.
+**`SideWindowController` Constructor with 12 Service Parameters:**
+- Files: `BoosterSimApp/Windows/SideWindowController.swift:46-61`, `BoosterSimApp/App/AppDelegate.swift:34-44`
+- Why fragile: Adding a new service requires updating the `SideWindowController.init()` parameter list, the `embedSwiftUIContent()` call, the `AppDelegate` lazy property, and the `SideWindowView` preview. The `#Preview` block in `SideWindowView.swift:86-119` is already 33 lines of pure boilerplate.
+- Safe modification: When adding a service, update all four locations in a single commit. Consider a service container/registry to decouple.
+- Test coverage: No unit tests for `SideWindowController`; changes only verified through UI tests or manual testing.
 
-**Force unwrap on NWEndpoint.Port in PulseServer:**
-- Files: `BoosterSimApp/Services/PulseServer.swift:35`
-- Why fragile: `NWEndpoint.Port(rawValue: 0)!` — `0` is a valid raw value for port 0 (auto-assign), so this unwrap is safe in practice. However, it violates the project's own code standard ("No `try!` or `as!` force-casts on user data" from `docs/code-standards.md`) and sets a bad precedent.
-- Safe modification: Use `NWEndpoint.Port(rawValue: 0)` with `guard let` or the `??` operator with a fallback. Consider a static `anyPort` constant.
+**AX Observer `selfPtr` Manual Memory Management:**
+- Files: `BoosterSimApp/Services/WindowObserver.swift:17,101-114`
+- Why fragile: Uses `Unmanaged.passRetained(self)` to create a raw pointer for the C-style `AXObserver` callback, and must pair it with `Unmanaged.fromOpaque(selfPtr).release()` in `stopObserving()`. If `stopObserving()` is never called (e.g., exception during setup), the retain is leaked. The `deinit` guard helps, but the pattern is error-prone.
+- Safe modification: Always call `stopObserving()` before re-observing. Verify `deinit` is called when `SimulatorWindowTracker` releases observers.
+- Test coverage: No tests for observer lifecycle.
 
-**Force unwrap on streamOutput in CaptureService:**
-- Files: `BoosterSimApp/Services/CaptureService.swift:103`
-- Why fragile: `streamOutput!` is used immediately after assignment on the line above. If `CaptureStreamOutput.init` fails (it can't — it's a simple closure capture), the unwrap would crash. Low risk but unnecessary.
-- Safe modification: Use `guard let streamOutput` and return with an error.
+**CertificateService State Machine with `assertionFailure` on Invalid Transitions:**
+- Files: `BoosterSimApp/Services/CertificateService.swift:167-168`
+- Why fragile: The `transition(to:)` method calls `assertionFailure("Illegal certificate transition: ...")` in debug builds but silently proceeds with the invalid transition in release builds. An invalid transition could leave the service in an inconsistent state (e.g., trying to install while already installing).
+- Safe modification: Guard against invalid transitions in release builds by returning `false` or throwing.
+- Test coverage: `CertificateServiceTests` (`BoosterSimAppTests/CertificateServiceTests.swift`) tests valid transitions but not the assertionFailure path (assertions are stripped in test builds by default).
 
-**Single-instance check via NSRunningApplication count is racy:**
-- Files: `BoosterSimApp/App/AppDelegate.swift:57-61`
-- Why fragile: `applicationDidFinishLaunching` checks `runningInstances.count > 1` and calls `NSApp.terminate(nil)`. Between the check and termination, a third instance could launch. The LSUIElement mode (menu-bar app) means the user can't see duplicate instances easily.
-- Safe modification: Use a file lock (`flock` on a file in `~/Library/Application Support/BoosterSimApp/`) or `XPC` singleton pattern for reliable mutual exclusion.
-
-**Screen height assumption uses first screen only for Y-flip:**
-- Files: `BoosterSimApp/Services/WindowObserver.swift:143`, `BoosterSimApp/Services/AXInspectorService.swift:38`
-- Why fragile: Both use `NSScreen.screens.first?.frame.height ?? 0` to convert between Quartz (top-origin) and AppKit (bottom-origin) coordinates. If the Simulator window is on a secondary display with a different height, the Y coordinate will be wrong, causing the side panel to misalign.
-- Safe modification: Determine which screen the Simulator window is on (using `NSScreen.screens.contains(where:)` with the window's frame) and use that screen's height for the flip.
-
-**EnvironmentOverrideService silently swallows all simctl errors:**
-- Files: `BoosterSimApp/Services/EnvironmentOverrideService.swift` (all `.sink(receiveCompletion: { _ in }, ...)` calls)
-- Why fragile: Every setter uses `.sink(receiveCompletion: { _ in }, receiveValue: { _ in })` — errors from `xcrun simctl` are silently discarded. If a command fails (wrong UDID, simulator mid-reboot), the published state is already optimistically updated, leaving the UI and simulator out of sync. This was documented as a root cause in debugging sessions (see `plans/reports/debugger-0327-1725-bold-text-toggle-not-working.md`).
-- Safe modification: At minimum, log errors via `AppLogger`. Consider reverting optimistic state updates on failure, or exposing a `lastError: String?` published property.
+**Quartz-to-AppKit Y-Coordinate Flip in Multiple Locations:**
+- Files: `BoosterSimApp/Services/WindowObserver.swift:142-143`, `BoosterSimApp/Services/WindowEnumerator.swift:35-37`, `BoosterSimApp/Utilities/PositionCalculator.swift` (assumed)
+- Why fragile: The same Y-coordinate flip logic ("screenHeight - quartzY - height") is duplicated in `WindowObserver`, `WindowEnumerator`, and likely `PositionCalculator`. If any copy is wrong or the screen height source differs, the panel positions incorrectly.
+- Safe modification: Extract to a single `CGPoint.appKitY(screenHeight:)` extension in a shared utility.
+- Test coverage: No tests for coordinate conversion.
 
 ## Scaling Limits
 
-**ConnectService stores maximum 500 network events in memory:**
-- Current capacity: `ConnectService.maxEvents = 500` at `BoosterSimApp/Services/ConnectService.swift:29`. Each `NetworkEvent` holds optional `requestBody` and `responseBody` `Data` blobs.
-- Limit: With large request/response bodies (e.g., image uploads, JSON payloads of 100+ KB), 500 events could consume significant memory. The `removeFirst` truncation is O(n) on Array.
-- Scaling path: Use a ring buffer (Array with head index) for O(1) truncation. Add a maximum total size cap in addition to the event count cap. Consider streaming body data to disk.
+**DerivedData Directory Enumeration:**
+- Current capacity: `BuildStatsService` limits to 20 most-recently-modified project manifests and 30 recent build records.
+- Limit: Developers with hundreds of Xcode projects will see builds from unknown projects. The `contentsOfDirectory` call on a large DerivedData can be slow.
+- Scaling path: Filter by recently-accessed projects (check `.xcodeproj` last-open date) or let the user select which projects to monitor.
 
-**AXInspectorService loads the entire accessibility tree to depth 5:**
-- Current capacity: `AXInspectorService.maxDepth = 5` at `BoosterSimApp/Services/AXInspectorService.swift:32`. Each level fans out to all children. Complex app screens (e.g., settings pages with many table rows) could produce thousands of `AXNode` objects.
-- Limit: No limit on total node count — only depth is bounded. A very wide tree at depth 5 could still produce a large result set.
-- Scaling path: Add a `maxNodes` cap (e.g., 2000) that stops recursion when reached. Show a "tree truncated" indicator in the UI.
+**Network Event Buffer:**
+- Current capacity: `ConnectService` caps at `maxEvents = 500` (`BoosterSimApp/Services/ConnectService.swift:29`). Older events are silently dropped.
+- Limit: During active debugging with many network requests, useful early events may be lost.
+- Scaling path: Add pagination or a persistent event store (SQLite) for the session.
+
+**Pulse Client Buffer:**
+- Current capacity: `PulseClientConnection` enforces a 10 MB buffer cap (`BoosterSimApp/Services/PulseClientConnection.swift:36`) and disconnects clients that exceed it.
+- Limit: A single large request/response pair (e.g., image upload) could exceed this.
+- Scaling path: Stream large bodies to disk instead of buffering in memory.
 
 ## Dependencies at Risk
 
-**Hardcoded dependency on `/usr/bin/xcrun` and `/usr/bin/openssl`:**
-- Risk: Both paths are assumed to exist. `SimCtlService` checks for `/usr/bin/xcrun` before each call, but `CertificateStore` only checks before `generate()`. If Xcode is moved or a future macOS version changes the path, all simctl features break silently.
-- Impact: Core features (environment overrides, build stats, deep links, certificates, camera) all depend on `xcrun simctl`.
-- Migration plan: Use `XcodeDetector` (already exists at `BoosterSimApp/Services/XcodeDetector.swift`) to resolve the actual Xcode path and derive `xcrun` from it. For OpenSSL, fall back to `Security` framework APIs.
+**ScreenCaptureKit (SCStream):**
+- Risk: `CaptureService` (`BoosterSimApp/Services/CaptureService.swift`) uses `SCStream` and `SCStreamOutput` for screen recording. These APIs are available from macOS 12.3+ but have changed behavior across macOS versions (especially 14/15). The `CaptureStreamOutput` delegate method signature and `SCStreamConfiguration` properties may need updates.
+- Impact: Screen capture could break on new macOS versions.
+- Migration plan: Pin minimum deployment target and test each macOS major version. The entitlement `BoosterHealth-Entitlements.plist` references Screen Recording.
 
-**HealthKit entitlement declared but no HealthKit usage in source:**
-- Risk: `BoosterHealth-Entitlements.plist` declares `com.apple.developer.healthkit` and `com.apple.developer.healthkit.access`. No Swift file in `BoosterSimApp/` imports HealthKit or references HK types. This is leftover from a planned feature (see `plans/0328-1642-health-data-generator/`).
-- Impact: Unused entitlement may cause App Store review questions or unnecessary permission prompts. May also prevent distribution outside the Mac App Store if not justified.
-- Migration plan: Remove the entitlement entries if the HealthKit feature is not shipping in the current release.
+**`xcrun simctl` CLI Interface:**
+- Risk: Most features depend on `xcrun simctl` commands (`SimCtlService`, `EnvironmentOverrideService`, `SimulatorWindowTracker`, `CertificateService`). Apple can change flags, output format, or behavior in Xcode betas.
+- Impact: Any simctl change breaks environment overrides, status bar control, certificate management, and device detection.
+- Migration plan: Pin to tested Xcode versions. The `SimCtlService` abstraction layer makes it easier to adapt, but output parsing (e.g., JSON format in `SimulatorWindowTracker`) is fragile.
 
 ## Missing Critical Features
 
-**No timeout on SimCtlService process execution:**
-- Problem: `SimCtlService.run()` at `BoosterSimApp/Services/SimCtlService.swift:34-72` spawns `Process()` and calls `waitUntilExit()` with no timeout. If `xcrun simctl` hangs (known to happen with unresponsive simulators), the background thread blocks indefinitely.
-- Blocks: Any feature using simctl (environment overrides, certificate install, deep link, build stats, camera).
-- Fix approach: Add a `DispatchWorkItem` timeout (like `CertificateStore` already does at line 83-86) or use `process.waitUntilExit(for: timeout)` if available.
+**No Error Recovery for Pulse Server Failures:**
+- Problem: If the Pulse TCP server fails (port in use, Bonjour error), it stays in `.disconnected` state with no retry or user-visible error. The Connect UI shows "searching" indefinitely.
+- Blocks: Users cannot diagnose why network traffic capture isn't working.
 
-**No error propagation from PulseServer state changes:**
-- Problem: `PulseServer.start()` at `BoosterSimApp/Services/PulseServer.swift:40-45` has empty `switch` cases for `.ready`, `.failed`, and default — all errors are silently swallowed. The `ConnectService` depends on `connectionState` to show UI status, but server-level failures (port in use, permission denied) are invisible.
-- Blocks: Network debugging feature shows no feedback when the server fails to start.
-- Fix approach: Add an `onError: ((String) -> Void)?` callback or `@Published var lastError: String?` to `PulseServer`. Call it from the `.failed` state handler.
+**No Certificate Expiry Monitoring:**
+- Problem: `CertificateService` checks certificate status on launch and when the active simulator changes, but does not monitor for approaching expiry. The certificate metadata includes an `expiry` date that is never used for proactive alerts.
+- Blocks: Users discover certificate expiration only when HTTPS interception fails.
 
-**CI does not run unit tests:**
-- Problem: `.github/workflows/ci.yml` has `build` and `ui-tests` jobs but no job that runs `BoosterSimAppTests`. The `ui-tests` job only runs `ScreenshotTests` — the two unit test files (`BoosterSimAppTests.swift`, `CertificateServiceTests.swift`) are never executed in CI.
-- Blocks: Unit test regressions go undetected in pull requests.
-- Fix approach: Add a `test` job to `ci.yml` that runs `xcodebuild test -only-testing:BoosterSimAppTests`.
+**No Settings Persistence for Connect Service:**
+- Problem: `ConnectService` state (connection status, event list) is purely in-memory. Closing and reopening the app loses all captured traffic history.
+- Blocks: Users cannot review traffic from a previous session.
 
 ## Test Coverage Gaps
 
-**No tests for PulseServer, PulseClientConnection, or PulsePacketDecoder:**
-- What's not tested: The entire Pulse binary protocol (header parsing, zlib decompression, packet dispatch, client handshake). These are complex pure-logic components ideal for unit testing.
-- Files: `BoosterSimApp/Services/PulseServer.swift`, `BoosterSimApp/Services/PulseClientConnection.swift`, `BoosterSimApp/Services/PulsePacketDecoder.swift`
-- Risk: Binary protocol regressions (endian handling, buffer boundaries, decompression) will only be caught by manual testing against a real Simulator.
-- Priority: High — protocol parsing is the most testable and most fragile code.
+**No Unit Tests for Service Layer:**
+- What's not tested: `SimCtlService`, `ConnectService`, `PulseServer`, `PulseClientConnection`, `PulsePacketDecoder`, `CaptureService`, `BuildStatsService`, `WindowObserver`, `WindowEnumerator`, `SimulatorWindowTracker`, `EnvironmentOverrideService`, `CameraService`, `StatusBarService`, `DesignComparisonService`, `DeepLinkService`.
+- Files: All files under `BoosterSimApp/Services/`
+- Risk: Core business logic (Pulse protocol parsing, simctl argument building, coordinate conversion, certificate state machine) has zero automated test coverage.
+- Priority: High — `PulsePacketDecoder` and `PulseClientConnection` handle binary protocol parsing where regressions are likely.
 
-**No tests for SimCtlService, EnvironmentOverrideService, or ConnectService:**
-- What's not tested: simctl process spawning, environment override state management, network event storage and truncation.
-- Files: `BoosterSimApp/Services/SimCtlService.swift`, `BoosterSimApp/Services/EnvironmentOverrideService.swift`, `BoosterSimApp/Services/ConnectService.swift`
-- Risk: State machine regressions (especially the `cancellables` pattern), event truncation logic, and timeout behavior.
-- Priority: Medium — these have external dependencies (simctl, NWConnection) but their state management logic is testable.
+**No Unit Tests for Models:**
+- What's not tested: `NetworkEvent`, `TrafficFilter`, `BuildRecord`, `SimulatorWindow`, `AXNode`, `AppSettings`, `StatusBarConfig`.
+- Files: All files under `BoosterSimApp/Models/`, `BoosterSimApp/Views/SideWindow/network/NetworkEventModel.swift`
+- Risk: Filtering logic, computed properties, and model transformations are untested.
+- Priority: Medium — model logic is typically simpler but `TrafficFilter.matches()` has boolean logic worth testing.
 
-**No tests for SimulatorWindowTracker, WindowObserver, or WindowEnumerator:**
-- What's not tested: Simulator window detection, device type classification from simctl JSON, AX observer lifecycle, CGWindowList coordinate conversion.
-- Files: `BoosterSimApp/Services/SimulatorWindowTracker.swift`, `BoosterSimApp/Services/WindowObserver.swift`, `BoosterSimApp/Services/WindowEnumerator.swift`
-- Risk: Multi-monitor Y-flip bugs, observer cleanup on simulator quit, stale PID handling.
-- Priority: Medium — core positioning logic but requires mocking AX/CG APIs.
-
-**No tests for CertificateStore file management:**
-- What's not tested: Atomic file install (backup → move → cleanup), rollback on failure, PEM-to-DER conversion, metadata extraction.
-- Files: `BoosterSimApp/Services/CertificateStore.swift`
-- Risk: File corruption during certificate rotation, backup restoration failure, metadata parsing edge cases.
-- Priority: Medium — the atomic install pattern is complex and a regression would silently break certificate management.
-
-**Only 2 unit test files for 7,584 lines of Swift:**
-- What's not tested: The vast majority of business logic. `BoosterSimAppTests/CertificateServiceTests.swift` tests transition logic (pure enum). `BoosterSimAppTests/BoosterSimAppTests.swift` is a placeholder.
-- Files: All files under `BoosterSimApp/Services/`, `BoosterSimApp/Windows/`, `BoosterSimApp/Views/`
-- Risk: Any refactor or new feature has no regression safety net.
-- Priority: High — the codebase is at a size where untested refactoring is risky.
+**UI Tests Are Screenshot-Only:**
+- What's not tested: `BoosterSimAppUITests/` contains only `ScreenshotTests.swift` (visual regression screenshots) and a basic launch test. No functional UI tests exercise tab navigation, button presses, environment override toggling, or certificate installation flow.
+- Files: `BoosterSimAppUITests/ScreenshotTests.swift`, `BoosterSimAppUITests/BoosterSimAppUITests.swift`
+- Risk: No automated verification that UI controls are wired and functional.
+- Priority: Medium — manual testing is the only verification method.
 
 ---
 
