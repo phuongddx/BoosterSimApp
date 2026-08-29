@@ -77,15 +77,19 @@ enum CommandFrame {
     /// when the declared length violates the cap.
     static func decodeOne(from buffer: inout Data) throws -> Data {
         guard buffer.count >= prefixLength else { throw DecodeError.incomplete }
+        // Copy into a re-based index space: a Data produced by removeFirst can
+        // keep a non-zero startIndex, and subdata(in:)/raw offsets then trap
+        // (the Data-slice alignment trap — connect-transport-rewrite precedent).
+        let bytes = [UInt8](buffer)
         var length = UInt32(0)
-        for byte in buffer.prefix(prefixLength) {
+        for byte in bytes[0..<prefixLength] {
             length = (length << 8) | UInt32(byte)
         }
         guard Int(length) <= maxPayloadSize else { throw DecodeError.payloadTooLarge }
         let totalLength = prefixLength + Int(length)
-        guard buffer.count >= totalLength else { throw DecodeError.incomplete }
-        let payload = buffer.subdata(in: prefixLength..<totalLength)
-        buffer.removeFirst(totalLength)
+        guard bytes.count >= totalLength else { throw DecodeError.incomplete }
+        let payload = Data(bytes[prefixLength..<totalLength])
+        buffer = Data(bytes[totalLength...])
         return payload
     }
 }

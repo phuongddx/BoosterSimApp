@@ -86,4 +86,25 @@ struct CommandPayloadTests {
         #expect(payload == Data("snapshot body".utf8))
         #expect(buffer.isEmpty)
     }
+
+    @Test func concatenatedFramesDecodeAsTwo() throws {
+        let first = CommandFrame.encode(Data("one".utf8))
+        let second = CommandFrame.encode(Data("two".utf8))
+        var buffer = first + second
+
+        #expect(try CommandFrame.decodeOne(from: &buffer) == Data("one".utf8))
+        #expect(try CommandFrame.decodeOne(from: &buffer) == Data("two".utf8))
+        #expect(buffer.isEmpty)
+    }
+
+    @Test func overCapFrameIsRejected() {
+        var buffer = Data()
+        var length = UInt32(CommandFrame.maxPayloadSize + 1).bigEndian
+        withUnsafeBytes(of: &length) { buffer.append(contentsOf: $0) }
+        buffer.append(Data([0x00]))
+
+        #expect(throws: CommandFrame.DecodeError.payloadTooLarge) {
+            try CommandFrame.decodeOne(from: &buffer)
+        }
+    }
 }

@@ -70,6 +70,13 @@ final class CommandServer {
         listener = nil
     }
 
+    deinit {
+        // NWListener/NWConnection abort the process if deallocated while
+        // started — always cancel, even when the owner (a unit test) drops us.
+        listener?.cancel()
+        connections.values.forEach { $0.cancel() }
+    }
+
     // MARK: - Broadcast
 
     /// Encodes and frames `command`, then sends it to every connected client.
