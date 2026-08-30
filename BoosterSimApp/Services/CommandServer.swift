@@ -174,3 +174,26 @@ final class CommandServer {
         }
     }
 }
+
+// MARK: - Broadcast Seam
+
+/// Snapshot-broadcast surface NetworkConditionService depends on. Injecting
+/// this seam (05 review WR-02) lets tests and previews run without binding a
+/// real NWListener or advertising the "_booster-cmd._tcp." Bonjour service.
+@MainActor
+protocol CommandBroadcasting: AnyObject {
+    var onClientConnect: (() -> Void)? { get set }
+    func start()
+    func broadcast(_ command: BoosterCommand)
+}
+
+extension CommandServer: CommandBroadcasting {}
+
+/// No-op channel for previews and unit tests: start/broadcast do nothing and
+/// no listener, port, or Bonjour advertisement is created.
+@MainActor
+final class NoopCommandBroadcast: CommandBroadcasting {
+    var onClientConnect: (() -> Void)?
+    func start() {}
+    func broadcast(_ command: BoosterCommand) {}
+}

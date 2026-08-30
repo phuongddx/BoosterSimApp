@@ -36,14 +36,14 @@ struct NetworkConditionServiceTests {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let first = NetworkConditionService(defaults: defaults)
+        let first = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         #expect(first.state == .idle)
         first.setAirplane(true)
         #expect(first.airplane == true)
         #expect(first.state == .applied)
 
         // Re-initialize from the same suite: persisted state must re-apply.
-        let second = NetworkConditionService(defaults: defaults)
+        let second = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         #expect(second.airplane == true)
         #expect(second.snapshot().airplane == true)
     }
@@ -53,11 +53,11 @@ struct NetworkConditionServiceTests {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let first = NetworkConditionService(defaults: defaults)
+        let first = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         first.setAirplane(true)
         first.setAirplane(false)
 
-        let second = NetworkConditionService(defaults: defaults)
+        let second = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         #expect(second.airplane == false)
     }
 
@@ -68,7 +68,7 @@ struct NetworkConditionServiceTests {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let first = NetworkConditionService(defaults: defaults)
+        let first = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         #expect(first.selectedProfile == .off)
         #expect(first.snapshot().throttle == nil)
 
@@ -80,7 +80,7 @@ struct NetworkConditionServiceTests {
 
         // Re-initialize from the same suite: persisted profile must re-apply
         // into the snapshot (reconcile-on-connect pushes it to the next client).
-        let second = NetworkConditionService(defaults: defaults)
+        let second = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
         #expect(second.selectedProfile == .threeG)
         #expect(second.snapshot().throttle == first.snapshot().throttle)
     }
@@ -89,7 +89,7 @@ struct NetworkConditionServiceTests {
     @Test func selectingOffClearsThrottleFromSnapshot() throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let service = NetworkConditionService(defaults: defaults)
+        let service = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
 
         service.selectProfile(.lte)
         #expect(service.snapshot().throttle != nil)
@@ -106,7 +106,7 @@ struct NetworkConditionServiceTests {
     @Test func ruleMutationsPersistAndUpdateSnapshot() throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let service = NetworkConditionService(defaults: defaults)
+        let service = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
 
         let rule = BlockRule(id: UUID(), domain: "*.example.com", pathPrefix: "/api", isEnabled: true)
         service.addRule(rule)
@@ -135,7 +135,7 @@ struct NetworkConditionServiceTests {
     @Test func snapshotCombinesAirplaneAndRulesAtomically() throws {
         let (defaults, suiteName) = try makeDefaults()
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let service = NetworkConditionService(defaults: defaults)
+        let service = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
 
         let rule = BlockRule(id: UUID(), domain: "api.example.com", pathPrefix: "/v1", isEnabled: true)
         service.setAirplane(true)

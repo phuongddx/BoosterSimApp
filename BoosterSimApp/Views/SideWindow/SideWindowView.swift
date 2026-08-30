@@ -91,7 +91,7 @@ struct SideWindowView: View {
     let cameraService    = CameraService()
     let certificateService = CertificateService(simCtl: simCtl)
     let connectService      = ConnectService()
-    let networkConditionService = NetworkConditionService()
+    let networkConditionService = NetworkConditionService(commandServer: NoopCommandBroadcast())
     let deepLinkService = DeepLinkService()
     let designComparisonService = DesignComparisonService()
     let captureService = CaptureService()

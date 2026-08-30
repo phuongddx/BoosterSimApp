@@ -57,7 +57,7 @@ final class NetworkConditionService: ObservableObject {
     @Published private(set) var rules: [BlockRule]
     @Published private(set) var selectedProfile: NetworkConditionProfile
 
-    private let commandServer = CommandServer()
+    private let commandServer: any CommandBroadcasting
     private let defaults: UserDefaults
 
     private enum StorageKey {
@@ -68,12 +68,25 @@ final class NetworkConditionService: ObservableObject {
 
     // MARK: - Lifecycle
 
-    /// Reads persisted condition state (persist + re-apply, Open Question 2)
+    /// Production entry point: binds the live loopback `CommandServer`.
+    /// (The default argument lives here rather than on the full init because
+    /// default expressions are evaluated outside @MainActor isolation.)
+    convenience init(defaults: UserDefaults = .standard) {
+        self.init(defaults: defaults, commandServer: CommandServer())
+    }
+
     /// Reads persisted condition state (persist + re-apply, Open Question 2)
     /// and starts the command channel. The first client connect triggers the
     /// reconcile push of the persisted snapshot.
-    init(defaults: UserDefaults = .standard) {
+    /// - Parameters:
+    ///   - defaults: persistence store; inject an isolated suite in tests.
+    ///   - commandServer: snapshot broadcast channel. Production binds the
+    ///     live loopback `CommandServer`; previews and tests inject
+    ///     `NoopCommandBroadcast()` so no listener or Bonjour ad is created
+    ///     (05 review WR-02).
+    init(defaults: UserDefaults = .standard, commandServer: any CommandBroadcasting) {
         self.defaults = defaults
+        self.commandServer = commandServer
         self.airplane = defaults.bool(forKey: StorageKey.airplane)
         self.rules = Self.decodeRules(from: defaults.data(forKey: StorageKey.rules))
         self.selectedProfile = NetworkConditionProfile(
