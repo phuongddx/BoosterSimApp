@@ -106,6 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         tracker.stopTracking()
         buildStatsService.stopMonitoring()
         connectService.stopServer()
+        // Quitting mid-recording (or mid-wedge) must not leak the
+        // ShowSingleTouches override into Simulator's domain — a leaked `true`
+        // becomes the next session's snapshot and never heals. restore() is a
+        // state-machine no-op while no session is open (02 review WR-01).
+        captureService.touchIndicatorController.restore()
     }
 
     // MARK: - Onboarding Window
