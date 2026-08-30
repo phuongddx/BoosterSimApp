@@ -63,9 +63,21 @@ final class CaptureExporter: ObservableObject {
     }
 
     /// Deterministic output: same source + format → same path → clean overwrite.
+    /// Same-extension exports (staged .mov → MOV) rename into a sibling export
+    /// file instead — the staged file is the export's INPUT and must never
+    /// resolve to the output path (02 review CR-01).
     nonisolated static func outputURL(for source: URL, format: CaptureExportFormat) -> URL {
-        source.deletingPathExtension()
-            .appendingPathExtension(exportMapping(for: format).pathExtension)
+        let ext = exportMapping(for: format).pathExtension
+        let stem = source.deletingPathExtension().lastPathComponent
+        guard ext == source.pathExtension else {
+            return source.deletingPathExtension().appendingPathExtension(ext)
+        }
+        // "boostersim-capture-<stamp>.mov" → "boostersim-export-<stamp>.mov".
+        let exportStem = stem.hasPrefix("boostersim-capture-")
+            ? String(stem.dropFirst("boostersim-capture-".count))
+            : stem
+        return source.deletingLastPathComponent()
+            .appendingPathComponent("boostersim-export-\(exportStem).\(ext)")
     }
 
     /// Uniform downsample scale — never upscales; one scale keeps the aspect.
@@ -82,7 +94,9 @@ final class CaptureExporter: ObservableObject {
                 completion: @escaping (Result<URL, ExportError>) -> Void) {
         guard !exportState.isWorking else { return }
         let output = Self.outputURL(for: source, format: format)
-        try? FileManager.default.removeItem(at: output) // deterministic replacement (T-02-07)
+        if output != source { // belt and braces: the staged input is never the output (CR-01)
+            try? FileManager.default.removeItem(at: output) // deterministic replacement (T-02-07)
+        }
         let cancellation = OSAllocatedUnfairLock(initialState: false)
         activeCancellation = cancellation
         exportState = .running(progress: 0)
@@ -188,7 +202,9 @@ final class CaptureExporter: ObservableObject {
                    output: output, completion: completion)
             return
         }
-        try? FileManager.default.removeItem(at: output) // session refuses existing files
+        if output != source { // belt and braces: the staged input is never the output (CR-01)
+            try? FileManager.default.removeItem(at: output) // session refuses existing files
+        }
         session.outputURL = output
         session.outputFileType = fileType
         activeSession = session
