@@ -34,6 +34,14 @@ findings:
   info: 4
   total: 7
 status: issues_found
+resolution:
+  CR-01: fixed (3f1f343)
+  WR-01: fixed (2e52e73)
+  WR-02: fixed (7c04531)
+  IN-01: open (Info — advisory, out of Critical+Warning fix scope)
+  IN-02: open (Info — advisory, out of Critical+Warning fix scope)
+  IN-03: open (Info — advisory, out of Critical+Warning fix scope)
+  IN-04: open (Info — advisory, out of Critical+Warning fix scope)
 ---
 
 # Phase 05: Code Review Report (Network Tools)
@@ -115,6 +123,26 @@ private func processBuffer() {
 **File:** `BoosterSimApp/Models/BoosterCommand.swift:24-26` vs `BoosterSimConnect/NetworkConditionController.swift:19-22`
 **Issue:** `airplane`, `throttle`, and `blockRules` are never mutated after construction (the service builds fresh snapshots), yet the Mac struct declares them `var`; the schema-synced mirror declares the same fields `let`. The mirrors are documented as needing identical semantics — an avoidable asymmetry invites drift, and `let` better expresses the snapshot value semantics.
 **Fix:** Change the three Mac-side fields to `let` (no caller mutates them; tests reassign whole values only).
+
+## Resolution (fix pass, 2026-08-30)
+
+### CR-01: RESOLVED — `3f1f343`
+
+Split-frame reassembly extracted into `CommandFrameAssembler` (compiled into both targets, unit-tested); the client's `processBuffer` now treats an incomplete frame as "wait for the next receive" and drops the connection only on `payloadTooLarge` — mirroring the Mac-side `ea7b024` hardening. Regression tests: `assemblerReassemblesFrameSplitAcrossTwoReceives`, `assemblerFlagsOverCapFrameAsMalformed`.
+
+### WR-01: RESOLVED — `2e52e73`
+
+Browser `.failed` restarts now back off exponentially (0.25 s doubling to an 8 s cap, consecutive-failure counter on the client's serial queue); the counter resets on a successful connect.
+
+### WR-02: RESOLVED — `7c04531`
+
+`CommandBroadcasting` seam (`@MainActor` protocol) with a no-op `NoopCommandBroadcast`; `NetworkConditionService` takes it as an injectable parameter while production keeps the live loopback `CommandServer` (AppDelegate unchanged). All 9 test instantiations and the `SideWindowView` preview now inject the no-op — no `NWListener` or Bonjour ad in tests/previews.
+
+### IN-01..IN-04: OPEN
+
+Info-tier findings are advisory and outside this pass's Critical+Warning fix scope; left unresolved for a future cleanup pass.
+
+**Fix-pass verification:** macOS unit suite exit 0 (`BoosterSimAppTests` only, incl. both new regression tests); `BoosterSimConnect` iOS Simulator build succeeded; `BoosterSimApp` Debug build succeeded; `Package.resolved` byte-identical.
 
 ---
 
