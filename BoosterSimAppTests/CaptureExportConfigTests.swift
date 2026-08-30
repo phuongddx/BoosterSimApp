@@ -1,6 +1,8 @@
-// CaptureExportConfigTests.swift — Recording config + state-machine mappings (pure, no stream)
+// CaptureExportConfigTests.swift — Recording + export config mappings (pure, no stream)
 import Foundation
+import CoreGraphics
 import CoreMedia
+import ImageIO
 import AVFoundation
 import ScreenCaptureKit
 import Testing
@@ -83,5 +85,79 @@ struct CaptureExportConfigTests {
         #expect(!RecordingState.idle.isWorking)
         #expect(!RecordingState.exported(testURL).isWorking)
         #expect(!RecordingState.error("x").isWorking)
+    }
+
+    // MARK: - GIF Timing Quantization (Pitfall 6)
+
+    @MainActor
+    @Test func gifDelayQuantizesToWholeCentiseconds() {
+        #expect(CaptureExporter.gifDelayCentiseconds(fps: 10) == 10)
+        #expect(CaptureExporter.gifDelayCentiseconds(fps: 5) == 20)
+        #expect(CaptureExporter.gifDelayCentiseconds(fps: 15) == 7) // nearest whole
+    }
+
+    @MainActor
+    @Test func gifDelayIsDeterministicForIdenticalInput() {
+        // Integer return type is the "always integer" proof; equal calls stay equal.
+        #expect(CaptureExporter.gifDelayCentiseconds(fps: 10) == CaptureExporter.gifDelayCentiseconds(fps: 10))
+        #expect(CaptureExporter.gifDelayCentiseconds(fps: 15) == CaptureExporter.gifDelayCentiseconds(fps: 15))
+    }
+
+    // MARK: - GIF Properties
+
+    @MainActor
+    @Test func gifPropertiesCarryQuantizedDelayAndLoopForever() {
+        let ten = CaptureExporter.gifProperties(fps: 10)
+        let tenFrame = ten.frame[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+        #expect(tenFrame?[kCGImagePropertyGIFDelayTime] as? Double == 0.1)
+
+        let five = CaptureExporter.gifProperties(fps: 5)
+        let fiveFrame = five.frame[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+        #expect(fiveFrame?[kCGImagePropertyGIFDelayTime] as? Double == 0.2)
+
+        let destination = ten.destination[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+        #expect(destination?[kCGImagePropertyGIFLoopCount] as? Int == 0) // loop forever
+    }
+
+    // MARK: - Format Mapping
+
+    @MainActor
+    @Test func formatMappingResolvesPathPresetFileTypeAndExtension() {
+        let gif = CaptureExporter.exportMapping(for: .gif)
+        #expect(gif.presetName == nil) // nil preset = the ImageIO GIF path
+        #expect(gif.fileType == nil)
+        #expect(gif.pathExtension == "gif")
+
+        let mp4 = CaptureExporter.exportMapping(for: .mp4)
+        #expect(mp4.presetName == AVAssetExportPresetPassthrough)
+        #expect(mp4.fileType == .mp4)
+        #expect(mp4.pathExtension == "mp4")
+
+        let mov = CaptureExporter.exportMapping(for: .mov)
+        #expect(mov.presetName == AVAssetExportPresetPassthrough)
+        #expect(mov.fileType == .mov)
+        #expect(mov.pathExtension == "mov")
+    }
+
+    @MainActor
+    @Test func outputFilenameExtensionMatchesTheFormat() {
+        // Same source + format → same deterministic name (clean overwrite).
+        #expect(CaptureExporter.outputURL(for: testURL, format: .gif).lastPathComponent
+                == "boostersim-capture-test.gif")
+        #expect(CaptureExporter.outputURL(for: testURL, format: .mp4).pathExtension == "mp4")
+        #expect(CaptureExporter.outputURL(for: testURL, format: .mov).pathExtension == "mov")
+    }
+
+    // MARK: - Downsample Scale
+
+    @MainActor
+    @Test func downsampleScaleNeverUpscalesAndKeepsAspect() {
+        #expect(CaptureExporter.downsampleScale(sourceWidth: 1920, targetWidth: 480) == 0.25)
+        #expect(CaptureExporter.downsampleScale(sourceWidth: 480, targetWidth: 640) == 1)
+        #expect(CaptureExporter.downsampleScale(sourceWidth: 1280, targetWidth: 640) == 0.5)
+
+        // Aspect is preserved: the target height derives from the SAME scale.
+        let scale = CaptureExporter.downsampleScale(sourceWidth: 1920, targetWidth: 480)
+        #expect(1080 * scale == 270) // 1920×1080 → 480×270
     }
 }
