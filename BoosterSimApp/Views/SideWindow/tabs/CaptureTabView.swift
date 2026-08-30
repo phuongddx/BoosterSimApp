@@ -1,4 +1,4 @@
-// CaptureTabView.swift — Screenshot capture controls (recording arrives in plan 02)
+// CaptureTabView.swift — Screenshot + recording capture controls (recording section: RecordingSectionView)
 import SwiftUI
 import AppKit
 
@@ -32,13 +32,13 @@ struct CaptureTabView: View {
                     .padding(.bottom, Spacing.sm)
                     .animation(animation, value: captureService.permissionGranted)
                 }
+                RecordingSectionView(recording: captureService.recordingService)
                 destinationSection
             }
         }
     }
 
     // MARK: - Screenshot Controls
-
     private var screenshotControls: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             pillsGrid(ASCFramePreset.self, label: { $0.displayName },

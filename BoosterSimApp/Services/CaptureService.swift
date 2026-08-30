@@ -35,6 +35,7 @@ final class CaptureService: ObservableObject {
     // MARK: - Recording
 
     let recordingService = RecordingService()
+    let touchIndicatorController = TouchIndicatorController()
 
     // MARK: - Published State
 
@@ -46,12 +47,21 @@ final class CaptureService: ObservableObject {
     @Published private(set) var lastSavedURL: URL?
     /// Staged .mov from the last finished recording — drives export (plan 03) + reveal.
     @Published private(set) var stagedRecordingURL: URL?
+    /// Simulator-relaunch hint (A6) or the degrade notice when enabling failed.
+    @Published private(set) var touchIndicatorHint: String?
 
     // Option mirrors synced to AppSettings on every change (relaunch persistence)
     @Published var selectedPreset: ASCFramePreset { didSet { settings.captureASCFramePreset = selectedPreset } }
     @Published var bezelMode: BezelMode { didSet { settings.captureBezelMode = bezelMode } }
     @Published var background: CaptureBackground { didSet { settings.captureBackground = background } }
     @Published var destinationKind: CaptureDestinationKind { didSet { settings.captureDestination = destinationKind } }
+    @Published var showTouchIndicators: Bool {
+        didSet {
+            settings.captureShowTouchIndicators = showTouchIndicators
+            touchIndicatorHint = showTouchIndicators
+                ? "Relaunch Simulator for touch indicators to appear in recordings" : nil
+        }
+    }
 
     var customCaptureFolder: URL? { settings.customCaptureFolder }
 
@@ -74,14 +84,21 @@ final class CaptureService: ObservableObject {
         bezelMode = settings.captureBezelMode
         background = settings.captureBackground
         destinationKind = settings.captureDestination
+        showTouchIndicators = settings.captureShowTouchIndicators
         // Re-preflight: grants since last quit only apply now (Pitfall 2).
         permissionManager.checkScreenRecording()
         permissionGranted = permissionManager.screenRecordingGranted
         recordingService.$state.sink { [weak self] state in
             guard let self else { return }
             if case .recording = state { self.stagedRecordingURL = nil }
-            if case .exported(let url) = state { self.stagedRecordingURL = url }
-            if case .error(let message) = state { self.lastError = message }
+            if case .exported(let url) = state {
+                self.stagedRecordingURL = url
+                self.touchIndicatorController.restore() // every exit path (T-02-02)
+            }
+            if case .error(let message) = state {
+                self.lastError = message
+                self.touchIndicatorController.restore() // every exit path (T-02-02)
+            }
         }.store(in: &cancellables)
     }
 
@@ -118,6 +135,16 @@ final class CaptureService: ObservableObject {
     func startRecording() {
         guard !isCapturing, !recordingService.state.isWorking else { return }
         guard let target = captureTarget() else { return }
+        // Indicators BEFORE the stream starts; enable failure degrades to
+        // recording-without-indicators (never blocks the recording).
+        if showTouchIndicators {
+            touchIndicatorController.enable()
+            if case .error = touchIndicatorController.state {
+                touchIndicatorHint = "Touch indicators unavailable — recording without them"
+            } else {
+                touchIndicatorHint = "Relaunch Simulator for touch indicators to appear in recordings"
+            }
+        }
         recordingService.start(windowID: target.windowID, frame: target.frame)
     }
 
@@ -125,6 +152,7 @@ final class CaptureService: ObservableObject {
     /// for the recording-output finish callback (Pitfall 9).
     func stopRecording() {
         recordingService.stop()
+        touchIndicatorController.restore() // every exit path (T-02-02)
     }
 
     // MARK: - Capture Flow

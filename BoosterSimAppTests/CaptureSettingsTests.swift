@@ -189,7 +189,8 @@ private final class InMemoryTouchStore: TouchPreferencesStore {
     }
 
     func setValue(_ value: Any?, forKey key: String, domain: String) {
-        if let value, !(value is CFNull) {
+        // Identity compare — `is CFNull` compiles to always-true for CF types.
+        if let value, (value as AnyObject) !== (kCFNull as AnyObject) {
             values[key] = value
         } else {
             values.removeValue(forKey: key)
