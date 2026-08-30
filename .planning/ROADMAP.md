@@ -21,7 +21,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
 - [ ] **Phase 2: Capture Tools** - Screenshots and screen recording from the side panel
 - [ ] **Phase 3: App Actions** - Common simulator dev actions from the side panel
 - [ ] **Phase 4: Design Tools** - Visual overlays on top of the Simulator window
-- [ ] **Phase 5: Network Tools** - Inspection delivered; finish throttle, airplane mode, request blocking
+- [x] **Phase 5: Network Tools** - Inspection delivered; finish throttle, airplane mode, request blocking (completed 2026-08-30)
 - [x] **Phase 6: Platform & System** - Status bar, camera, env overrides, build stats, AX inspector (complete)
 - [ ] **Phase 7: Polish & Distribution** - Signing, notarization, updates, tests, privacy, icon
 
@@ -164,6 +164,6 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 2. Capture Tools | 0/TBD | Not started | - |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
-| 5. Network Tools | 4/4 | In Progress|  |
+| 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |
