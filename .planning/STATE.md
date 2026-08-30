@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: 02-01 tasks 1–2 complete (4 commits, tests+build green); HALTED at Task 3 blocking-human smoke — awaiting 8-step live-Simulator verification before wave 2
-last_updated: "2026-08-30T12:16:31.222Z"
+stopped_at: 02-01 screenshot tracer COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 8 steps, A4 held); plan 1 of 4 in Phase 2; wave gate clear for Wave 2
+last_updated: "2026-08-30T12:51:50.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 2 execution started
+last_activity_desc: 02-01 screenshot tracer complete — smoke approved
 state_head: 1e52ec20dc6f910eb7bb9499c0f11c9d54205e44
 progress:
   total_phases: 7
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 2 (Capture Tools) — EXECUTING
-Plan: 1 of 4
+Plan: 1 of 4 complete (02-01 smoke approved 2026-08-30) — next: 02-02 recording pipeline
 Status: Executing Phase 2
-Last activity: 2026-08-30 — Phase 2 execution started
+Last activity: 2026-08-30 — 02-01 complete (Task 3 human smoke approved); awaiting Wave-1 gate + Wave 2
 
 Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
 
@@ -100,5 +100,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-08-30T12:16:31.143Z
-Stopped at: 02-01 tasks 1–2 complete (4 commits, tests+build green); HALTED at Task 3 blocking-human smoke — awaiting 8-step live-Simulator verification before wave 2
+Stopped at: 02-01 screenshot tracer COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 8 steps, A4 held); plan 1 of 4; awaiting Wave-1 gate + Wave 2
 Resume file: .planning/phases/02-capture-tools/02-01-screenshot-tracer-SUMMARY.md

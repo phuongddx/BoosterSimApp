@@ -21,7 +21,7 @@ affects: [02-recording-touch-indicators, 03-export, 04-phase-gate]
 # Actuals (#2632) — pairs with the plan's estimate (55k tokens, low confidence)
 actuals:
   tokens: 18457        # chars/4 over the realized diff (96b113b..HEAD), incl. scaffold deletion
-  tasks: 2             # of 3 — Task 3 is the blocking-human live smoke (pending)
+  tasks: 3             # all 3 — Task 3 blocking-human smoke user-approved 2026-08-30 (no code change)
   commits: 4           # test(RED) ×2 + feat(GREEN) ×2
 
 # Tech tracking
@@ -63,7 +63,7 @@ patterns-established:
   - "AppSettings injected-suite init rebinding @AppStorage storage for isolated-suite tests"
   - "Borderless NSPanel copy with threeAXHighlightPanel divergences (clickable, image content, 3s timer)"
 
-requirements-completed: []   # REQ-roadmap-phase2-capture-tools / REQ-fr-09 / REQ-nfr-03 stay open until the Task 3 live smoke is human-approved
+requirements-completed: []   # smoke approved 2026-08-30; requirement checkbox closure consolidates at the phase gate (plan 04)
 
 coverage:
   - id: D1
@@ -85,14 +85,17 @@ coverage:
   - id: D3
     description: "Live end-to-end screenshot on a booted Simulator — preset-exact dimensions, no alpha, window-only content, thumbnail, permission cycle, all four destinations"
     requirement: REQ-roadmap-phase2-capture-tools
-    verification: []
+    verification:
+      - kind: human
+        ref: "8-step live-Simulator smoke — user-approved 2026-08-30 (§Checkpoint Resolution)"
+        status: pass
     human_judgment: true
     rationale: "Needs TCC Screen Recording grant state cycling, WindowServer access, and a real booted Simulator window — research marks live SCScreenshotManager manual-only; not reproducible in unit tests"
 
 # Metrics
 duration: 28min
 completed: 2026-08-30
-status: halted           # Tasks 1–2 complete and green; halted at the designed Task 3 blocking-human checkpoint
+status: complete         # Tasks 1–2 green; Task 3 blocking-human smoke user-approved 2026-08-30
 ---
 
 # Phase 02 Plan 01: Screenshot Tracer Summary
@@ -102,7 +105,7 @@ status: halted           # Tasks 1–2 complete and green; halted at the designe
 ## Performance
 
 - **Duration:** 28 min (started 2026-08-30T11:47:13Z, stopped 2026-08-30T12:15:22Z)
-- **Tasks:** 2 of 3 complete (Task 3 = blocking-human live smoke, pending)
+- **Tasks:** 3 of 3 complete (Task 3 blocking-human smoke approved 2026-08-30)
 - **Files modified:** 14 (9 created, 5 modified)
 - **Commits:** 4 (test ×2 RED, feat ×2 GREEN)
 
@@ -113,11 +116,28 @@ status: halted           # Tasks 1–2 complete and green; halted at the designe
 - Wave 0 tests green: CaptureFramingTests 8/8, CaptureSettingsTests 5/5; full unit bundle 59/59 exit 0; Debug build clean
 - Eight capture keys persist across relaunch via AppSettings (injected-suite rebindable); custom folder as plain string path (REQ-nfr-04)
 
+## Checkpoint Resolution
+
+**Task 3 — `checkpoint:human-verify` (gate: blocking-human): APPROVED**
+
+- **Result:** approved — all 8 smoke steps passed
+- **Verified by:** user, 2026-08-30
+- **Steps confirmed:**
+  1. Side panel tracks the Simulator window; Capture section present
+  2. Denied-permission degradation flow clean
+  3. Grant + quit/reopen cycle enables the controls
+  4. 1320×2868 PNG — exact preset dimensions, no alpha channel
+  5. Image contains only the Simulator window on the chosen background — no desktop, no panel, no title-bar chrome strip → **flagged assumption A4 held** (no CaptureCompositor crop fallback required)
+  6. Thumbnail auto-hides; click reveals in Finder
+  7. Clipboard destination pastes correctly
+  8. Custom path works; double capture produces two distinct timestamped files
+- **Outcome:** plan closed complete with zero post-smoke code changes; ROADMAP 02-01 checked
+
 ## Task Commits
 
 1. **Task 1 (tracer):** `efade03` test — failing CaptureFramingTests (RED); `4012692` feat — models, compositor, ScreenshotService, facade, thumbnail panel, tab, wiring (GREEN)
 2. **Task 2 (auto):** `c056992` test — failing CaptureSettingsTests (RED); `1e52ec2` feat — persistence, filename builder, clipboard/custom/ask routing, destination section (GREEN)
-3. **Task 3 (checkpoint:human-verify, gate blocking-human):** pending human smoke — not committed, nothing to commit
+3. **Task 3 (checkpoint:human-verify, gate blocking-human):** approved 2026-08-30 — no code change; closed via §Checkpoint Resolution and the docs(02-01) close-out commit
 
 ## Verification
 
@@ -178,10 +198,10 @@ Task 3 smoke prerequisites (from plan `user_setup`):
 - Boot one iOS Simulator device (6.9-inch class, e.g. iPhone 16 Pro Max) and keep its window open
 - Screen Recording permission for BoosterSimApp: deny once for the degraded-UX step, then grant for capture steps (System Settings → Privacy & Security → Screen & System Audio Recording)
 
-## Next Phase Readiness / Awaiting
+## Next Phase Readiness
 
-- **Task 3 blocking-human smoke is the only open item** — 8 steps in the checkpoint return message; ROADMAP 02-01 intentionally left unchecked until approved
-- Flagged assumption A4 (title-bar chrome in desktop-independent captures) is verified at smoke step 5; if chrome appears, the CaptureCompositor crop fallback must land inside this plan before approval
+- Task 3 smoke approved 2026-08-30 — ROADMAP 02-01 checked; plan 1 of 4 in Phase 2 complete
+- Flagged assumption A4 (title-bar chrome in desktop-independent captures) verified at smoke step 5 — held; no crop fallback needed
 - Plans 02 (recording) and 03 (export) build on this spine additively; no architectural change expected
 
 ## Self-Check: PASSED
@@ -191,5 +211,5 @@ Task 3 smoke prerequisites (from plan `user_setup`):
 - Task acceptance criteria mechanically verified (greps + LOC counts + both xcodebuild commands green)
 
 ---
-*Phase: 02-capture-tools — Plan 01 (halted at designed blocking-human checkpoint)*
-*Completed (tasks 1–2): 2026-08-30*
+*Phase: 02-capture-tools — Plan 01 (complete — smoke approved)*
+*Completed: 2026-08-30*
