@@ -77,6 +77,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         buildStatsService.startMonitoring()
         connectService.startServer()
 
+        // Sweep stale capture temp files from previous sessions (threat T-02-04)
+        CaptureExporter.sweepStaleCaptures()
+
         // NOTE: envOverrideService.loadCurrentState is called from
         // EnvironmentOverridesView (onAppear + onChange) — no need to duplicate here.
 
