@@ -45,6 +45,14 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── SimCtlService — xcrun simctl executor          │
 │  └── XcodeDetector — filesystem path detection     │
 ├─────────────────────────────────────────────────────┤
+│  Capture Services (Phase 2)                         │
+│  ├── CaptureService — sync Combine facade           │
+│  ├── ScreenshotService — SCScreenshotManager        │
+│  ├── RecordingService — SCStream + SCRecordingOutput│
+│  ├── CaptureExporter — GIF/MP4/MOV export           │
+│  ├── TouchIndicatorController — ShowSingleTouches   │
+│  └── CaptureCompositor — ASC-preset geometry (pure) │
+├─────────────────────────────────────────────────────┤
 │  iOS Framework Source                               │
 │  └── BoosterSimConnect — PulseProxy activation,     │
 │       command client + URLProtocol conditions       │
@@ -231,9 +239,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Accessibility tree node: role, description, frame, attributes
 - Hashable for list rendering; supports equality comparison
 
-**`AppSettings`** (`Models/AppSettings.swift`)
+- Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`, plus eight capture keys — `captureDestination`, `captureASCFramePreset`, `captureBezelMode`, `captureBackground`, `captureExportFormat`, `captureGIFSize`, `captureGIFFps`, `captureShowTouchIndicators` — and the custom-folder path (`captureCustomFolderPath`)
 - `ObservableObject` backed entirely by `@AppStorage`
-- Keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`
 - `setLaunchAtLogin(_:)` syncs with `SMAppService.mainApp`
 
 **`NetworkEvent`** (`Views/SideWindow/network/NetworkEventModel.swift`)
@@ -274,8 +281,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Tab spacing: 12pt horizontal padding per tab
 - Accessibility: tooltip, accessibilityLabel, isSelected trait
 
-**Tab Content Views** (`tabs/` subdirectory)
-- `CaptureTabView` — Screenshot, recording, GIF (placeholders)
+- `CaptureTabView` — Capture tab: screenshot framing options (ASC preset, bezel, background, destination pills), `RecordingSectionView` (record/stop, touch-indicator toggle, staged-recording reveal), `ExportSectionView` (format/GIF pills, progress + cancel) — see § Capture Tools
 - `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
 - `ActionsTabView` — Environment overrides + quick actions container
 - `NetworkTabView` — Live traffic viewer + network conditions + block rules + certificates; receives `ConnectService` as `@ObservedObject`; shows ConnectStatusBanner, ConnectSetupView, TrafficFilterBar, TrafficList, NetworkConditionsSectionView, BlockRulesView, CertificateSectionView; opens TrafficDetailView as sheet
@@ -429,13 +435,61 @@ Phase 5 ships three condition tools — **Airplane Mode**, **throttle profiles**
 
 **Concurrency.** The framework-side classes are deliberately NOT `@MainActor` (URLProtocol callbacks arrive on URLSession session queues): `NetworkConditionController` guards its snapshot with an `NSLock`; `BoosterCommandClient` and `ThrottlePacing` confine all state to private serial queues (`@unchecked Sendable`, Pulse precedent).
 
+## Capture Tools
+
+Phase 2 turns the Capture tab into the real tool: framed screenshots at exact App Store Connect sizes, direct-to-disk window recording at a 120 fps configured ceiling with Simulator-native touch indicators, and GIF/MP4/MOV export — all scoped to the tracked Simulator window through ScreenCaptureKit, all Apple frameworks (no new dependencies).
+
+**Service split.** One sync facade over small single-concern services plus two AppKit surfaces:
+
+| Unit | Role |
+|---|---|
+| `CaptureService` (`Services/CaptureService.swift`) | `@MainActor` sync Combine facade — TCC preflight, option mirrors synced to AppSettings on every change, published state, export routing, staged-file lifecycle. Async SCK internals hide behind it; views never see async |
+| `ScreenshotService` (`Services/ScreenshotService.swift`) | One-shot `SCScreenshotManager.captureImage` through a `SCContentFilter(desktopIndependentWindow:)` matched to the tracked `CGWindowID`; Retina-scale output; DEBUG guard that the matched window belongs to Simulator |
+| `RecordingService` (`Services/RecordingService.swift`) | `SCStream` + `SCRecordingOutput` (attached via `addRecordingOutput(_:)`) writing straight to disk — `minimumFrameInterval = CMTime(1, 120)`, `queueDepth` 5, audio off, HEVC in a staged `.mov`; `RecordingState` machine (idle → recording → finishing → exported/error); the file is final only after the recording-output finish callback passes an `AVAsset` duration > 0 gate — `stopCapture()` returning is never "file ready" |
+| `CaptureCompositor` (`Utilities/CaptureCompositor.swift`) | Pure CoreGraphics geometry + rendering (no SCK, no AppKit) — ASC-preset canvas, uniform scale-to-fit/center (never stretches), bezel modes (none / simulatorNative / drawn), solid/gradient background, alpha-skipped opaque output (ASC rejects transparency) |
+| `CaptureExporter` (`Services/CaptureExporter.swift`) | GIF via `AVAssetReader` → ImageIO (integer-centisecond delays, `kCGImagePropertyGIFLoopCount: 0`, one hoisted `CIContext`); MP4/MOV via `AVAssetExportSession` passthrough with a single `AVAssetExportPresetHighestQuality` re-encode fallback for MP4. DispatchQueue + Combine only — no async bridge in this unit |
+| `TouchIndicatorController` (`Services/TouchIndicatorController.swift`) | In-process CFPreferences snapshot/set/restore of Simulator's `ShowSingleTouches` (see cross-app note below) |
+| `CaptureThumbnailPanel` (`Windows/CaptureThumbnailPanel.swift`) | Borderless floating NSPanel (AXHighlightPanel pattern) — shows the saved capture near the Simulator window, auto-hides after 3 s, click reveals in Finder |
+| `CaptureSaveRouter` (`Services/CaptureSaveRouter.swift`) | Destination routing — Desktop folder (`~/Desktop/BoosterSim Captures/`), clipboard, custom path, ask-every-time — plus the non-modal save panels for PNG data and exported files |
+
+Supporting models: `ASCFramePreset` (seven exact ASC portrait pixel sizes across the 6.9″/6.5″ iPhone and 13″ iPad families, per Apple's screenshot specifications), `BezelMode` + `CaptureBackground`, `CaptureDestination`/`CaptureDestinationKind`, `RecordingState`, `ExportState`, `CaptureExportFormat` (defined in `Models/AppSettings.swift`), and `CaptureFilename` (sanitized, timestamp-unique names). Eight `@AppStorage` capture keys plus the custom-folder path persist every option across relaunch.
+
+**Data flow — Capture tab to destination routing.**
+
+```
+CaptureTabView (framing pills) / RecordingSectionView / ExportSectionView
+        ↓ sync facade calls
+CaptureService (@MainActor facade, Combine @Published state)
+        ├─ takeScreenshot() → ScreenshotService.capture (SCK one-shot, window filter)
+        │        ↓ CGImage
+        │   CaptureCompositor.render (pure CG: preset canvas + bezel + background → opaque PNG)
+        │        ↓
+        │   CaptureSaveRouter.route(pngData:) → Desktop / clipboard / custom / ask
+        │        ↓                                            + CaptureThumbnailPanel (3 s auto-hide)
+        ├─ startRecording() / stopRecording() → RecordingService (SCStream + SCRecordingOutput)
+        │        ↓ finish callback + AVAsset duration gate
+        │   stagedRecordingURL (temp boostersim-capture-*.mov, HEVC)
+        │        ↓ exportRecording(as:)
+        │   CaptureExporter.export → .gif (AVAssetReader → ImageIO) / .mp4 / .mov (AVAssetExportSession)
+        │        ↓ routed output file
+        │   CaptureSaveRouter.route(fileAt:) → destination; staged .mov deleted only after the write
+        └─ TouchIndicatorController.enable()/restore() bracket every recording exit path
+```
+
+**Screen Recording permission (required) and degraded behavior.** Every capture path preflights `CGPreflightScreenCaptureAccess()`. When denied, the Capture tab degrades instead of failing: capture attempts surface a permission error (never a crash), `requestPermission()` opens System Settings and polls for the grant, and — because a TCC grant applies only after relaunch — the facade publishes `needsRelaunch` to drive the quit-and-reopen prompt. `deviceName` also degrades without the grant (window titles are unreadable), so capture filenames fall back to preset-based naming. Simulator-window tracking itself keeps working via the polling enumerator.
+
+**Cross-app preference — scope and restore.** Touch indicators are Simulator's own rendering, not an overlay we composite: `TouchIndicatorController` writes exactly one scoped key — `ShowSingleTouches` on the `com.apple.iphonesimulator` domain — via in-process CFPreferences (no `defaults` subprocess). The prior value is snapshotted before the write and restored on every recording exit path (finish, stream error, stop), clearing the key with `kCFNull` when it was previously unset. Simulator reads the preference at launch, so enabling indicators surfaces a relaunch hint; a failed enable never blocks the recording (it degrades to recording without dots).
+
+**Temp lifecycle (retention).** Staged recordings live in the temp folder under the `boostersim-capture-` prefix. The staged file is deleted only after its destination write succeeds (routing failures and cancellations leave it for retry); partial export output is deleted on every exit path; and a launch sweep (`CaptureExporter.sweepStaleCaptures()`, wired in `applicationDidFinishLaunching`) removes `boostersim-capture-*` files older than 24 h. Captured content never outlives the user-requested output.
+
+**Frame rate, stated honestly.** 120 is the configured ceiling (`minimumFrameInterval = CMTime(1, 120)`); delivered frames are bounded by the host display's refresh rate — the Recording section captions it "Up to 120 fps". True 120 delivery needs a ProMotion-class display.
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
 - Combine sinks and Timer callbacks run on `.main` queue
 - AXObserver callbacks fire on CFRunLoopGetMain (main thread by design)
-- Swift 6 strict concurrency enforced at compile time
-- No async/await — Combine `@Published` + Timer for all async patterns
+- No async/await in general code — Combine `@Published` + Timer for all async patterns; the sole exception is the capture services' ScreenCaptureKit internals (documented CONVENTIONS exception) hidden behind `CaptureService`'s sync facade
 
 ## Key Design Decisions
 
