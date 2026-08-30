@@ -145,7 +145,11 @@ final class CaptureSaveRouter {
             AppLogger.capture.info("Saved export")
             onPersisted()
         } catch {
-            try? FileManager.default.removeItem(at: sourceURL)
+            // Routing failure keeps the exported source for retry (02 review
+            // WR-02): deleting it here would destroy a completed export — for
+            // GIF, a full re-encode — on a transient destination error. The
+            // 24h stale-temp sweep bounds its lifetime instead; the staged
+            // recording is deleted only after onPersisted fires.
             onError(error.localizedDescription)
         }
     }
