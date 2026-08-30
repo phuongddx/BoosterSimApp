@@ -1,5 +1,6 @@
 // ScreenshotService.swift — One-shot window screenshot via ScreenCaptureKit
 // Async internals live here and in capture services only (CONVENTIONS exception).
+import AppKit
 import Foundation
 import CoreGraphics
 import ImageIO
@@ -32,7 +33,8 @@ final class ScreenshotService {
     /// - Parameters:
     ///   - windowID: Tracked CGWindowID of the Simulator window
     ///   - windowFrame: Tracked window frame (screen coordinates) sizing the output
-    /// - Returns: Raw window pixels at Retina scale; may carry alpha (flattened later)
+    /// - Returns: Raw window pixels at the display's backing scale; may carry
+    ///   alpha (flattened later)
     func capture(windowID: CGWindowID, windowFrame: CGRect) async throws -> CGImage {
         guard CGPreflightScreenCaptureAccess() else {
             throw CaptureError.screenRecordingDenied
@@ -50,8 +52,10 @@ final class ScreenshotService {
         #endif
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let configuration = SCStreamConfiguration()
-        configuration.width = Int(windowFrame.width) * 2
-        configuration.height = Int(windowFrame.height) * 2
+        let scale = Self.backingScale(for: windowFrame, screens: NSScreen.screens)
+        let pixels = Self.pixelSize(for: windowFrame, scale: scale)
+        configuration.width = Int(pixels.width)
+        configuration.height = Int(pixels.height)
         configuration.scalesToFit = false
         configuration.showsCursor = false
         configuration.ignoreShadowsSingleWindow = true
@@ -74,5 +78,24 @@ final class ScreenshotService {
         CGImageDestinationAddImage(destination, image, nil)
         guard CGImageDestinationFinalize(destination) else { return nil }
         return data as Data
+    }
+
+    // MARK: - Pixel Scale
+
+    /// Pixel dimensions for a capture of `frame` at `scale` — the display's
+    /// backing scale decides the output size, never a hardcoded 2×
+    /// (02 review WR-03; a 1× external monitor would otherwise upscale).
+    static func pixelSize(for frame: CGRect, scale: CGFloat) -> CGSize {
+        CGSize(width: (frame.width * scale).rounded(),
+               height: (frame.height * scale).rounded())
+    }
+
+    /// Backing scale of the screen containing `frame` (screen coordinates);
+    /// the main screen, else 2×.
+    static func backingScale(for frame: CGRect, screens: [NSScreen]) -> CGFloat {
+        if let containing = screens.first(where: { $0.frame.intersects(frame) }) {
+            return containing.backingScaleFactor
+        }
+        return NSScreen.main?.backingScaleFactor ?? 2
     }
 }

@@ -1,5 +1,6 @@
 // RecordingService.swift — SCStream + SCRecordingOutput recording straight to disk
 // Async internals live here and in capture services only (CONVENTIONS exception).
+import AppKit
 import Foundation
 import Combine
 import CoreGraphics
@@ -109,8 +110,10 @@ final class RecordingService: ObservableObject {
                    "Recording matched a window that does not belong to Simulator")
             let filter = SCContentFilter(desktopIndependentWindow: window)
             let config = SCStreamConfiguration()
-            config.width = Int(frame.width) * 2
-            config.height = Int(frame.height) * 2
+            let scale = ScreenshotService.backingScale(for: frame, screens: NSScreen.screens)
+            let pixels = ScreenshotService.pixelSize(for: frame, scale: scale)
+            config.width = Int(pixels.width)
+            config.height = Int(pixels.height)
             config.scalesToFit = false
             config.showsCursor = false
             config.ignoreShadowsSingleWindow = true

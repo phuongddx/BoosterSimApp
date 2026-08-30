@@ -294,4 +294,21 @@ struct CaptureExportConfigTests {
         #expect(!RecordingService.stopRacedStartup(.error("stream stopped")))
     }
 
+
+    // MARK: - Backing-Scale Pixel Size (02 review WR-03)
+
+    @MainActor
+    @Test func pixelSizeFollowsTheDisplayScaleNotAHardcoded2x() {
+        let frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+        #expect(ScreenshotService.pixelSize(for: frame, scale: 1)
+                == CGSize(width: 393, height: 852)) // 1× external monitor — no upscale
+        #expect(ScreenshotService.pixelSize(for: frame, scale: 2)
+                == CGSize(width: 786, height: 1704)) // Retina
+        #expect(ScreenshotService.pixelSize(for: frame, scale: 3)
+                == CGSize(width: 1179, height: 2556))
+        // Fractional backing scales round to whole pixels.
+        #expect(ScreenshotService.pixelSize(for: CGRect(x: 0, y: 0, width: 100, height: 51), scale: 1.5)
+                == CGSize(width: 150, height: 77)) // 76.5 → 77
+    }
+
 }
