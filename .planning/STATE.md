@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: Phase 5 complete, ready to plan Phase 2
-last_updated: "2026-08-30T02:53:20.889Z"
+stopped_at: 02-01 tasks 1–2 complete (4 commits, tests+build green); HALTED at Task 3 blocking-human smoke — awaiting 8-step live-Simulator verification before wave 2
+last_updated: "2026-08-30T12:16:31.222Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 5 complete, transitioned to Phase 2
-state_head: 62c8ccf866d42c767614c840227ddb073ad7e6f4
+last_activity_desc: Phase 2 execution started
+state_head: 1e52ec20dc6f910eb7bb9499c0f11c9d54205e44
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 14
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-30)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 2 — Capture Tools (Phase 5 Network Tools complete + verified 2026-08-30)
+**Current focus:** Phase 2 — Capture Tools
 
 ## Current Position
 
-Phase: 2 (Capture Tools) — READY TO EXECUTE
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-30 — Phase 5 complete, transitioned to Phase 2
+Phase: 2 (Capture Tools) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 2
+Last activity: 2026-08-30 — Phase 2 execution started
 
 Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
 
@@ -73,6 +73,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5]: BlockRule.matches owns the isEnabled check + field trimming (safe for UI and decode paths); every semantic change mirrors identically into NetworkConditionController's framework copy (schema-sync pair, cross-referenced)
 - [Phase 5]: 05-04: docs state the AS-SHIPPED pacing contract truthfully (chunkInterval = chunkBytes*8/kbps s, no ÷1000 kilo factor — 3G paces 16 s per 1500 B chunk, 15 KB ≈ 160 s); documented as a known fidelity gap, smoke judges visibility not physical 3G timing
 - [Phase 5]: 05-04 phase-gate automated standard: unit bundle via -only-testing:BoosterSimAppTests -skip-testing:BoosterSimAppUITests (exit 0, 44/44) + both scheme builds + Package.resolved sha256 70386616a707… clean across phase (REQ-nfr-03 closed); unfiltered test exits 65 on pristine HEAD (pre-existing UI-test env issue, documented)
+- [Phase 2]: 02-01: Screenshot tracer spine — desktopIndependentWindow filter + SCScreenshotManager, alpha-skipped CG output; CaptureService rewritten as 200-LOC facade; defective scaffold cut over
+- [Phase 2]: 02-01: ASC preset enum ships SEVEN cases (plan said 8 — arithmetic slip; all enumerations list 7 verified sizes); raw values are final persistence keys
+- [Phase 2]: 02-01: filename builder lives in Utilities/CaptureFilename.swift (Rule-3 split to honor 200-LOC); option persistence via @Published didSet mirrors onto AppSettings
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-30
-Stopped at: Phase 5 complete + verified (20/20), transitioned to Phase 2 (Capture Tools) — ready to plan
-Resume file: None
+Last session: 2026-08-30T12:16:31.143Z
+Stopped at: 02-01 tasks 1–2 complete (4 commits, tests+build green); HALTED at Task 3 blocking-human smoke — awaiting 8-step live-Simulator verification before wave 2
+Resume file: .planning/phases/02-capture-tools/02-01-screenshot-tracer-SUMMARY.md
