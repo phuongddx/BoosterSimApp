@@ -443,16 +443,16 @@ Phase adds features (no rename/migration), but introduces new runtime state:
 
 ## Open Questions
 
-1. **Bezel asset strategy (needs user decision — discuss-phase)**
+1. **Bezel asset strategy (needs user decision — discuss-phase) (RESOLVED — v1 ships the license-clean bezel modes: none / simulatorNative / drawn; photoreal third-party assets stay deferred)**
    - What we know: license-clean v1 = Simulator-native + drawn bezels; photoreal requires third-party artwork (Meta devices set is the industry standard source; license unverified [A1]).
    - Recommendation: ship B1+B2 in this phase; ask user whether to add photoreal assets (and which set) before planning asset tasks.
-2. **Audio in recordings?**
+2. **Audio in recordings? (RESOLVED — v1 records mute: capturesAudio = false)**
    - What we know: criteria never mention audio; SCStream supports `capturesAudio` (+ `excludesCurrentProcessAudio`) [VERIFIED: SCStreamConfiguration doc].
    - Recommendation: v1 mute (`capturesAudio = false`), UI leaves room for a later toggle; confirm at discuss-phase.
-3. **Landscape ASC presets?**
+3. **Landscape ASC presets? (RESOLVED — v1 ships the 8 portrait presets only)**
    - What we know: Apple accepts landscape transposes of every size [VERIFIED: spec table].
    - Recommendation: v1 portrait-only presets; add landscape once rotation support is wanted.
-4. **"Wallpaper" scope**
+4. **"Wallpaper" scope (RESOLVED — v1 solid + gradient backgrounds)**
    - What we know: criteria say "wallpaper/background padding".
    - Recommendation: v1 solid+gradient backgrounds; custom image import is a cheap stretch — confirm appetite at discuss-phase.
 

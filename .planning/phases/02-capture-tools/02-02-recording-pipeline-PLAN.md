@@ -240,7 +240,7 @@ Source-of-truth analogs (read before writing each file — PATTERNS.md carries n
 </threat_model>
 
 <verification>
-- Task 1/2 automated: CaptureExportConfigTests (new Wave 0 file) + CaptureSettingsTests (extended) + CaptureFramingTests green via the plan's xcodebuild commands; Debug build clean.
+- Task 1/2 automated: CaptureExportConfigTests (new Wave 0 file) + CaptureSettingsTests (extended) green via the plan's xcodebuild commands; Debug build clean.
 - Task 3: blocking human smoke — playable .mov, delivered-fps measurement (A3), touch dots visible, refusal/no-op semantics, preference restore (A6).
 - Idempotency/concurrency probe truths are covered by unit tests (state machine) and step 5 of the smoke.
 </verification>

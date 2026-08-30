@@ -222,7 +222,7 @@ Source-of-truth analogs (read before writing each file — PATTERNS.md carries n
   <action>
     Write CaptureSettingsTests.swift first (red) using the makeDefaults() isolated-suite helper — never UserDefaults.standard. Then:
 
-    BoosterSimApp/Models/AppSettings.swift (modify): append the capture @AppStorage keys following the existing RawRepresentable-String enum style: captureDestination, captureASCFramePreset, captureBezelMode, captureBackground, captureExportFormat, captureGIFSize (Int, default 480), captureGIFFps (Int, default 10), captureShowTouchIndicators (Bool, default false). For the custom-path URL use the NetworkConditionService StorageKey + injected UserDefaults string-path pattern instead of forcing the type into @AppStorage. Raw values are persistence keys — final names now.
+    BoosterSimApp/Models/AppSettings.swift (modify): append the capture @AppStorage keys following the existing RawRepresentable-String enum style: captureDestination, captureASCFramePreset, captureBezelMode, captureBackground, captureExportFormat, captureGIFSize (Int, default 480), captureGIFFps (Int, default 10), captureShowTouchIndicators (Bool, default false). Declare enum CaptureExportFormat: String, CaseIterable inline in this file directly below SideWindowPosition (same raw-value enum presentation: cases gif, mp4, mov with String raw values, plus computed label) — this plan is the creation site for the type, no separate Models file; the captureExportFormat key persists it, and plan 03's CaptureExporter consumes it from here without redeclaring it. For the custom-path URL use the NetworkConditionService StorageKey + injected UserDefaults string-path pattern instead of forcing the type into @AppStorage. Raw values are persistence keys — final names now.
 
     BoosterSimApp/Services/CaptureService.swift (modify): move the tracer's session @Published options onto AppSettings-backed storage; add pure static func captureFilename(device:preset:date:) -> String with an allowlist sanitizer (alphanumeric + hyphen; every other character collapses to a single hyphen) — the mitigation for threat T-02-05. Complete destination routing func route(pngData:filename:suggestedURL:): desktop writes into the capture folder (timestamped name — a second capture never touches the first), clipboard clears and writes NSPasteboard .png data (user-selected destination only, threat T-02-03), custom path opens NSSavePanel via begin(completionHandler:) with the persisted directory and pre-populated name field — the modal runModal variant is the anti-pattern being replaced (RESEARCH Anti-Patterns), ask begins the panel each time. Delete any intermediate temp file after the destination write (retention rule).
 
@@ -233,7 +233,7 @@ Source-of-truth analogs (read before writing each file — PATTERNS.md carries n
   </verify>
   <acceptance_criteria>
     - CaptureSettingsTests.swift exists, imports Testing, builds its own UserDefaults suite via makeDefaults-style helper (UserDefaults.standard is referenced zero times), and covers the eight-key round-trip, filename sanitization + timestamp uniqueness, and custom-path persistence
-    - AppSettings.swift declares the eight capture @AppStorage keys plus a StorageKey-based custom-path accessor
+    - AppSettings.swift declares the eight capture @AppStorage keys plus a StorageKey-based custom-path accessor, and defines enum CaptureExportFormat: String, CaseIterable with exactly the cases gif, mp4, mov inline beside SideWindowPosition
     - CaptureService.swift references NSPasteboard and NSSavePanel with begin(completionHandler:), and the runModal token occurs in it zero times
     - The test command exits 0
   </acceptance_criteria>
@@ -315,6 +315,7 @@ Created by THIS plan (new symbols):
 - ASCFramePreset (8 cases, pixelSize/displayName/deviceFamily) — BoosterSimApp/Models/ASCFramePreset.swift
 - BezelMode, CaptureBackground — BoosterSimApp/Models/BezelMode.swift
 - CaptureDestination (desktop/clipboard/custom(URL)/ask) — BoosterSimApp/Models/CaptureDestination.swift
+- CaptureExportFormat (gif/mp4/mov, String raw values) — declared inline in BoosterSimApp/Models/AppSettings.swift beside SideWindowPosition; consumed by plan 03
 - CaptureCompositor (frame/render), FramingResult — BoosterSimApp/Utilities/CaptureCompositor.swift
 - ScreenshotService (+ CaptureError) — BoosterSimApp/Services/ScreenshotService.swift
 - CaptureThumbnailPanel — BoosterSimApp/Windows/CaptureThumbnailPanel.swift
@@ -323,7 +324,7 @@ Created by THIS plan (new symbols):
 
 Modified: CaptureService (rewritten slim facade: takeScreenshot, permission state, destination routing, captureFilename), CaptureTabView (rewritten sections), AppSettings (8 capture keys + custom-path StorageKey), AppDelegate (thumbnail panel + service construction).
 
-Later plans add: RecordingService + TouchIndicatorController + RecordingState (02), CaptureExporter + export formats (03), docs + phase gate (04).
+Later plans add: RecordingService + TouchIndicatorController + RecordingState (02), CaptureExporter + GIF/MP4/MOV export paths (03), docs + phase gate (04).
 
 <output>
 Create `.planning/phases/02-capture-tools/02-01-SUMMARY.md` when done

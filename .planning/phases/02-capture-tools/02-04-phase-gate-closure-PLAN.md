@@ -6,6 +6,7 @@ wave: 4
 depends_on: ["02-01-screenshot-tracer", "02-02-recording-pipeline", "02-03-export-formats"]
 files_modified:
   - docs/system-architecture.md
+  - BoosterSimApp/Services/CaptureExporter.swift (conditional — A2 fallback only)
 autonomous: false
 requirements:
   - REQ-roadmap-phase2-capture-tools
