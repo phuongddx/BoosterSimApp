@@ -56,7 +56,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   3. User can record the Simulator screen (ScreenCaptureKit), including 120 FPS, with touch indicators visible during recordings
   4. User can export a recording as GIF or video (MP4/MOV)
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 Plans:
 **Wave 1**
 
@@ -64,7 +64,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-recording-pipeline-PLAN.md — SCRecordingOutput direct-to-disk recording (CMTime 1/120, queueDepth 5) + ShowSingleTouches touch indicators (criterion 3)
+- [x] 02-02-recording-pipeline-PLAN.md — SCRecordingOutput direct-to-disk recording (CMTime 1/120, queueDepth 5) + ShowSingleTouches touch indicators (criterion 3)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -178,7 +178,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
-| 2. Capture Tools | 1/4 | In Progress|  |
+| 2. Capture Tools | 2/4 | In Progress|  |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |

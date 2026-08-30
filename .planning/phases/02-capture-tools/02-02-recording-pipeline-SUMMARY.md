@@ -20,8 +20,8 @@ affects: [03-export, 04-phase-gate]
 # Actuals (#2632) — pairs with the plan's estimate (42k tokens, low confidence)
 actuals:
   tokens: 13008        # chars/4 over the realized diff (ce73312..af73adb): 52,033 chars, 998 insertions / 98 deletions
-  tasks: 2             # Tasks 1-2 green; Task 3 blocking-human smoke PENDING (see Checkpoint Pending)
-  commits: 4           # test(RED) x2 + feat(GREEN) x2
+  tasks: 3             # Tasks 1-2 green; Task 3 blocking-human smoke APPROVED 2026-08-30 (see Checkpoint Resolution)
+  commits: 4           # test(RED) x2 + feat(GREEN) x2 (docs commits excluded)
 
 # Tech tracking
 tech-stack:
@@ -58,7 +58,7 @@ patterns-established:
   - "In-memory TouchPreferencesStore double with single-shot synchronize failure injection for restore-semantics tests"
   - "Never use `is CFNull` in Swift — it compiles to always-true for CF types; use identity comparison against kCFNull"
 
-requirements-completed: []   # REQ-roadmap-phase2-capture-tools closes at the phase gate (plan 04); smoke pending
+requirements-completed: []   # REQ-roadmap-phase2-capture-tools closes at the phase gate (plan 04); smoke approved 2026-08-30
 
 coverage:
   - id: D1
@@ -82,25 +82,24 @@ coverage:
     requirement: REQ-roadmap-phase2-capture-tools
     verification:
       - kind: manual_procedural
-        ref: "Task 3 six-step smoke (plan 02-02 how-to-verify) — PENDING human execution"
-        status: unknown
-    human_judgment: true
+        ref: "Task 3 six-step smoke (plan 02-02 how-to-verify) — user-approved 2026-08-30: all 6 steps passed; delivered fps user-verified, exact figure not reported"
+        status: pass
     rationale: "Needs TCC Screen Recording grant, WindowServer, real display timing and a booted Simulator — research marks live SCK recording manual-only; not reproducible in unit tests"
 
 # Metrics
 duration: 20min
 completed: 2026-08-30
-status: halted           # Tasks 1-2 complete and green; halted at the designed Task 3 blocking-human checkpoint
+status: complete         # Tasks 1-2 green; Task 3 blocking-human smoke approved by user 2026-08-30
 ---
 
 # Phase 02 Plan 02: Recording Pipeline Summary
 
-**SCRecordingOutput direct-to-disk recording of the Simulator window (CMTime(1,120)/queueDepth 5, finish-callback finalization with duration gate) plus ShowSingleTouches snapshot/set/restore via in-process CFPreferences and the Capture-tab Recording section — halted at the Task 3 blocking-human live smoke**
+**SCRecordingOutput direct-to-disk recording of the Simulator window (CMTime(1,120)/queueDepth 5, finish-callback finalization with duration gate) plus ShowSingleTouches snapshot/set/restore via in-process CFPreferences and the Capture-tab Recording section — Task 3 live smoke approved by the user 2026-08-30**
 
 ## Performance
 
 - **Duration:** 20 min (started 2026-08-30T13:01:07Z, stopped 2026-08-30T13:21:29Z)
-- **Tasks:** 2 of 3 complete (Task 3 = blocking-human live smoke, PENDING)
+- **Tasks:** 3 of 3 complete (Task 3 = blocking-human live smoke, APPROVED 2026-08-30)
 - **Files modified:** 11 (6 created, 5 modified)
 - **Commits:** 4 (test ×2 RED, feat ×2 GREEN)
 
@@ -112,28 +111,24 @@ status: halted           # Tasks 1-2 complete and green; halted at the designed 
 - Capture tab Recording section: Record/Stop toggle driving the facade, honest "Up to 120 fps" caption (display-bounded delivery, prohibition honored), touch-indicator toggle persisted via AppSettings + relaunch hint (A6), live elapsed/output-size captions from published state, staged-recording row with Reveal in Finder
 - Wave 0 tests green: CaptureExportConfigTests 8/8 (new file), CaptureSettingsTests 13/13 (6 new); full unit bundle **73/73, exit 0** (Wave-1 baseline 59 — no regression); Debug build clean
 
-## Checkpoint Pending
+## Checkpoint Resolution
 
-**Task 3 — `checkpoint:human-verify` (gate: blocking-human): AWAITING USER**
+**Task 3 — `checkpoint:human-verify` (gate: blocking-human): APPROVED — user replied "approved" on 2026-08-30 after running all six steps live** (BoosterSimApp running, one booted Simulator):
 
-With BoosterSimApp running and one booted Simulator:
+1. **PASS** — Touch-indicator toggle on; Simulator relaunched when the hint appeared (A6)
+2. **PASS** — Record started; ~15 s of taps/drags on the Simulator screen; elapsed/size captions updated live
+3. **PASS** — Stop produced a playable staged .mov: duration ≈ 15 s, dimensions = window at 2x, touch dots visible, no panel/desktop content
+4. **PASS** — Delivered fps measured acceptable by the user; exact figure not reported ("configured 120, user-verified, exact fps figure not reported") (A3)
+5. **PASS** — Double-Record while recording refused (state unchanged); post-Stop Stop a no-op, no error state
+6. **PASS** — ShowSingleTouches restored: touch dots gone after relaunching Simulator
 
-1. Toggle **Show touch indicators** on in the Capture tab; relaunch Simulator when the hint appears (A6)
-2. Click **Record**; tap and drag on the Simulator screen for ~15 s; watch the elapsed/size captions update live
-3. Click **Stop**; after the finishing state clears, open the staged .mov — it plays, duration ≈ 15 s, dimensions = window at 2x, frames contain touch dots and no panel/desktop content
-4. Measure delivered fps (frame count via AVAssetReader ÷ duration); record "configured 120, delivered N on \<display\>" (A3)
-5. While recording, click Record again — refused (state unchanged); after stopping, click Stop again — no-op, no error state
-6. After the session, Simulator's touch dots are gone (preference restored; relaunch Simulator once to confirm)
-
-**Resume-signal:** reply "approved" to unblock plan 03 (export), or describe the failing step — a zero-byte or unplayable .mov invalidates the SCRecordingOutput approach (research D2 fallback: AVAssetWriter) and halts for replan.
-
-**On approval:** flip `status: halted` → `complete` here, record per-step pass/fail + the measured delivered-fps line, check ROADMAP 02-02.
+**Result:** the SCRecordingOutput direct-to-disk approach is validated end-to-end; the research D2 fallback (AVAssetWriter replan) is not needed. Plan 03 (export) is unblocked.
 
 ## Task Commits
 
 1. **Task 1 (auto, tdd):** `b1ef0e3` test — failing CaptureExportConfigTests (RED); `22ca770` feat — RecordingService + RecordingState + CaptureSaveRouter extraction + facade recording API (GREEN)
 2. **Task 2 (auto, tdd):** `f16f2b7` test — failing touch-indicator suite in CaptureSettingsTests (RED); `af73adb` feat — TouchIndicatorController + facade wiring + RecordingSectionView (GREEN)
-3. **Task 3 (checkpoint:human-verify, gate blocking-human):** PENDING — six-step live smoke above
+3. **Task 3 (checkpoint:human-verify, gate blocking-human):** APPROVED 2026-08-30 — six-step live smoke, all passed (see Checkpoint Resolution); no code change, docs close-out only
 
 ## Verification
 
@@ -196,15 +191,15 @@ Task 3 smoke prerequisites (from plan `user_setup`):
 ## Next Phase Readiness
 
 - Tasks 1-2 green and committed; the staged-.mov contract (temp folder, boostersim-capture- prefix, HEVC/.mov, finish-callback finalization) is stable for plan 03
-- Plan 03 (export) must NOT start until the Task 3 smoke is approved — a zero-byte/unplayable .mov invalidates the SCRecordingOutput approach and halts for replan (research D2 fallback: AVAssetWriter)
-- Delivered-fps measurement (A3) and the relaunch-hint check (A6) are recorded by the smoke
+- Task 3 smoke APPROVED 2026-08-30 — plan 03 (export) is unblocked; the D2 fallback (AVAssetWriter replan) is moot
+- Delivered-fps measurement (A3) recorded as user-verified (exact figure not reported); relaunch-hint check (A6) passed
 
 ## Self-Check: PASSED
 
 - All 11 key files exist on disk (FOUND ×11)
 - Commits b1ef0e3, 22ca770, f16f2b7, af73adb present on main
-- Task acceptance criteria mechanically verified (greps + LOC counts + xcodebuild green; Task 3 criteria pending by design)
+- Task acceptance criteria mechanically verified (greps + LOC counts + xcodebuild green); Task 3 criteria verified by the user's approved smoke 2026-08-30 (fps user-verified, figure not reported)
 
 ---
-*Phase: 02-capture-tools — Plan 02 (halted at Task 3 blocking-human smoke)*
-*Completed: 2026-08-30 (Tasks 1-2)*
+*Phase: 02-capture-tools — Plan 02 (complete — Task 3 smoke approved 2026-08-30)*
+*Completed: 2026-08-30 (Tasks 1-3)*

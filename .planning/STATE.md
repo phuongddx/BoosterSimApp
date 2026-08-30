@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: 02-02 recording pipeline — Tasks 1-2 complete (73/73 unit green, build clean); HALTED at Task 3 blocking-human live smoke (gate blocking-human, autonomous:false); awaiting user approval to unblock plan 03
-last_updated: "2026-08-30T13:22:21.000Z"
+stopped_at: 02-02 recording pipeline COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 6 steps; delivered fps user-verified, exact figure not reported); plan 2 of 4 in Phase 2; awaiting Wave-2 gate + Wave 3
+last_updated: "2026-08-30T13:52:28.000Z"
 last_activity: 2026-08-30
-last_activity_desc: 02-02 recording pipeline tasks 1-2 complete — halted at Task 3 human smoke
-state_head: af73adb9d4437c2dc3ed353a71adc8b962f9efa9
+last_activity_desc: 02-02 recording pipeline complete — smoke approved
+state_head: 6244f3077c4c068d3f8481affb1201c837ad8364
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
   percent: 14
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Current focus:** Phase 2 — Capture Tools
 
 Phase: 2 (Capture Tools) — EXECUTING
-Plan: 2 of 4 in progress (02-02 recording pipeline — Tasks 1-2 green, Task 3 blocking-human smoke PENDING) — plans 03/04 blocked on smoke approval
-Status: Halted at designed checkpoint — awaiting user smoke (plan 03 export builds on the staged-.mov contract)
-Last activity: 2026-08-30 — 02-02 Tasks 1-2 complete (RecordingService + TouchIndicatorController + Recording section; 4 commits)
+Plan: 2 of 4 complete (02-02 smoke approved 2026-08-30) — next: 02-03 export formats (Wave 3)
+Status: Executing Phase 2 — Wave 2 complete; awaiting Wave-2 gate + Wave 3
+Last activity: 2026-08-30 — 02-02 complete (Task 3 smoke approved; RecordingService + TouchIndicatorController + Recording section; 5 commits incl. docs)
 
 Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
 
@@ -98,6 +98,6 @@ None yet.
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
 
-Last session: 2026-08-30T13:22:21.000Z
-Stopped at: 02-02 Tasks 1-2 complete — halted at Task 3 blocking-human smoke (six-step live recording check; resume-signal "approved" unblocks plan 03)
+Last session: 2026-08-30T13:52:28.000Z
+Stopped at: 02-02 recording pipeline COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 6 steps; delivered fps user-verified, exact figure not reported); plan 2 of 4; awaiting Wave-2 gate + Wave 3
 Resume file: .planning/phases/02-capture-tools/02-02-recording-pipeline-SUMMARY.md
