@@ -20,10 +20,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-29)
+See: .planning/PROJECT.md (updated 2026-08-30)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 5 — Network Tools
+**Current focus:** Phase 2 — Capture Tools (Phase 5 Network Tools complete + verified 2026-08-30)
 
 ## Current Position
 
@@ -32,7 +32,7 @@ Plan: Not started
 Status: Ready to plan
 Last activity: 2026-08-30 — Phase 5 complete, transitioned to Phase 2
 
-Progress: [██████████] 4 of 4 Phase-5 plans complete — phase 5 ready for /gsd-verify-work
+Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
 
 ## Performance Metrics
 
@@ -80,11 +80,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — pick a wiring point during Phase 5 completion or Phase 3 planning.
+- [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — Phase 5 closed without wiring; pick the wiring point during Phase 3 planning.
 - [Phase 5]: TrafficDetailView shows placeholder timing metrics (real PulseMetrics is a v2 candidate, NET-02).
-- ~~[Phase 5]: 05-01 Task 3 blocking-human Simulator smoke~~ RESOLVED 2026-08-29 — user approved all 7 steps; loopback bind held (A3 valid, fallback unused). Details: 05-01-command-channel-tracer-SUMMARY.md §Checkpoint Resolution.
-- ~~[Phase 5]: 05-04 Task 3 blocking-human phase-gate smoke~~ RESOLVED 2026-08-30 — user approved all six groups (AIRPLANE, THROTTLE, BLOCK, RECONCILE, CERTS, CLEAN STATE). Details: 05-04-phase-gate-closure-SUMMARY.md §Checkpoint Resolution.
-- [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD; unit suites themselves green (19/19). See deferred-items.md.
+- [Phase 5][follow-up]: throttle pacing formula omits ÷1000 kilo factor (as-shipped: 3G paces 16 s per 1500 B chunk) — rescale candidate, documented in docs/system-architecture.md.
+- [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion was vacuous at the git level — track the file so future pin checks are real (verifier note, 05-VERIFICATION.md).
+- [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
 
 ## Deferred Items
 
@@ -92,9 +92,10 @@ None yet.
 |----------|------|--------|-------------|-----------|
 | Feature | Health Data Generator (BoosterHealth) | Superseded — removed (3b1015f) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
+| Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
 
 ## Session Continuity
 
-Last session: 2026-08-30T00:22:50.166Z
-Stopped at: Phase 5 complete, ready to plan Phase 2
+Last session: 2026-08-30
+Stopped at: Phase 5 complete + verified (20/20), transitioned to Phase 2 (Capture Tools) — ready to plan
 Resume file: None

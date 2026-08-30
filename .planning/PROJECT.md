@@ -23,13 +23,13 @@ from the side panel.
 - ✓ Simulator attachment — floating panel detects, tracks, and follows the Simulator window across move/resize/minimize with spring physics and a 0.5s polling fallback — Phase 1
 - ✓ Full app shell — menu-bar status icon, 4-step permission onboarding, preferences, 4-tab side panel (Capture/Design/Actions/Network) — Phase 1
 - ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector — Phase 6
-- ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — Phase 5 (partial)
+- ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — delivered pre-.planning (Phase 5 scope)
+- ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Phase 5 remainder — network speed control/throttle, per-app Simulator Airplane Mode, request blocking (domain/path rules)
 - [ ] Phase 2 — Capture tools: screenshots with bezels/framing, screen recording incl. 120 FPS, GIF/video export
 - [ ] Phase 3 — App actions: reset app, keychain clear, push simulation, deep links, locale/appearance/Dynamic Type/location controls, UserDefaults editor
 - [ ] Phase 4 — Design tools: grid/safe-area overlays, ruler, magnifier/color picker, Figma/Sketch comparison
@@ -52,9 +52,14 @@ from the side panel.
 - Connect pipeline: ConnectService → PulseServer (NWListener TCP + Bonjour `_pulse._tcp.`)
   → PulseClientConnection → PulsePacketDecoder (5-byte header, zlib, Codable events);
   BoosterSimConnect is a loadable iOS framework (Bundle.load, DEBUG builds only).
-- Codebase: ~73 Swift files (~6,556 LOC). Capture and Design tabs are placeholders;
-  Network throttle/block are placeholders; Phase 6 views (StatusBar, BuildStats, AXTree,
-  Camera) are complete but not yet wired into the side panel tabs.
+- Command channel (Phase 5): NetworkConditionService → CommandServer (loopback NWListener
+  + Bonjour `_booster-cmd._tcp.`) → BoosterCommandClient (length-prefixed v1 frames,
+  CommandFrameAssembler reassembly, backoff restart) → NetworkConditionController →
+  BoosterNetworkProtocol verdict enforcement (guard > airplane > rules > throttle).
+- Codebase: ~78 Swift files. Capture and Design tabs are placeholders; Network tab ships
+  inspection + full manipulation (airplane/throttle/block via the command-channel engine);
+  Phase 6 views (StatusBar, BuildStats, AXTree, Camera) are complete but not yet wired
+  into the side panel tabs.
 - Institutional knowledge from the docs ingest (2026-08-29): `.planning/intel/`
   (SYNTHESIS.md, requirements/constraints/context/decisions, INGEST-CONFLICTS.md) and
   `.planning/codebase/` (7 codebase-map docs).
@@ -88,6 +93,10 @@ from the side panel.
 | Non-sandboxed runtime | Required for AXIsProcessTrusted, CGWindowList, AXObserver, simctl | ✓ Good |
 | Spring-physics panel tracking (CADisplayLink, stiffness 280 / damping 22, Reduce Motion aware) | Smooth follow; rigid 1:1 under Reduce Motion | ✓ Good |
 | No async/await — Combine @Published + Timer only | Codebase-wide concurrency convention | ✓ Good |
+| BoosterCommand v1 wire contract over `_booster-cmd._tcp.` (loopback NWListener + Bonjour, reconcile-on-connect) | Phase 5 manipulation channel mirrors the Connect server-mode pattern | ✓ Good |
+| Verdict precedence guard > airplane > block rules > throttle in BoosterNetworkProtocol | Deterministic, testable ordering; guard unconditionally wins | ✓ Good |
+| Throttle = latency delay + 1500-byte paced chunks via ThrottlePacing (as-shipped formula omits ÷1000 kilo factor — rescale is a v2 candidate) | Plan-pinned contract, unit-tested, docs disclose fidelity gap | ✓ Good (v2 rescale noted) |
+| CommandBroadcasting protocol injection in NetworkConditionService | Unit tests/previews run without binding real NWListener/Bonjour (review WR-02) | ✓ Good |
 
 ---
-*Last updated: 2026-08-29 after docs ingest (.planning bootstrap)*
+*Last updated: 2026-08-30 after Phase 5 (Network Tools) completion*
