@@ -53,6 +53,19 @@ final class RecordingService: ObservableObject {
         return config
     }
 
+    /// Stop-during-startup race (02 review CR-02): `start()` publishes
+    /// `.recording` immediately but the stream only goes live after
+    /// `startCapture()` returns. A `stop()` landing in that window finds
+    /// `stream == nil` and no-ops — so once the fresh stream IS live, only a
+    /// machine already in `.finishing` means a stop is still owed. Without
+    /// this check the stream records forever and the finish callback never
+    /// arrives: the machine wedges in `.finishing` (Record and Stop both
+    /// refused) until the app quits.
+    nonisolated static func stopRacedStartup(_ state: RecordingState) -> Bool {
+        if case .finishing = state { return true }
+        return false
+    }
+
     // MARK: - Recording
 
     /// Starts recording the tracked window; refused while a recording is
@@ -114,6 +127,9 @@ final class RecordingService: ObservableObject {
             self.stream = stream
             self.recordingOutput = output
             AppLogger.capture.info("[RecordingService] recording started")
+            if Self.stopRacedStartup(state) { // stop() raced the spin-up (02 review CR-02)
+                Task { [weak self] in await self?.stopStream() }
+            }
         } catch {
             fail(error.localizedDescription)
         }

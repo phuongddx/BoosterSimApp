@@ -276,4 +276,22 @@ struct CaptureExportConfigTests {
         #expect(exists(output)) // the exported file exists
         #expect(exists(staged)) // the staged source survives its own export
     }
+
+    // MARK: - Stop-During-Startup Race (02 review CR-02)
+
+    @MainActor
+    @Test func stopRacedStartupIsOwedOnlyWhileFinishing() {
+        // A stop() landing while the stream spins up leaves the machine in
+        // .finishing with no live stream — once startCapture() returns, the
+        // fresh stream must be stopped at once or it records forever and the
+        // finish callback never arrives (permanent .finishing wedge).
+        #expect(RecordingService.stopRacedStartup(.finishing))
+        // The healthy path (still .recording when startCapture returns) and
+        // the already-terminal states never owe a stop from startup.
+        #expect(!RecordingService.stopRacedStartup(.recording))
+        #expect(!RecordingService.stopRacedStartup(.idle))
+        #expect(!RecordingService.stopRacedStartup(.exported(testURL)))
+        #expect(!RecordingService.stopRacedStartup(.error("stream stopped")))
+    }
+
 }
