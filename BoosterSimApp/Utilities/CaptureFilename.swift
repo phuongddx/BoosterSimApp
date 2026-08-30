@@ -16,8 +16,12 @@ enum CaptureFilename {
     ///   - preset: Selected ASC frame preset (its raw value rides the name)
     ///   - date: Capture timestamp — a second capture never touches the first
     static func captureFilename(device: String?, preset: ASCFramePreset, date: Date) -> String {
-        let stamp = stampFormatter.string(from: date)
-        return "BoosterSim-\(sanitized(device))-\(preset.rawValue)-\(stamp).png"
+        return "BoosterSim-\(sanitized(device))-\(preset.rawValue)-\(stamp(date)).png"
+    }
+
+    /// Shared timestamp stamp — filenames and staged recording URLs share one format.
+    static func stamp(_ date: Date) -> String {
+        return stampFormatter.string(from: date)
     }
 
     // MARK: - Private

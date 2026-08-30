@@ -2,17 +2,26 @@
 // Async internals live here and in capture services only (CONVENTIONS exception).
 import Foundation
 import CoreGraphics
+import ImageIO
 import ScreenCaptureKit
+import UniformTypeIdentifiers
 
 @MainActor
 final class ScreenshotService {
-
-    // MARK: - Types
 
     enum CaptureError: Error {
         case windowNotFound
         case screenRecordingDenied
         case captureFailed(String)
+
+        /// User-facing failure text — never raw error strings at the UI.
+        var userMessage: String {
+            switch self {
+            case .windowNotFound: return "Simulator window not found — reopen it and retry"
+            case .screenRecordingDenied: return "Screen Recording permission required"
+            case .captureFailed(let reason): return "Capture failed: \(reason)"
+            }
+        }
     }
 
     // MARK: - Capture
@@ -52,5 +61,18 @@ final class ScreenshotService {
         } catch {
             throw CaptureError.captureFailed(error.localizedDescription)
         }
+    }
+
+    // MARK: - Encoding
+
+    /// Encodes a composited capture to in-memory PNG data.
+    static func pngData(from image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 }
