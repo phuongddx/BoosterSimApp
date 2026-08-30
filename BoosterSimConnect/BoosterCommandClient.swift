@@ -20,6 +20,10 @@ final class BoosterCommandClient {
     private var browser: NWBrowser?
     private var connection: NWConnection?
     private var isStarted = false
+    /// Consecutive browser `.failed` events — drives exponential restart
+    /// backoff, reset on a successful connect (05 review WR-01).
+    private var browserRestartFailures = 0
+    private static let maxRestartBackoff: TimeInterval = 8
 
     private var assembler = CommandFrameAssembler()
     private static let maxBufferSize = 10 * 1024 * 1024 // 10 MB safety cap
@@ -64,8 +68,15 @@ final class BoosterCommandClient {
         browser.stateUpdateHandler = { [weak self] (state: NWBrowser.State) in
             guard let self else { return }
             if case .failed = state {
-                // Restart browsing so a transient mDNS hiccup self-heals.
-                self.restartBrowsing()
+                // Restart browsing so a transient mDNS hiccup self-heals, but
+                // back off exponentially when failures persist — an immediately
+                // re-armed browser that fails again would otherwise spin in an
+                // unbounded allocate-fail-restart loop (05 review WR-01).
+                self.browserRestartFailures += 1
+                let backoff = min(0.25 * pow(2, Double(self.browserRestartFailures - 1)), Self.maxRestartBackoff)
+                self.queue.asyncAfter(deadline: .now() + backoff) { [weak self] in
+                    self?.restartBrowsing()
+                }
             }
         }
 
@@ -95,6 +106,9 @@ final class BoosterCommandClient {
             guard let self else { return }
             switch state {
             case .ready:
+                // A successful connect ends the failure streak: restore
+                // prompt restarts.
+                self.browserRestartFailures = 0
                 self.assembler = CommandFrameAssembler()
                 self.receiveLoop()
             case .failed, .cancelled:
