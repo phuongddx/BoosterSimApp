@@ -10,13 +10,13 @@ requires:
 provides:
   - docs/ single source of truth for the manipulation engine (system-architecture § Network Manipulation, codebase-summary inventory)
   - Phase-gate automated evidence: full unit bundle exit 0 (44/44), both scheme builds SUCCEEDED, Package.resolved byte-identical (REQ-nfr-03 closed)
-  - Six-group manual smoke checklist (awaiting human gate — see Checkpoint)
+  - Six-group manual smoke checklist executed and approved by the human gate (2026-08-30) — see Checkpoint Resolution
 affects: [gsd-verify-work, phase-05 closure]
 
 actuals:
   tokens: 3100    # chars/4 over the realized docs diff (12.4k chars across the two docs)
-  tasks: 2        # of 3; Task 3 is the blocking-human phase-gate smoke (halted snapshot, 05-01 precedent)
-  commits: 1      # production commit (209fa8e); SUMMARY/state commits separate
+  tasks: 3        # Task 3 phase-gate smoke user-approved 2026-08-30 (halted-then-resumed, 05-01 precedent)
+  commits: 1      # production commit (209fa8e); closure docs commit (SUMMARY/ROADMAP/STATE) separate
 
 tech-stack:
   added: []        # no packages — REQ-nfr-03 closed: Package.resolved sha256 70386616a70796c3cfeea9cc621708cc294eac4c6825bfe400d52e4234cf8852
@@ -37,7 +37,7 @@ key-decisions:
 patterns-established:
   - "Phase closure inventory: docs updated in the same commit-shape as the feature plans (symbol table + mount points), verification evidence recorded verbatim in SUMMARY"
 
-requirements-completed: [REQ-nfr-03]   # REQ-fr-16 regression re-check and REQ-roadmap-phase5-network-tools close only when the Task-3 smoke passes (gap-closure replan if it fails)
+requirements-completed: [REQ-nfr-03, REQ-fr-16]   # smoke passed 2026-08-30: REQ-fr-16 regression confirmed (CERTS group); REQ-roadmap-phase5-network-tools closes with phase completion (verify-work)
 
 coverage:
   - id: D1
@@ -59,25 +59,28 @@ coverage:
     human_judgment: false
   - id: D3
     description: "Six-group phase-gate manual smoke on a live Simulator: airplane three-way proof, visible 3G slowdown, block-rule error row, relaunch reconcile, certificate regression check, clean-state recovery"
-    verification: []
+    verification:
+      - kind: manual
+        ref: "User ran all six groups on a live Simulator and replied approved (2026-08-30): AIRPLANE, THROTTLE (judged per as-shipped pacing), BLOCK, RECONCILE (≤1 s), CERTS, CLEAN STATE — see §Checkpoint Resolution"
+        status: pass
     human_judgment: true
     rationale: "Requires a booted iOS Simulator running a DEBUG app embedding BoosterSimConnect plus visual judgment of the traffic viewer and timing — explicitly manual per research validation architecture (e2e Connect verification is manual-only)"
 
 duration: 9min
-completed: 2026-08-29
-status: halted  # Tasks 1–2 complete; halted at Task 3 blocking-human phase-gate smoke (05-01 halted-snapshot precedent)
+completed: 2026-08-30
+status: complete  # Tasks 1–2 + Task 3 smoke user-approved 2026-08-30 (halted-then-resumed, 05-01 precedent)
 ---
 
 # Phase 5 Plan 04: Phase-Gate Closure Summary
 
-**Docs brought to truth (command channel, verdict chain, honest scope + pacing-fidelity gap), full unit bundle green 44/44 with the dependency pin untouched — halted at the blocking-human six-group Simulator smoke that closes phase 5.**
+**Docs brought to truth (command channel, verdict chain, honest scope + pacing-fidelity gap), full unit bundle green 44/44 with the dependency pin untouched — six-group Simulator smoke user-approved 2026-08-30; all four Phase-5 plans complete.**
 
 ## Performance
 
-- **Duration:** 9 min (17:01–17:09 UTC, Tasks 1–2)
+- **Duration:** 9 min (17:01–17:09 UTC, Tasks 1–2; human gate approval 2026-08-30)
 - **Started:** 2026-08-29T17:01:12Z
-- **Completed:** Tasks 1–2 on 2026-08-29T17:09Z; Task 3 awaiting the human gate
-- **Tasks:** 2 of 3 (Task 3 = blocking-human manual smoke, pending)
+- **Completed:** Tasks 1–2 on 2026-08-29T17:09Z; Task 3 approved 2026-08-30
+- **Tasks:** 3 of 3 (Task 3 = blocking-human manual smoke, user-approved)
 - **Files modified:** 2 (docs only — closure plan, no code symbols)
 
 ## Accomplishments
@@ -90,9 +93,9 @@ status: halted  # Tasks 1–2 complete; halted at Task 3 blocking-human phase-ga
 
 1. **Task 1: Update docs/system-architecture.md and docs/codebase-summary.md** — `209fa8e` (docs)
 2. **Task 2: Full suite green + dependency-pin + scope-copy assertions** — *verification-only (`files: none`), no commit; evidence below*
-3. **Task 3: Phase-gate manual smoke** — **PENDING: blocking-human checkpoint** (halted snapshot)
+3. **Task 3: Phase-gate manual smoke** — **APPROVED by user, 2026-08-30** (blocking-human gate passed; resolution below)
 
-**Plan metadata:** this docs commit (halted snapshot; closure commit follows smoke approval).
+**Plan metadata:** closure commit (this commit) records the approval — SUMMARY, ROADMAP, STATE only.
 
 ## Files Created/Modified
 
@@ -141,38 +144,47 @@ status: halted  # Tasks 1–2 complete; halted at Task 3 blocking-human phase-ga
 
 - The smoke checklist's THROTTLE group must be judged against the **as-shipped** pacing contract, not physical 3G timing: with `chunkInterval = chunkBytes*8/kbps` seconds, a 3G-paced response is dramatically slow by design of the plan-pinned formula (1500 B chunk = 16 s; expect multi-second-to-minute completion depending on body size). "Visibly slow" will pass trivially; the honest check is that the row appears in the viewer and pacing is cancellable/observable. Recorded in the checkpoint instructions and in docs (fidelity gap).
 
-## Task 3 — Phase-Gate Manual Smoke (PENDING — blocking-human)
+## Task 3 — Phase-Gate Manual Smoke (APPROVED 2026-08-30)
 
-Prerequisites: BoosterSimApp running; a booted iOS Simulator running a DEBUG app embedding BoosterSimConnect that can trigger URLSession requests on demand.
+Prerequisites: BoosterSimApp running; a booted iOS Simulator running a DEBUG app embedding BoosterSimConnect that can trigger URLSession requests on demand. *(Environment fulfilled by the user; all six groups executed and approved.)*
 
 | # | Group | Steps | Result |
 |---|-------|-------|--------|
-| 1 | AIRPLANE | Toggle ON → app request fails NSURLErrorNotConnectedToInternet with an error row in the viewer; viewer stays connected; Mac browser loads a page; toggle OFF → next request succeeds | ⏳ pending human |
-| 2 | THROTTLE | Select 3G → content-heavy request visibly slow (AS-SHIPPED: expect extreme slowdown — 16 s per 1500 B chunk; multi-second minimum) with a slow row in the viewer; select Off → speed restored | ⏳ pending human |
-| 3 | BLOCK | Add rule `*.example.com` (or a domain the app calls) → matching request fails NSURLErrorCannotConnectToHost with an error row; delete the rule → next request succeeds | ⏳ pending human |
-| 4 | RECONCILE | With a condition active, relaunch the Simulator app → condition re-applies within ~1 s of reconnect | ⏳ pending human |
-| 5 | CERTS | Same Network tab → Certificates flow: generate + install against the Simulator keychain succeeds as before Phase 5 (REQ-fr-16 regression) | ⏳ pending human |
-| 6 | CLEAN STATE | Everything off → normal app behavior | ⏳ pending human |
+| 1 | AIRPLANE | Toggle ON → app request fails NSURLErrorNotConnectedToInternet with an error row in the viewer; viewer stays connected; Mac browser loads a page; toggle OFF → next request succeeds | ✅ pass (user-verified) — fail + error row, viewer stayed connected, Mac connectivity unaffected, recovery on OFF |
+| 2 | THROTTLE | Select 3G → content-heavy request visibly slow (AS-SHIPPED: expect extreme slowdown — 16 s per 1500 B chunk; multi-second minimum) with a slow row in the viewer; select Off → speed restored | ✅ pass (user-verified) — 3G visibly slow per the as-shipped pacing contract + slow row; Off restored |
+| 3 | BLOCK | Add rule `*.example.com` (or a domain the app calls) → matching request fails NSURLErrorCannotConnectToHost with an error row; delete the rule → next request succeeds | ✅ pass (user-verified) — `*.example.com` → NSURLErrorCannotConnectToHost + error row; deleting the rule recovered |
+| 4 | RECONCILE | With a condition active, relaunch the Simulator app → condition re-applies within ~1 s of reconnect | ✅ pass (user-verified) — re-applied ≤1 s |
+| 5 | CERTS | Same Network tab → Certificates flow: generate + install against the Simulator keychain succeeds as before Phase 5 (REQ-fr-16 regression) | ✅ pass (user-verified) — generate + install OK; REQ-fr-16 regression clear |
+| 6 | CLEAN STATE | Everything off → normal app behavior | ✅ pass (user-verified) — normal |
 
-Resume signal: reply **"approved"** to close phase 5 (proceed to /gsd-verify-work), or describe the failing group → gap-closure replan (do not patch past the gate).
+Resume signal: **"approved"** — received 2026-08-30; phase 5 closes and proceeds to /gsd-verify-work.
+
+## Checkpoint Resolution
+
+- **Gate:** Task 3 `checkpoint:human-verify` (blocking) — six-group phase-gate manual smoke
+- **Result:** **approved** — user reply "approved", 2026-08-30
+- **Verification basis:** 44/44 automated unit evidence (Task 2 table above) **+** 6/6 smoke groups user-verified on a live Simulator
+- **Groups passed:** AIRPLANE (fail + error row, viewer stayed connected, Mac connectivity unaffected, recovery on OFF) · THROTTLE (3G visibly slow per the as-shipped pacing contract + slow row; Off restored) · BLOCK (`*.example.com` → NSURLErrorCannotConnectToHost + error row; delete recovered) · RECONCILE (re-applied ≤1 s) · CERTS (generate + install OK — REQ-fr-16 regression clear) · CLEAN STATE (normal behavior)
+- **Outcome:** Phase 5 network-tools plans complete (4/4) — no gap-closure replan needed; next step /gsd-verify-work
 
 ## User Setup Required
 
-See plan frontmatter `user_setup`: a booted Simulator running a DEBUG app embedding BoosterSimConnect; BoosterSimApp running. This environment is the human's app-under-test — not automatable from this harness.
+See plan frontmatter `user_setup`: a booted Simulator running a DEBUG app embedding BoosterSimConnect; BoosterSimApp running. This environment is the human's app-under-test — not automatable from this harness. **Fulfilled 2026-08-30: the user ran all six groups in this environment and approved.**
 
 ## Next Phase Readiness
 
-- All automated phase-gate criteria are green; phase 5 closes when the six-group smoke is approved.
-- If the smoke fails on certificates (FA-01), the shared-Network-tab assumption is invalidated → gap-closure replan required.
+- All automated phase-gate criteria are green **and** the six-group smoke is approved — Phase 5 plans complete (4/4); proceed to /gsd-verify-work.
+- ~~If the smoke fails on certificates (FA-01), the shared-Network-tab assumption is invalidated → gap-closure replan required.~~ Not triggered — CERTS group passed.
 - Known follow-ups carried forward: pacing ÷1000 rescale (one-line constant + test vectors, plan-pinned until changed), pre-existing UI-test env failures (deferred-items.md), Phase 6 view wiring (STATE blocker note).
 
-## Self-Check: PENDING (halted snapshot)
+## Self-Check: PASSED
 
-- Task 1 commit `209fa8e` present on main ✓
+- Task 1 commit `209fa8e` present on main ✓ (re-verified this session)
 - Both docs contain all six core types (automated grep, no MISSING) ✓
-- Unit bundle + both builds + pin assertions green (evidence above) ✓
-- Smoke approval and final closure pending — self-check completes with the closure commit.
+- Unit bundle + both builds + pin assertions green — evidence in Task 2 table ✓
+- Task 3 smoke: 6/6 groups user-verified and approved 2026-08-30 ✓
+- **Basis:** 44/44 automated + 6/6 user-verified smoke groups — no unmet acceptance criterion remains
 
 ---
 *Phase: 05-network-tools — Plan: 04 (phase-gate closure)*
-*Halted 2026-08-29 at the Task-3 blocking-human smoke — awaiting the human gate.*
+*Closed 2026-08-30 — Task-3 human gate approved; Phase 5 plans complete (4/4), ready for /gsd-verify-work.*

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 current_phase: 5
 current_phase_name: Network Tools
-status: executing
-stopped_at: 05-04 halted at Task 3 blocking-human phase-gate smoke — Tasks 1-2 done (docs commit 209fa8e, suite 44/44, pin clean)
-last_updated: "2026-08-29T17:10:12.393Z"
-last_activity: 2026-08-29
-last_activity_desc: 05-04 halted at phase-gate smoke — docs + automated gate done
+status: ready-for-verification
+stopped_at: 05-04 complete — phase-gate smoke approved 2026-08-30 (all 4 Phase-5 plans done)
+last_updated: "2026-08-30T00:22:50.166Z"
+last_activity: 2026-08-30
+last_activity_desc: 05-04 phase-gate smoke approved — network tools plans complete (4/4)
 state_head: 209fa8e112cf1712d9e6c9a146d301d56b4e8545
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -27,26 +27,26 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: 5 (Network Tools) — EXECUTING
-Plan: 05-04 phase-gate closure — Tasks 1-2 COMPLETE, Task 3 (blocking-human six-group Simulator smoke) PENDING
-Status: docs updated to landed reality (commit 209fa8e); automated phase gate green — unit bundle 44/44 exit 0, both schemes build, Package.resolved byte-identical (REQ-nfr-03 closed); phase closes on smoke approval
-Last activity: 2026-08-29 — 05-04 Tasks 1-2 executed (docs commit 209fa8e); smoke checklist in 05-04-phase-gate-closure-SUMMARY.md
+Phase: 5 (Network Tools) — READY FOR VERIFICATION
+Plan: 05-04 phase-gate closure — COMPLETE (Tasks 1–2 automated + Task 3 six-group smoke user-approved 2026-08-30)
+Status: all 4 Phase-5 plans complete — docs at landed truth (209fa8e), automated gate green (unit bundle 44/44 exit 0, both schemes build, Package.resolved byte-identical), six-group Simulator smoke approved; next step /gsd-verify-work
+Last activity: 2026-08-30 — 05-04 Task-3 human gate approved (all six groups passed); closure recorded in 05-04-phase-gate-closure-SUMMARY.md §Checkpoint Resolution
 
-Progress: [███████░░] 3 of 4 Phase-5 plans complete; 05-04 halted at the human gate (05-01 precedent — closure commit follows approval)
+Progress: [██████████] 4 of 4 Phase-5 plans complete — phase 5 ready for /gsd-verify-work
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
-- Average duration: 21min
-- Total execution time: 63min
+- Total plans completed: 4 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Average duration: 18min
+- Total execution time: 72min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 5 | 3 | 63min | 21min |
+| 5 | 4 | 72min | 18min |
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |
@@ -54,6 +54,7 @@ Progress: [███████░░] 3 of 4 Phase-5 plans complete; 05-04 hal
 | Phase 05 P01 | 37min | 3 tasks | 17 files |
 | Phase 05 P02 | 15min | 3 tasks | 11 files |
 | Phase 05 P03 | 11min | 2 tasks | 5 files |
+| Phase 05 P04 | 9min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,7 @@ None yet.
 - [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — pick a wiring point during Phase 5 completion or Phase 3 planning.
 - [Phase 5]: TrafficDetailView shows placeholder timing metrics (real PulseMetrics is a v2 candidate, NET-02).
 - ~~[Phase 5]: 05-01 Task 3 blocking-human Simulator smoke~~ RESOLVED 2026-08-29 — user approved all 7 steps; loopback bind held (A3 valid, fallback unused). Details: 05-01-command-channel-tracer-SUMMARY.md §Checkpoint Resolution.
+- ~~[Phase 5]: 05-04 Task 3 blocking-human phase-gate smoke~~ RESOLVED 2026-08-30 — user approved all six groups (AIRPLANE, THROTTLE, BLOCK, RECONCILE, CERTS, CLEAN STATE). Details: 05-04-phase-gate-closure-SUMMARY.md §Checkpoint Resolution.
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD; unit suites themselves green (19/19). See deferred-items.md.
 
 ## Deferred Items
@@ -93,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-29T17:10:12.379Z
-Stopped at: 05-04 halted at Task 3 blocking-human phase-gate smoke — Tasks 1-2 done (docs commit 209fa8e, suite 44/44, pin clean)
+Last session: 2026-08-30T00:22:50.166Z
+Stopped at: 05-04 complete — phase-gate smoke approved 2026-08-30 (all 4 Phase-5 plans done)
 Resume file: None

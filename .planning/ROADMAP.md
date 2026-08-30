@@ -103,7 +103,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   4. User can toggle per-app Simulator Airplane Mode with no impact on Mac connectivity
   5. User can block requests by domain/path rules
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 Plans:
 **Wave 1**
 
@@ -116,7 +116,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-04-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin assertions, phase-gate manual smoke
+- [x] 05-04-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin assertions, phase-gate manual smoke
 
 **UI hint**: yes
 
@@ -164,6 +164,6 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 2. Capture Tools | 0/TBD | Not started | - |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
-| 5. Network Tools | 3/4 | In Progress|  |
+| 5. Network Tools | 4/4 | In Progress|  |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |
