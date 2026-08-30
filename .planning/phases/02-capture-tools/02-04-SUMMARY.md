@@ -109,6 +109,14 @@ The user ran all six steps of the 02-VALIDATION.md phase-gate smoke on a booted 
 
 Cross-check: docs § Capture Tools matches the shipped behavior. A failing step would have routed to gap-closure planning per the plan's resume-signal; none occurred.
 
+## Post-Review MOV Re-verification (2026-08-30)
+
+CR-01 review finding invalidated the original step-3 MOV evidence (pre-fix export
+self-deleted its staged input; the smoke had played the staged file). Fixed in e420435
+(output routed to distinct boostersim-export-* sibling; both delete sites guarded;
+regression-tested). User re-verified live: exported MOV plays with correct duration AND
+the same recording still exports as GIF/MP4 afterward. Criterion 4 evidence restored.
+
 ## Task Commits
 
 1. **Task 1 (auto):** `e49ccfb` docs — capture subsystem section + stale-line truth pass (60 insertions, 6 deletions)
