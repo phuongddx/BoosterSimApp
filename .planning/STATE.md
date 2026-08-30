@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: 02-03 export formats COMPLETE — both tasks green (79/79 unit bundle, build clean); plan 3 of 4; awaiting Wave-3 gate + plan 04
-last_updated: "2026-08-30T14:12:45.788Z"
+stopped_at: 02-04 phase-gate closure — Task 1 complete (docs § Capture Tools + automated gate green: 79/79 exit 0, build clean, swiftpm pin stable); HALTED at Task 2 blocking-human six-step phase-gate smoke (gate blocking-human, autonomous:false); awaiting user approval to close Phase 2
+last_updated: "2026-08-30T14:20:41.000Z"
 last_activity: 2026-08-30
-last_activity_desc: 02-02 recording pipeline complete — smoke approved
-state_head: aa8baa11c6df8503822ab0e41dc3b8b4d88a2ad1
+last_activity_desc: 02-04 Task 1 complete — halted at Task 2 phase-gate human smoke
+state_head: e49ccfb61dd8af34eb5a0a734f46ca0e2d90a3dc
 progress:
   total_phases: 7
   completed_phases: 1
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Current focus:** Phase 2 — Capture Tools
 
 Phase: 2 (Capture Tools) — EXECUTING
-Plan: 3 of 4 complete (02-02 smoke approved 2026-08-30) — next: 02-03 export formats (Wave 3)
-Status: Ready to execute
-Last activity: 2026-08-30 — 02-02 complete (Task 3 smoke approved; RecordingService + TouchIndicatorController + Recording section; 5 commits incl. docs)
+Plan: 4 of 4 in progress (02-04 phase-gate closure — Task 1 green: docs + automated standard; Task 2 blocking-human smoke PENDING) — Phase 2 closes on user approval
+Status: Halted at the phase gate — awaiting the user's six-step manual smoke (all four ROADMAP success criteria observed live)
+Last activity: 2026-08-30 — 02-04 Task 1 complete (§ Capture Tools docs + 79/79 gate evidence; e49ccfb)
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -80,6 +80,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 2]: 02-02: LOC splits — CaptureSaveRouter (routing seam plan 03 reuses), RecordingState in Models/, RecordingSectionView as its own file; Swift `is CFNull` compiles always-true — use identity comparison
 - [Phase 02-03]: 02-03: Export output names derive from the staged recording stem (no fresh timestamp) — re-running an export deterministically overwrites its prior file; clipboard destination keeps the temp payload as the paste object (24h launch sweep reclaims it)
 - [Phase 02-03]: 02-03: Exporter is DispatchQueue+Combine only (zero await/Task tokens) — macOS-15-deprecated sync AVFoundation metadata APIs used deliberately (async-only replacements banned here); A2 fallback (passthrough MP4 → HighestQuality re-encode) pre-wired for the phase gate
+- [Phase 02-04]: 02-04: architecture docs carry § Capture Tools (service split + data flow + permissions/degradation + ShowSingleTouches scope/restore + temp lifecycle + honest Up-to-120-fps); stale placeholder/key-list/concurrency lines corrected in the same truth pass
+- [Phase 02-04]: 02-04 phase-gate automated standard green — unit bundle 79/79 exit 0, Debug build clean, swiftpm git diff empty; Package.resolved pin proven by sha256 content stability (70386616a707…, identical to Phase 5) since the file remains untracked — track-the-file recommendation stays open
 
 ### Pending Todos
 
@@ -100,7 +102,6 @@ None yet.
 | Feature | Health Data Generator (BoosterHealth) | Superseded — removed (3b1015f) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
-
-Last session: 2026-08-30T14:12:39.175Z
-Stopped at: 02-03 export formats COMPLETE — both tasks green (79/79 unit bundle, build clean); plan 3 of 4; awaiting Wave-3 gate + plan 04
-Resume file: None
+Last session: 2026-08-30T14:20:41.000Z
+Stopped at: 02-04 phase-gate closure — Task 1 complete (docs + automated gate green); halted at Task 2 blocking-human phase-gate smoke; ROADMAP 02-04 intentionally unchecked
+Resume file: .planning/phases/02-capture-tools/02-04-SUMMARY.md (status: halted — resume records the per-step smoke results, then closes the plan)
