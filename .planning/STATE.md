@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-current_phase: 05
-current_phase_name: Network Tools
+current_phase: 3
+current_phase_name: App Actions
 status: planning
-stopped_at: 02-04 phase-gate closure COMPLETE — Task 2 blocking-human six-step smoke user-approved 2026-08-30 (all steps pass; A2 resolved via MP4 passthrough, wired fallback not needed; no boostersim-capture-* residue; docs § Capture Tools matches); plan 4 of 4 done — Phase 2 awaits orchestrator phase tail
-last_updated: "2026-08-30T16:52:07.149Z"
+stopped_at: Phase 2 (Capture Tools) complete + verified 4/4 — ready to plan Phase 3 (App Actions); next-phase pointer hand-corrected from CLI's stale 05 (already complete)
+last_updated: "2026-08-30T17:10:00.000Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 2 complete, transitioned to Phase 05
+last_activity_desc: Phase 2 complete + verified, advanced to Phase 3
 state_head: e57abbbcce6db15f1bb923803ecf3ed00bdaf9b5
 progress:
   total_phases: 7
@@ -23,14 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-30)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 2 — Capture Tools
+**Current focus:** Phase 3 — App Actions (Phases 2 Capture Tools + 5 Network Tools complete + verified 2026-08-30)
 
-Phase: 05 — Network Tools
+## Current Position
+
+Phase: 3 — App Actions
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-30 — Phase 2 complete, transitioned to Phase 05
+Last activity: 2026-08-30 — Phase 2 complete + verified, advanced to Phase 3
 
-Progress: [█░░░░░░░░░] 14%
+Progress: [████████░░░░░░░░░░] 4 of 7 phases complete (1, 2, 5, 6) — next: Phase 3 App Actions
 
 ## Performance Metrics
 
@@ -91,10 +93,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — Phase 5 closed without wiring; pick the wiring point during Phase 3 planning.
+- [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — Phases 5 and 2 closed without wiring; pick the wiring point during Phase 3 planning.
 - [Phase 5]: TrafficDetailView shows placeholder timing metrics (real PulseMetrics is a v2 candidate, NET-02).
 - [Phase 5][follow-up]: throttle pacing formula omits ÷1000 kilo factor (as-shipped: 3G paces 16 s per 1500 B chunk) — rescale candidate, documented in docs/system-architecture.md.
-- [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion was vacuous at the git level — track the file so future pin checks are real (verifier note, 05-VERIFICATION.md).
+- [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
+- [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
 
 ## Deferred Items
@@ -104,6 +107,10 @@ None yet.
 | Feature | Health Data Generator (BoosterHealth) | Superseded — removed (3b1015f) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
-Last session: 2026-08-30T14:28:16.000Z
-Stopped at: 02-04 complete — phase-gate smoke approved 2026-08-30; ROADMAP 02-04 checked (4/4 plans); awaiting orchestrator phase tail
-Resume file: None (plan closed; Phase 2 ready for verification)
+| Enhancement | Photoreal device-bezel asset frames (license decision pending) | v2 candidate (license-clean modes shipped) | 2026-08-30 | v2 |
+
+## Session Continuity
+
+Last session: 2026-08-30
+Stopped at: Phase 2 complete + verified (4/4 criteria, 2/2 reqs); post-review MOV re-check approved; advanced to Phase 3 (App Actions)
+Resume file: None

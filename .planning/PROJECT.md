@@ -25,12 +25,12 @@ from the side panel.
 - ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector — Phase 6
 - ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — delivered pre-.planning (Phase 5 scope)
 - ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
+- ✓ Capture tools — SCScreenshotManager window screenshots with 7 exact ASC presets + bezel modes + solid/gradient backgrounds, floating thumbnail, Desktop/clipboard/custom saves, SCRecordingOutput recordings at the 120 fps ceiling with Simulator-native touch indicators, GIF (centisecond-quantized) / MP4 / MOV export — Phase 2 (verified 4/4)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Phase 2 — Capture tools: screenshots with bezels/framing, screen recording incl. 120 FPS, GIF/video export
 - [ ] Phase 3 — App actions: reset app, keychain clear, push simulation, deep links, locale/appearance/Dynamic Type/location controls, UserDefaults editor
 - [ ] Phase 4 — Design tools: grid/safe-area overlays, ruler, magnifier/color picker, Figma/Sketch comparison
 - [ ] Phase 7 — Polish & distribution: signing/notarization, auto-update, tests, privacy manifest, icon
@@ -56,10 +56,10 @@ from the side panel.
   + Bonjour `_booster-cmd._tcp.`) → BoosterCommandClient (length-prefixed v1 frames,
   CommandFrameAssembler reassembly, backoff restart) → NetworkConditionController →
   BoosterNetworkProtocol verdict enforcement (guard > airplane > rules > throttle).
-- Codebase: ~78 Swift files. Capture and Design tabs are placeholders; Network tab ships
-  inspection + full manipulation (airplane/throttle/block via the command-channel engine);
-  Phase 6 views (StatusBar, BuildStats, AXTree, Camera) are complete but not yet wired
-  into the side panel tabs.
+- Codebase: ~97 Swift files. Design tab and the Actions tab are placeholders; Network tab
+  ships full inspection + manipulation; Capture tab ships screenshots (7 ASC presets),
+  recordings (120 fps ceiling, touch indicators), and GIF/MP4/MOV export; Phase 6 views
+  (StatusBar, BuildStats, AXTree, Camera) are complete but not yet wired into tabs.
 - Institutional knowledge from the docs ingest (2026-08-29): `.planning/intel/`
   (SYNTHESIS.md, requirements/constraints/context/decisions, INGEST-CONFLICTS.md) and
   `.planning/codebase/` (7 codebase-map docs).
@@ -97,6 +97,10 @@ from the side panel.
 | Verdict precedence guard > airplane > block rules > throttle in BoosterNetworkProtocol | Deterministic, testable ordering; guard unconditionally wins | ✓ Good |
 | Throttle = latency delay + 1500-byte paced chunks via ThrottlePacing (as-shipped formula omits ÷1000 kilo factor — rescale is a v2 candidate) | Plan-pinned contract, unit-tested, docs disclose fidelity gap | ✓ Good (v2 rescale noted) |
 | CommandBroadcasting protocol injection in NetworkConditionService | Unit tests/previews run without binding real NWListener/Bonjour (review WR-02) | ✓ Good |
+| Screenshot via SCScreenshotManager one-shot + desktopIndependentWindow; recordings via SCStream + SCRecordingOutput direct-to-disk (finish-callback finalization) | Phase 2 capture spine; zero frame accumulation; macOS 15 floor | ✓ Good |
+| Touch indicators via Simulator's own ShowSingleTouches pref (CFPreferences snapshot/restore, single scoped key) | Simulator renders the dots — capture includes them for free; no subprocess | ✓ Good |
+| GIF export = AVAssetReader→ImageIO integer-centisecond delays, loop 0; MP4/MOV via AVAssetExportSession passthrough (HighestQuality re-encode fallback wired) | Apple-frameworks-only; deterministic timing | ✓ Good |
+| Bezel modes none/simulatorNative/drawn (photoreal asset frames deferred pending license) | License-clean resolution recorded in 02-RESEARCH Open Questions | ✓ Good (v2 asset decision open) |
 
 ---
-*Last updated: 2026-08-30 after Phase 5 (Network Tools) completion*
+*Last updated: 2026-08-30 after Phase 2 (Capture Tools) completion*
