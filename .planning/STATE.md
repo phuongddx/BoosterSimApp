@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
-current_phase: 2
-current_phase_name: Capture Tools
-status: ready-for-verification
+current_phase: 05
+current_phase_name: Network Tools
+status: planning
 stopped_at: 02-04 phase-gate closure COMPLETE — Task 2 blocking-human six-step smoke user-approved 2026-08-30 (all steps pass; A2 resolved via MP4 passthrough, wired fallback not needed; no boostersim-capture-* residue; docs § Capture Tools matches); plan 4 of 4 done — Phase 2 awaits orchestrator phase tail
-last_updated: "2026-08-30T14:28:16.000Z"
+last_updated: "2026-08-30T16:52:07.149Z"
 last_activity: 2026-08-30
-last_activity_desc: 02-04 complete — phase-gate smoke approved; Phase 2 capture tools delivered
-state_head: e49ccfb61dd8af34eb5a0a734f46ca0e2d90a3dc
+last_activity_desc: Phase 2 complete, transitioned to Phase 05
+state_head: e57abbbcce6db15f1bb923803ecf3ed00bdaf9b5
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
   completed_plans: 8
-  percent: 14
+  percent: 29
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
 **Current focus:** Phase 2 — Capture Tools
 
-Phase: 2 (Capture Tools) — READY FOR VERIFICATION
-Plan: 4 of 4 complete (02-04 phase-gate closure — human smoke approved 2026-08-30; e49ccfb + dec9aab + closure commit)
-Status: ready-for-verification — six-step phase-gate smoke approved by the user (2026-08-30); all four ROADMAP success criteria observed live; orchestrator runs phase tail
-Last activity: 2026-08-30 — 02-04 complete (phase-gate smoke approved; docs truth e49ccfb)
+Phase: 05 — Network Tools
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-30 — Phase 2 complete, transitioned to Phase 05
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -36,7 +36,7 @@ Progress: [█░░░░░░░░░] 14%
 
 **Velocity:**
 
-- Total plans completed: 4 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Total plans completed: 8 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
 - Average duration: 18min
 - Total execution time: 72min
 
@@ -45,6 +45,7 @@ Progress: [█░░░░░░░░░] 14%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 5 | 4 | - | - |
+| 2 | 4 | - | - |
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |

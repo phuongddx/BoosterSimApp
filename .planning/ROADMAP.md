@@ -18,7 +18,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Foundation** - Core app shell with simulator attachment (complete)
-- [ ] **Phase 2: Capture Tools** - Screenshots and screen recording from the side panel
+- [x] **Phase 2: Capture Tools** - Screenshots and screen recording from the side panel (completed 2026-08-30)
 - [ ] **Phase 3: App Actions** - Common simulator dev actions from the side panel
 - [ ] **Phase 4: Design Tools** - Visual overlays on top of the Simulator window
 - [x] **Phase 5: Network Tools** - Inspection delivered; finish throttle, airplane mode, request blocking (completed 2026-08-30)
@@ -178,7 +178,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
-| 2. Capture Tools | 4/4 | In Progress|  |
+| 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
