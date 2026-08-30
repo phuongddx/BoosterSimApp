@@ -10,6 +10,22 @@ import UniformTypeIdentifiers
 @MainActor
 final class CaptureService: ObservableObject {
 
+    // MARK: - Private
+
+    private let screenshotService: ScreenshotService
+    private let thumbnailPanel: CaptureThumbnailPanel
+    private let permissionManager: PermissionManager
+    private let tracker: SimulatorWindowTracker
+    /// Persisted capture options; shares .standard with AppDelegate's instance.
+    private let settings = AppSettings()
+
+    /// Options snapshot at capture start — mid-flight UI changes never tear a capture.
+    private struct CapturePlan {
+        let preset: ASCFramePreset
+        let bezel: BezelMode
+        let background: CaptureBackground
+    }
+
     // MARK: - Published State
 
     @Published private(set) var permissionGranted = false
@@ -19,25 +35,13 @@ final class CaptureService: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var lastSavedURL: URL?
 
-    // Session capture options (plan 02-01 task 2 moves these onto AppSettings)
-    @Published private(set) var selectedPreset: ASCFramePreset
-    @Published private(set) var bezelMode: BezelMode
-    @Published private(set) var background: CaptureBackground
-    @Published private(set) var destination: CaptureDestination
+    // Option mirrors synced to AppSettings on every change (relaunch persistence)
+    @Published var selectedPreset: ASCFramePreset { didSet { settings.captureASCFramePreset = selectedPreset } }
+    @Published var bezelMode: BezelMode { didSet { settings.captureBezelMode = bezelMode } }
+    @Published var background: CaptureBackground { didSet { settings.captureBackground = background } }
+    @Published var destinationKind: CaptureDestinationKind { didSet { settings.captureDestination = destinationKind } }
 
-    /// Options snapshot at capture start — mid-flight UI changes never tear a capture.
-    private struct CapturePlan {
-        let preset: ASCFramePreset
-        let bezel: BezelMode
-        let background: CaptureBackground
-    }
-
-    // MARK: - Private
-
-    private let screenshotService: ScreenshotService
-    private let thumbnailPanel: CaptureThumbnailPanel
-    private let permissionManager: PermissionManager
-    private let tracker: SimulatorWindowTracker
+    var customCaptureFolder: URL? { settings.customCaptureFolder }
 
     // MARK: - Lifecycle
 
@@ -54,20 +58,16 @@ final class CaptureService: ObservableObject {
         self.thumbnailPanel = thumbnailPanel
         self.permissionManager = permissionManager
         self.tracker = tracker
-        selectedPreset = .iphone69x1320
-        bezelMode = .simulatorNative
-        background = .solid
-        destination = .desktop
-        refreshPermissionState()
-    }
-
-    // MARK: - Permission
-
-    /// Re-preflights at launch — grants since last quit only apply now (Pitfall 2).
-    func refreshPermissionState() {
+        selectedPreset = settings.captureASCFramePreset
+        bezelMode = settings.captureBezelMode
+        background = settings.captureBackground
+        destinationKind = settings.captureDestination
+        // Re-preflight: grants since last quit only apply now (Pitfall 2).
         permissionManager.checkScreenRecording()
         permissionGranted = permissionManager.screenRecordingGranted
     }
+
+    // MARK: - Permission
 
     /// Opens System Settings and polls (1s); on grant, publish the quit-and-reopen hint.
     func requestPermission() {
@@ -79,13 +79,6 @@ final class CaptureService: ObservableObject {
         }
     }
 
-    // MARK: - Options
-
-    func selectPreset(_ preset: ASCFramePreset) { selectedPreset = preset }
-    func selectBezel(_ mode: BezelMode) { bezelMode = mode }
-    func selectBackground(_ fill: CaptureBackground) { background = fill }
-    func selectDestination(_ destination: CaptureDestination) { self.destination = destination }
-
     // MARK: - Screenshot
 
     /// One-click capture; never throws at the UI — failures land in `lastError`.
@@ -93,7 +86,6 @@ final class CaptureService: ObservableObject {
         guard !isCapturing else { return }
         guard CGPreflightScreenCaptureAccess() else {
             permissionGranted = false
-            lastError = nil
             return
         }
         permissionGranted = true
@@ -110,58 +102,24 @@ final class CaptureService: ObservableObject {
         }
     }
 
-    // MARK: - Filename
-
-    /// Sanitized timestamp-unique filename: "BoosterSim-" + device + "-" + preset + "-" + stamp + ".png".
-    /// Allowlist is alphanumeric + hyphen; every other character collapses to a single
-    /// hyphen (threat T-02-05 — device strings must never reach the path raw).
-    static func captureFilename(device: String?, preset: ASCFramePreset, date: Date) -> String {
-        let stamp = filenameDateFormatter.string(from: date)
-        return "BoosterSim-\(sanitizedDevice(device))-\(preset.rawValue)-\(stamp).png"
-    }
-
-    private static let filenameDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyyMMdd-HHmmss"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
-
-    private static func sanitizedDevice(_ device: String?) -> String {
-        var result = ""
-        var lastWasSeparator = false
-        for character in (device ?? "Simulator").lowercased() {
-            let isAllowed = (character.isLetter || character.isNumber) && character.isASCII
-            if isAllowed {
-                result.append(character)
-                lastWasSeparator = false
-            } else if !lastWasSeparator {
-                result.append("-")
-                lastWasSeparator = true
-            }
-        }
-        let trimmed = result.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        return trimmed.isEmpty ? "simulator" : trimmed
-    }
+    // MARK: - Capture Flow
 
     private func performCapture(windowID: CGWindowID, windowFrame: CGRect,
                                 plan: CapturePlan, deviceName: String?) async {
         defer { isCapturing = false }
         do {
             let raw = try await screenshotService.capture(windowID: windowID, windowFrame: windowFrame)
-            let framed = CaptureCompositor.render(
-                content: raw,
-                preset: plan.preset,
-                bezel: plan.bezel,
-                background: plan.background,
-                padding: CaptureCompositor.defaultPadding
-            )
+            let framed = CaptureCompositor.render(content: raw, preset: plan.preset, bezel: plan.bezel,
+                                                  background: plan.background,
+                                                  padding: CaptureCompositor.defaultPadding)
             guard let png = Self.pngData(from: framed) else {
                 lastError = "Failed to encode PNG"
                 return
             }
-            let url = try saveToDesktop(png, deviceName: deviceName, preset: plan.preset)
-            thumbnailPanel.show(url: url, anchorNear: windowFrame)
+            let filename = CaptureFilename.captureFilename(device: deviceName, preset: plan.preset, date: Date())
+            route(pngData: png, filename: filename,
+                  suggestedURL: CaptureDestination.defaultDesktopFolder().appendingPathComponent(filename),
+                  anchor: windowFrame)
         } catch let error as ScreenshotService.CaptureError {
             lastError = Self.message(for: error)
         } catch {
@@ -169,15 +127,57 @@ final class CaptureService: ObservableObject {
         }
     }
 
-    /// Tracer destination: Desktop write with a timestamped name — second captures
-    /// never touch the first (in-memory routing, no temp files).
-    private func saveToDesktop(_ png: Data, deviceName: String?, preset: ASCFramePreset) throws -> URL {
-        let url = CaptureDestination.defaultDesktopFolder()
-            .appendingPathComponent(Self.captureFilename(device: deviceName, preset: preset, date: Date()))
-        try png.write(to: url, options: .atomic)
-        lastSavedURL = url
-        AppLogger.capture.info("Saved capture (preset \(preset.rawValue, privacy: .public))")
-        return url
+    /// Destination routing (in-memory PNG data, no temp files to clean up).
+    private func route(pngData: Data, filename: String, suggestedURL: URL, anchor: CGRect) {
+        switch resolvedDestination() {
+        case .desktop:
+            finishSave(url: suggestedURL, pngData: pngData, anchor: anchor)
+        case .clipboard:
+            // Clipboard receives captures only via this user-selected destination (T-02-03).
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setData(pngData, forType: .png)
+            lastSavedURL = nil
+        case .custom(let folder):
+            presentSavePanel(directory: folder, filename: filename, pngData: pngData, anchor: anchor)
+        case .ask:
+            presentSavePanel(directory: nil, filename: filename, pngData: pngData, anchor: anchor)
+        }
+    }
+
+    private func resolvedDestination() -> CaptureDestination {
+        let folder = settings.customCaptureFolder ?? CaptureDestination.defaultDesktopFolder()
+        switch settings.captureDestination {
+        case .desktop: return .desktop
+        case .clipboard: return .clipboard
+        case .custom: return .custom(folder)
+        case .ask: return .ask
+        }
+    }
+
+    /// Non-modal save panel (begin + completion handler) with a pre-populated name field.
+    private func presentSavePanel(directory: URL?, filename: String, pngData: Data, anchor: CGRect) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = filename
+        panel.directoryURL = directory
+        panel.begin { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else { return }
+            if self.settings.captureDestination == .custom {
+                self.settings.customCaptureFolder = url.deletingLastPathComponent()
+            }
+            self.finishSave(url: url, pngData: pngData, anchor: anchor)
+        }
+    }
+
+    private func finishSave(url: URL, pngData: Data, anchor: CGRect) {
+        do {
+            try pngData.write(to: url, options: .atomic)
+            lastSavedURL = url
+            thumbnailPanel.show(url: url, anchorNear: anchor)
+            AppLogger.capture.info("Saved capture")
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
     private static func pngData(from image: CGImage) -> Data? {

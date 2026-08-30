@@ -64,7 +64,7 @@ struct CaptureSettingsTests {
     @MainActor
     @Test func captureFilenameSanitizesPathUnsafeCharacters() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let name = CaptureService.captureFilename(
+        let name = CaptureFilename.captureFilename(
             device: "iPhone 16 Pro: Max/Test 2", preset: .iphone69x1320, date: date
         )
 
@@ -79,16 +79,16 @@ struct CaptureSettingsTests {
     @MainActor
     @Test func captureFilenameIsDeterministicPerInputs() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let first = CaptureService.captureFilename(device: "iPhone 16 Pro", preset: .ipad13x2064, date: date)
-        let second = CaptureService.captureFilename(device: "iPhone 16 Pro", preset: .ipad13x2064, date: date)
+        let first = CaptureFilename.captureFilename(device: "iPhone 16 Pro", preset: .ipad13x2064, date: date)
+        let second = CaptureFilename.captureFilename(device: "iPhone 16 Pro", preset: .ipad13x2064, date: date)
         #expect(first == second)
     }
 
     @MainActor
     @Test func captureFilenameAdvancesWithTheDate() {
-        let earlier = CaptureService.captureFilename(device: "iPhone 16", preset: .iphone65x1242,
+        let earlier = CaptureFilename.captureFilename(device: "iPhone 16", preset: .iphone65x1242,
                                                      date: Date(timeIntervalSince1970: 1_700_000_000))
-        let later = CaptureService.captureFilename(device: "iPhone 16", preset: .iphone65x1242,
+        let later = CaptureFilename.captureFilename(device: "iPhone 16", preset: .iphone65x1242,
                                                     date: Date(timeIntervalSince1970: 1_700_000_002))
         #expect(earlier != later)
     }
