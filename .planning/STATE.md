@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: 02-01 screenshot tracer COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 8 steps, A4 held); plan 1 of 4 in Phase 2; wave gate clear for Wave 2
-last_updated: "2026-08-30T12:51:50.000Z"
+stopped_at: 02-02 recording pipeline — Tasks 1-2 complete (73/73 unit green, build clean); HALTED at Task 3 blocking-human live smoke (gate blocking-human, autonomous:false); awaiting user approval to unblock plan 03
+last_updated: "2026-08-30T13:22:21.000Z"
 last_activity: 2026-08-30
-last_activity_desc: 02-01 screenshot tracer complete — smoke approved
-state_head: 1e52ec20dc6f910eb7bb9499c0f11c9d54205e44
+last_activity_desc: 02-02 recording pipeline tasks 1-2 complete — halted at Task 3 human smoke
+state_head: af73adb9d4437c2dc3ed353a71adc8b962f9efa9
 progress:
   total_phases: 7
   completed_phases: 1
@@ -25,12 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
 **Current focus:** Phase 2 — Capture Tools
 
-## Current Position
-
 Phase: 2 (Capture Tools) — EXECUTING
-Plan: 1 of 4 complete (02-01 smoke approved 2026-08-30) — next: 02-02 recording pipeline
-Status: Executing Phase 2
-Last activity: 2026-08-30 — 02-01 complete (Task 3 human smoke approved); awaiting Wave-1 gate + Wave 2
+Plan: 2 of 4 in progress (02-02 recording pipeline — Tasks 1-2 green, Task 3 blocking-human smoke PENDING) — plans 03/04 blocked on smoke approval
+Status: Halted at designed checkpoint — awaiting user smoke (plan 03 export builds on the staged-.mov contract)
+Last activity: 2026-08-30 — 02-02 Tasks 1-2 complete (RecordingService + TouchIndicatorController + Recording section; 4 commits)
 
 Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
 
@@ -75,7 +73,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 5]: 05-04 phase-gate automated standard: unit bundle via -only-testing:BoosterSimAppTests -skip-testing:BoosterSimAppUITests (exit 0, 44/44) + both scheme builds + Package.resolved sha256 70386616a707… clean across phase (REQ-nfr-03 closed); unfiltered test exits 65 on pristine HEAD (pre-existing UI-test env issue, documented)
 - [Phase 2]: 02-01: Screenshot tracer spine — desktopIndependentWindow filter + SCScreenshotManager, alpha-skipped CG output; CaptureService rewritten as 200-LOC facade; defective scaffold cut over
 - [Phase 2]: 02-01: ASC preset enum ships SEVEN cases (plan said 8 — arithmetic slip; all enumerations list 7 verified sizes); raw values are final persistence keys
-- [Phase 2]: 02-01: filename builder lives in Utilities/CaptureFilename.swift (Rule-3 split to honor 200-LOC); option persistence via @Published didSet mirrors onto AppSettings
+- [Phase 2]: 02-02: SCRecordingOutput attaches via stream.addRecordingOutput(_:) — no external sample-handler queue on the real macOS 15 API (plan's addStreamOutput shape does not exist for recording outputs); output writes on SCK's own queue, callbacks hop to main via NSObject wrappers
+- [Phase 2]: 02-02: export gating = finish callback + AVAsset duration>0 (stopCapture returning is never "file ready"); staged .mov is HEVC in temp with boostersim-capture- prefix — the contract plan 03 consumes
+- [Phase 2]: 02-02: TouchIndicatorController = single scoped key ShowSingleTouches with snapshot/restore on every exit path (kCFNull clears the was-unset case); injectable TouchPreferencesStore; never a defaults subprocess
+- [Phase 2]: 02-02: LOC splits — CaptureSaveRouter (routing seam plan 03 reuses), RecordingState in Models/, RecordingSectionView as its own file; Swift `is CFNull` compiles always-true — use identity comparison
 
 ### Pending Todos
 
@@ -97,8 +98,6 @@ None yet.
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
 
-## Session Continuity
-
-Last session: 2026-08-30T12:16:31.143Z
-Stopped at: 02-01 screenshot tracer COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 8 steps, A4 held); plan 1 of 4; awaiting Wave-1 gate + Wave 2
-Resume file: .planning/phases/02-capture-tools/02-01-screenshot-tracer-SUMMARY.md
+Last session: 2026-08-30T13:22:21.000Z
+Stopped at: 02-02 Tasks 1-2 complete — halted at Task 3 blocking-human smoke (six-step live recording check; resume-signal "approved" unblocks plan 03)
+Resume file: .planning/phases/02-capture-tools/02-02-recording-pipeline-SUMMARY.md
