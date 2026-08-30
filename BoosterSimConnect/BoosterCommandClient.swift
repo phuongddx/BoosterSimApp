@@ -21,7 +21,7 @@ final class BoosterCommandClient {
     private var connection: NWConnection?
     private var isStarted = false
 
-    private var receiveBuffer = Data()
+    private var assembler = CommandFrameAssembler()
     private static let maxBufferSize = 10 * 1024 * 1024 // 10 MB safety cap
 
     private init() {}
@@ -45,7 +45,7 @@ final class BoosterCommandClient {
             self.browser = nil
             self.connection?.cancel()
             self.connection = nil
-            self.receiveBuffer.removeAll()
+            self.assembler = CommandFrameAssembler()
         }
     }
 
@@ -95,7 +95,7 @@ final class BoosterCommandClient {
             guard let self else { return }
             switch state {
             case .ready:
-                self.receiveBuffer.removeAll()
+                self.assembler = CommandFrameAssembler()
                 self.receiveLoop()
             case .failed, .cancelled:
                 // Reconnection: drop the dead connection and browse again;
@@ -122,8 +122,8 @@ final class BoosterCommandClient {
                 return
             }
             if let content {
-                self.receiveBuffer.append(content)
-                if self.receiveBuffer.count > Self.maxBufferSize {
+                self.assembler.append(content)
+                if self.assembler.buffer.count > Self.maxBufferSize {
                     self.connection?.cancel()
                     return
                 }
@@ -136,46 +136,17 @@ final class BoosterCommandClient {
     }
 
     private func processBuffer() {
-        while !receiveBuffer.isEmpty {
-            let payload: Data
-            do {
-                payload = try Self.decodeFrame(from: &receiveBuffer)
-            } catch {
-                // Malformed frame: drop the connection; reconcile heals on reconnect.
-                connection?.cancel()
-                return
+        do {
+            while let payload = try assembler.nextFrame() {
+                apply(payload)
             }
-            apply(payload)
+        } catch {
+            // The only thrown error is .payloadTooLarge — malformed frame:
+            // drop the connection; reconcile heals on reconnect. A frame
+            // split across receives returns nil above and simply waits for
+            // the next receive (05 review CR-01).
+            connection?.cancel()
         }
-    }
-
-    // MARK: - Frame Decode
-    // Schema-synced mirror of the Mac-side CommandFrame codec.
-
-    private static let prefixLength = 4
-    private static let maxPayloadSize = 10 * 1024 * 1024
-
-    private enum FrameError: Error {
-        case incomplete
-        case payloadTooLarge
-    }
-
-    private static func decodeFrame(from buffer: inout Data) throws -> Data {
-        guard buffer.count >= prefixLength else { throw FrameError.incomplete }
-        // Copy into a re-based index space: a Data produced by removeFirst can
-        // keep a non-zero startIndex, and raw offsets then trap (Data-slice
-        // alignment trap — connect-transport-rewrite precedent).
-        let bytes = [UInt8](buffer)
-        var length = UInt32(0)
-        for byte in bytes[0..<prefixLength] {
-            length = (length << 8) | UInt32(byte)
-        }
-        guard Int(length) <= maxPayloadSize else { throw FrameError.payloadTooLarge }
-        let totalLength = prefixLength + Int(length)
-        guard bytes.count >= totalLength else { throw FrameError.incomplete }
-        let payload = Data(bytes[prefixLength..<totalLength])
-        buffer = Data(bytes[totalLength...])
-        return payload
     }
 
     // MARK: - Apply

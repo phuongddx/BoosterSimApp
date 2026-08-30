@@ -107,4 +107,38 @@ struct CommandPayloadTests {
             try CommandFrame.decodeOne(from: &buffer)
         }
     }
+
+    // MARK: - Client Stream Reassembly (05 review CR-01)
+
+    @Test func assemblerReassemblesFrameSplitAcrossTwoReceives() throws {
+        let frame = CommandFrame.encode(Data("split snapshot".utf8))
+        var assembler = CommandFrameAssembler()
+
+        // First receive: length prefix plus one body byte. The frame is
+        // incomplete — nothing decodes and the partial bytes must stay
+        // buffered (the pre-fix client cancelled the connection here).
+        assembler.append(frame.prefix(CommandFrame.prefixLength + 1))
+        #expect(try assembler.nextFrame() == nil)
+
+        // Second receive completes the frame.
+        assembler.append(frame.suffix(frame.count - (CommandFrame.prefixLength + 1)))
+
+        let payload = try #require(try assembler.nextFrame())
+        #expect(payload == Data("split snapshot".utf8))
+        #expect(assembler.buffer.isEmpty)
+    }
+
+    @Test func assemblerFlagsOverCapFrameAsMalformed() {
+        var assembler = CommandFrameAssembler()
+        var buffer = Data()
+        var length = UInt32(CommandFrame.maxPayloadSize + 1).bigEndian
+        withUnsafeBytes(of: &length) { buffer.append(contentsOf: $0) }
+        buffer.append(Data([0x00]))
+        assembler.append(buffer)
+
+        // Over-cap is the one malformed case: the client drops the connection.
+        #expect(throws: CommandFrameAssembler.FrameError.payloadTooLarge) {
+            try assembler.nextFrame()
+        }
+    }
 }
