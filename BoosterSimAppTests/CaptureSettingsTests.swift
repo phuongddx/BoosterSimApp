@@ -1,4 +1,5 @@
-// CaptureSettingsTests.swift — Capture option persistence and filename builder
+// CaptureSettingsTests.swift — Capture option persistence, filename builder, touch-indicator restore machine
+import CoreFoundation
 import Foundation
 import Testing
 @testable import BoosterSimApp
@@ -91,5 +92,126 @@ struct CaptureSettingsTests {
         let later = CaptureFilename.captureFilename(device: "iPhone 16", preset: .iphone65x1242,
                                                     date: Date(timeIntervalSince1970: 1_700_000_002))
         #expect(earlier != later)
+    }
+
+    // MARK: - Touch Indicator State Machine
+
+    @Test func touchIndicatorStateAllowsExpectedTransitions() {
+        #expect(TouchIndicatorState.idle.canTransition(to: .applying))
+        #expect(TouchIndicatorState.applying.canTransition(to: .active))
+        #expect(TouchIndicatorState.active.canTransition(to: .restoring))
+        #expect(TouchIndicatorState.restoring.canTransition(to: .idle))
+        #expect(TouchIndicatorState.applying.canTransition(to: .error("failed")))
+        #expect(TouchIndicatorState.restoring.canTransition(to: .error("failed")))
+        #expect(TouchIndicatorState.error("failed").canTransition(to: .applying))
+        #expect(!TouchIndicatorState.idle.canTransition(to: .active))
+        #expect(!TouchIndicatorState.idle.canTransition(to: .restoring))
+        #expect(!TouchIndicatorState.applying.canTransition(to: .restoring))
+    }
+
+    @Test func touchIndicatorIsWorkingWhileHoldingOrTransitioning() {
+        #expect(TouchIndicatorState.applying.isWorking)
+        #expect(TouchIndicatorState.active.isWorking)
+        #expect(TouchIndicatorState.restoring.isWorking)
+        #expect(!TouchIndicatorState.idle.isWorking)
+        #expect(!TouchIndicatorState.error("x").isWorking)
+    }
+
+    // MARK: - Touch Preference Constants
+
+    @Test func productionPreferenceConstantsMatchSimulatorDomain() {
+        #expect(TouchIndicatorController.preferenceDomain == "com.apple.iphonesimulator")
+        #expect(TouchIndicatorController.preferenceKey == "ShowSingleTouches")
+    }
+
+    // MARK: - Touch Indicator Restore Semantics
+
+    @MainActor
+    @Test func doubleEnableWhileActiveIsRefused() throws {
+        let controller = TouchIndicatorController(store: InMemoryTouchStore())
+        controller.enable()
+        controller.enable()
+        #expect(controller.state == .active)
+    }
+
+    @MainActor
+    @Test func restoreSemanticsCoverTrueFalseAndUnset() throws {
+        // Previously true: override then restore lands back on true.
+        let trueStore = InMemoryTouchStore()
+        trueStore.set(true)
+        let trueController = TouchIndicatorController(store: trueStore)
+        trueController.enable()
+        #expect(trueStore.bool() == true)
+        trueController.restore()
+        #expect(trueController.state == .idle)
+        #expect(trueStore.bool() == true)
+
+        // Previously false: restore lands back on false, not on unset.
+        let falseStore = InMemoryTouchStore()
+        falseStore.set(false)
+        let falseController = TouchIndicatorController(store: falseStore)
+        falseController.enable()
+        #expect(falseStore.bool() == true)
+        falseController.restore()
+        #expect(falseStore.bool() == false)
+
+        // Previously unset: restore clears the key entirely (kCFNull sentinel).
+        let unsetStore = InMemoryTouchStore()
+        let unsetController = TouchIndicatorController(store: unsetStore)
+        unsetController.enable()
+        #expect(unsetStore.bool() == true)
+        unsetController.restore()
+        #expect(unsetStore.bool() == nil)
+    }
+
+    @MainActor
+    @Test func erroredSessionStillRestoresTheSnapshot() throws {
+        let store = InMemoryTouchStore()
+        store.set(false)
+        store.failNextSynchronize = true
+        let controller = TouchIndicatorController(store: store)
+        controller.enable()
+        if case .error = controller.state {} else {
+            Issue.record("expected error state after synchronize failure")
+        }
+        #expect(store.bool() == false)
+    }
+}
+
+/// Isolated in-memory preference store — Simulator's real domain is never touched.
+private final class InMemoryTouchStore: TouchPreferencesStore {
+    private var values: [String: Any?] = [:]
+    /// Single-shot failure injection for the errored-session restore test.
+    var failNextSynchronize = false
+
+    func copyValue(forKey key: String, domain: String) -> Any? {
+        values[key].flatMap { $0 }
+    }
+
+    func setValue(_ value: Any?, forKey key: String, domain: String) {
+        if let value, !(value is CFNull) {
+            values[key] = value
+        } else {
+            values.removeValue(forKey: key)
+        }
+    }
+
+    func synchronize(domain: String) -> Bool {
+        if failNextSynchronize {
+            failNextSynchronize = false
+            return false
+        }
+        return true
+    }
+
+    // Typed test helpers
+    func set(_ value: Bool) {
+        setValue(NSNumber(value: value), forKey: TouchIndicatorController.preferenceKey,
+                 domain: TouchIndicatorController.preferenceDomain)
+    }
+
+    func bool() -> Bool? {
+        (copyValue(forKey: TouchIndicatorController.preferenceKey,
+                   domain: TouchIndicatorController.preferenceDomain) as? NSNumber)?.boolValue
     }
 }
