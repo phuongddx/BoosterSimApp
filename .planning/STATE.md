@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
 status: executing
-stopped_at: 02-02 recording pipeline COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 6 steps; delivered fps user-verified, exact figure not reported); plan 2 of 4 in Phase 2; awaiting Wave-2 gate + Wave 3
-last_updated: "2026-08-30T13:52:28.000Z"
+stopped_at: 02-03 export formats COMPLETE — both tasks green (79/79 unit bundle, build clean); plan 3 of 4; awaiting Wave-3 gate + plan 04
+last_updated: "2026-08-30T14:12:45.788Z"
 last_activity: 2026-08-30
 last_activity_desc: 02-02 recording pipeline complete — smoke approved
-state_head: 6244f3077c4c068d3f8481affb1201c837ad8364
+state_head: aa8baa11c6df8503822ab0e41dc3b8b4d88a2ad1
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 14
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Current focus:** Phase 2 — Capture Tools
 
 Phase: 2 (Capture Tools) — EXECUTING
-Plan: 2 of 4 complete (02-02 smoke approved 2026-08-30) — next: 02-03 export formats (Wave 3)
-Status: Executing Phase 2 — Wave 2 complete; awaiting Wave-2 gate + Wave 3
+Plan: 3 of 4 complete (02-02 smoke approved 2026-08-30) — next: 02-03 export formats (Wave 3)
+Status: Ready to execute
 Last activity: 2026-08-30 — 02-02 complete (Task 3 smoke approved; RecordingService + TouchIndicatorController + Recording section; 5 commits incl. docs)
 
-Progress: [██████░░░░░░░░░░░░░░] 3 of 7 phases complete (1, 5, 6) — next: Phase 2 Capture Tools
+Progress: [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [██████░░░░░░░░░░░░░░] 3 of 7 
 | Phase 05 P02 | 15min | 3 tasks | 11 files |
 | Phase 05 P03 | 11min | 2 tasks | 5 files |
 | Phase 05 P04 | 9min | 3 tasks | 2 files |
+| Phase 02-03 P03 | 10min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 2]: 02-02: export gating = finish callback + AVAsset duration>0 (stopCapture returning is never "file ready"); staged .mov is HEVC in temp with boostersim-capture- prefix — the contract plan 03 consumes
 - [Phase 2]: 02-02: TouchIndicatorController = single scoped key ShowSingleTouches with snapshot/restore on every exit path (kCFNull clears the was-unset case); injectable TouchPreferencesStore; never a defaults subprocess
 - [Phase 2]: 02-02: LOC splits — CaptureSaveRouter (routing seam plan 03 reuses), RecordingState in Models/, RecordingSectionView as its own file; Swift `is CFNull` compiles always-true — use identity comparison
+- [Phase 02-03]: 02-03: Export output names derive from the staged recording stem (no fresh timestamp) — re-running an export deterministically overwrites its prior file; clipboard destination keeps the temp payload as the paste object (24h launch sweep reclaims it)
+- [Phase 02-03]: 02-03: Exporter is DispatchQueue+Combine only (zero await/Task tokens) — macOS-15-deprecated sync AVFoundation metadata APIs used deliberately (async-only replacements banned here); A2 fallback (passthrough MP4 → HighestQuality re-encode) pre-wired for the phase gate
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ None yet.
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
 
-Last session: 2026-08-30T13:52:28.000Z
-Stopped at: 02-02 recording pipeline COMPLETE — Task 3 blocking-human smoke approved 2026-08-30 (all 6 steps; delivered fps user-verified, exact figure not reported); plan 2 of 4; awaiting Wave-2 gate + Wave 3
-Resume file: .planning/phases/02-capture-tools/02-02-recording-pipeline-SUMMARY.md
+Last session: 2026-08-30T14:12:39.175Z
+Stopped at: 02-03 export formats COMPLETE — both tasks green (79/79 unit bundle, build clean); plan 3 of 4; awaiting Wave-3 gate + plan 04
+Resume file: None

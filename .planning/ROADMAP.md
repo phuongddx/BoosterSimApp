@@ -56,7 +56,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   3. User can record the Simulator screen (ScreenCaptureKit), including 120 FPS, with touch indicators visible during recordings
   4. User can export a recording as GIF or video (MP4/MOV)
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 Plans:
 **Wave 1**
 
@@ -68,7 +68,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-03-export-formats-PLAN.md — GIF (ImageIO centisecond quantization) + MP4/MOV (AVAssetExportSession) export with destination routing (criterion 4)
+- [x] 02-03-export-formats-PLAN.md — GIF (ImageIO centisecond quantization) + MP4/MOV (AVAssetExportSession) export with destination routing (criterion 4)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -178,7 +178,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
-| 2. Capture Tools | 2/4 | In Progress|  |
+| 2. Capture Tools | 3/4 | In Progress|  |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
