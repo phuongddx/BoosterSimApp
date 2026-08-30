@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 current_phase: 2
 current_phase_name: Capture Tools
-status: executing
-stopped_at: 02-04 phase-gate closure — Task 1 complete (docs § Capture Tools + automated gate green: 79/79 exit 0, build clean, swiftpm pin stable); HALTED at Task 2 blocking-human six-step phase-gate smoke (gate blocking-human, autonomous:false); awaiting user approval to close Phase 2
-last_updated: "2026-08-30T14:20:41.000Z"
+status: ready-for-verification
+stopped_at: 02-04 phase-gate closure COMPLETE — Task 2 blocking-human six-step smoke user-approved 2026-08-30 (all steps pass; A2 resolved via MP4 passthrough, wired fallback not needed; no boostersim-capture-* residue; docs § Capture Tools matches); plan 4 of 4 done — Phase 2 awaits orchestrator phase tail
+last_updated: "2026-08-30T14:28:16.000Z"
 last_activity: 2026-08-30
-last_activity_desc: 02-04 Task 1 complete — halted at Task 2 phase-gate human smoke
+last_activity_desc: 02-04 complete — phase-gate smoke approved; Phase 2 capture tools delivered
 state_head: e49ccfb61dd8af34eb5a0a734f46ca0e2d90a3dc
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 14
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
 **Current focus:** Phase 2 — Capture Tools
 
-Phase: 2 (Capture Tools) — EXECUTING
-Plan: 4 of 4 in progress (02-04 phase-gate closure — Task 1 green: docs + automated standard; Task 2 blocking-human smoke PENDING) — Phase 2 closes on user approval
-Status: Halted at the phase gate — awaiting the user's six-step manual smoke (all four ROADMAP success criteria observed live)
-Last activity: 2026-08-30 — 02-04 Task 1 complete (§ Capture Tools docs + 79/79 gate evidence; e49ccfb)
+Phase: 2 (Capture Tools) — READY FOR VERIFICATION
+Plan: 4 of 4 complete (02-04 phase-gate closure — human smoke approved 2026-08-30; e49ccfb + dec9aab + closure commit)
+Status: ready-for-verification — six-step phase-gate smoke approved by the user (2026-08-30); all four ROADMAP success criteria observed live; orchestrator runs phase tail
+Last activity: 2026-08-30 — 02-04 complete (phase-gate smoke approved; docs truth e49ccfb)
 
 Progress: [█░░░░░░░░░] 14%
 
@@ -82,6 +82,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 02-03]: 02-03: Exporter is DispatchQueue+Combine only (zero await/Task tokens) — macOS-15-deprecated sync AVFoundation metadata APIs used deliberately (async-only replacements banned here); A2 fallback (passthrough MP4 → HighestQuality re-encode) pre-wired for the phase gate
 - [Phase 02-04]: 02-04: architecture docs carry § Capture Tools (service split + data flow + permissions/degradation + ShowSingleTouches scope/restore + temp lifecycle + honest Up-to-120-fps); stale placeholder/key-list/concurrency lines corrected in the same truth pass
 - [Phase 02-04]: 02-04 phase-gate automated standard green — unit bundle 79/79 exit 0, Debug build clean, swiftpm git diff empty; Package.resolved pin proven by sha256 content stability (70386616a707…, identical to Phase 5) since the file remains untracked — track-the-file recommendation stays open
+- [Phase 02-04]: 02-04 phase-gate smoke user-approved 2026-08-30 — all six steps pass; A2 resolved via MP4 passthrough (HighestQuality fallback wired but not exercised); delivered-fps figure not separately reported (user-verified acceptable); REQ-roadmap-phase2-capture-tools + REQ-nfr-03 closed on this plan
 
 ### Pending Todos
 
@@ -102,6 +103,6 @@ None yet.
 | Feature | Health Data Generator (BoosterHealth) | Superseded — removed (3b1015f) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
-Last session: 2026-08-30T14:20:41.000Z
-Stopped at: 02-04 phase-gate closure — Task 1 complete (docs + automated gate green); halted at Task 2 blocking-human phase-gate smoke; ROADMAP 02-04 intentionally unchecked
-Resume file: .planning/phases/02-capture-tools/02-04-SUMMARY.md (status: halted — resume records the per-step smoke results, then closes the plan)
+Last session: 2026-08-30T14:28:16.000Z
+Stopped at: 02-04 complete — phase-gate smoke approved 2026-08-30; ROADMAP 02-04 checked (4/4 plans); awaiting orchestrator phase tail
+Resume file: None (plan closed; Phase 2 ready for verification)

@@ -15,14 +15,14 @@ requires:
 provides:
   - docs/system-architecture.md § Capture Tools — the shipped subsystem documented truthfully (service split, data flow, permissions + degraded behavior, ShowSingleTouches scope/restore, temp lifecycle, honest fps statement)
   - Phase-gate automated standard evidence — unit bundle 79/79 exit 0, Debug build clean, swiftpm diff empty with Package.resolved sha256 stable (70386616a707…)
-  - Phase-gate manual smoke (Task 2) — PENDING user execution on a booted Simulator
+  - Phase-gate manual smoke (Task 2) — user-approved 2026-08-30: all six steps pass (A2 resolved via passthrough, fallback not needed; no boostersim-capture-* residue)
 affects: [02-phase-closure, 03-app-actions]
 
 # Actuals (#2632) — pairs with the plan's estimate (18k tokens, low confidence)
 actuals:
   tokens: 2831        # chars/4 over the realized Task-1 diff (e49ccfb): 11,324 chars, 60 insertions / 6 deletions
-  tasks: 1            # Task 1 complete; Task 2 blocking-human smoke outstanding
-  commits: 1          # e49ccfb (docs); halt commit follows
+  tasks: 2            # Task 1 + Task 2 (blocking-human smoke user-approved 2026-08-30)
+  commits: 3          # e49ccfb (docs), dec9aab (halt record), this closure commit
 
 # Tech tracking
 tech-stack:
@@ -43,7 +43,7 @@ key-decisions:
 patterns-established:
   - "Closure-plan docs truth pass: fix contradicting stale lines (placeholder captions, key lists, concurrency bullet) in the same commit as the new subsystem section"
 
-requirements-completed: []   # REQ-roadmap-phase2-capture-tools + REQ-nfr-03 close at gate approval (Task 2 continuation fills these)
+requirements-completed: [REQ-roadmap-phase2-capture-tools, REQ-nfr-03]   # closed at gate approval 2026-08-30
 
 coverage:
   - id: D1
@@ -65,26 +65,28 @@ coverage:
   - id: D3
     description: "Six-step phase-gate manual smoke on one booted Simulator — all four ROADMAP success criteria observed live (screenshot dims/alpha, 30s recording + delivered fps, GIF/MP4/MOV exports, three destinations, thumbnail, no temp residue)"
     requirement: REQ-roadmap-phase2-capture-tools
-    verification: []
-    human_judgment: true
+    verification:
+      - kind: manual
+        ref: "user six-step phase-gate smoke 2026-08-30 — approved (see § Checkpoint Resolution)"
+        status: pass
     rationale: "Live SCK capture, playable recordings, delivered-fps measurement, clipboard/desktop/custom saves, and TCC state are manual-only per the phase validation strategy — not reproducible in unit tests"
 
 # Metrics
 duration: 8min
 completed: 2026-08-30
-status: halted         # Task 1 green + committed; Task 2 blocking-human phase-gate smoke PENDING user approval
+status: complete      # Task 2 blocking-human smoke user-approved 2026-08-30 — plan closed
 ---
 
 # Phase 02 Plan 04: Phase-Gate Closure Summary
 
-**Architecture docs now describe the shipped capture subsystem (service split, permissions + degradation, ShowSingleTouches scope/restore, temp lifecycle) and the phase-gate automated standard is green — unit bundle 79/79 exit 0, Debug build clean, zero dependency change; halted at the blocking-human six-step phase-gate smoke**
+**Architecture docs now describe the shipped capture subsystem (service split, permissions + degradation, ShowSingleTouches scope/restore, temp lifecycle) and the phase-gate automated standard is green — unit bundle 79/79 exit 0, Debug build clean, zero dependency change; the blocking-human six-step phase-gate smoke was user-approved on 2026-08-30 — Phase 2 capture tools delivered**
 
 ## Performance
 
-- **Duration:** 8 min so far (started 2026-08-30T14:11:38Z, halted 2026-08-30T14:19:32Z)
-- **Tasks:** 1 of 2 complete (Task 2 = blocking-human phase-gate smoke, PENDING)
+- **Duration:** 8 min executor time (2026-08-30T14:11:38Z–14:19:32Z) + user smoke + continuation closure (2026-08-30)
+- **Tasks:** 2 of 2 complete (Task 2 blocking-human phase-gate smoke approved 2026-08-30)
 - **Files modified:** 1 (docs/system-architecture.md)
-- **Commits:** 1 production (e49ccfb) + this halt commit
+- **Commits:** e49ccfb (docs) + dec9aab (halt record) + this closure commit
 
 ## Accomplishments
 
@@ -92,18 +94,27 @@ status: halted         # Task 1 green + committed; Task 2 blocking-human phase-g
 - Stale doc lines corrected in the same truth pass: CaptureTabView "(placeholders)" caption, AppSettings key list (eight capture keys + custom-folder path), Concurrency Model async exception, layer-diagram capture box
 - Phase-gate automated standard green (full evidence in § Verification)
 
-## Checkpoint Pending
+## Checkpoint Resolution
 
-**Task 2 — `checkpoint:human-verify` (gate: blocking-human): PENDING**
+**Task 2 — `checkpoint:human-verify` (gate: blocking-human): APPROVED 2026-08-30**
 
-Task 1's automated half is done; the phase gate itself — the six-step manual smoke from 02-VALIDATION.md — requires the user on a live booted Simulator. Nothing further executes until approval; per the plan's resume-signal, failures route to gap-closure planning, not silent closure. A2 (MP4 passthrough) resolves live at step 3 with the re-encode fallback already wired in CaptureExporter.
+The user ran all six steps of the 02-VALIDATION.md phase-gate smoke on a booted Simulator and replied "approved":
+
+1. **Screenshot** — dimensions exact, no alpha channel, clean content
+2. **~30 s recording** — playable, touch-indicator dots visible (delivered-fps figure not separately reported — user-verified acceptable)
+3. **Exports** — GIF loops with even timing; MP4 plays (A2 resolved via passthrough — the wired HighestQuality re-encode fallback was not needed); MOV plays once
+4. **Destinations** — all three verified (clipboard, desktop default, custom folder)
+5. **Thumbnail** — auto-hide confirmed
+6. **Cleanup** — no `boostersim-capture-*` temp residue
+
+Cross-check: docs § Capture Tools matches the shipped behavior. A failing step would have routed to gap-closure planning per the plan's resume-signal; none occurred.
 
 ## Task Commits
 
 1. **Task 1 (auto):** `e49ccfb` docs — capture subsystem section + stale-line truth pass (60 insertions, 6 deletions)
-2. **Task 2 (checkpoint:human-verify, gate blocking-human):** PENDING — no code change expected; closes via user approval + continuation
+2. **Task 2 (checkpoint:human-verify, gate blocking-human):** approved 2026-08-30 — no code change; closed via this continuation commit (docs only)
 
-**Plan metadata:** this halt commit (SUMMARY + STATE).
+**Plan metadata:** dec9aab (halt record — SUMMARY + STATE) and this closure commit (SUMMARY + ROADMAP + STATE).
 
 ## Verification
 
@@ -140,12 +151,12 @@ Task 2 smoke prerequisites (from the plan's `user_setup`):
 
 ## Next Phase Readiness
 
-- On approval: Phase 2 closes — continuation marks this SUMMARY complete, records the per-step smoke results + delivered-fps line, checks ROADMAP 02-04, and closes REQ-roadmap-phase2-capture-tools + REQ-nfr-03 on this plan
-- On any failing step: gap-closure planning (the plan's resume-signal contract — no silent closure); A2 failure specifically triggers the already-wired AVAssetExportPresetHighestQuality re-encode inside CaptureExporter before the phase closes
+- Approval received 2026-08-30: Phase 2 closes — this SUMMARY marked complete, per-step smoke results recorded (§ Checkpoint Resolution), ROADMAP 02-04 checked, STATE ready-for-verification; REQ-roadmap-phase2-capture-tools + REQ-nfr-03 close on this plan
+- No failing step — gap-closure path unused; A2 resolved via passthrough (re-encode fallback wired but not exercised)
 
 ## Self-Check: PASSED
 
 - 02-04-SUMMARY.md exists on disk; modified file docs/system-architecture.md exists
 - Commit e49ccfb present on main
 - Task 1 acceptance criteria verified: all six required symbols present in § Capture Tools (19 symbol-name matches); unit bundle exit 0 (79/79); Debug build exit 0; swiftpm diff clean + Package.resolved checksum identical to the Phase 5 pin
-- Task 2 acceptance intentionally outstanding — blocking-human gate
+- Task 2 acceptance closed: user approval 2026-08-30 (§ Checkpoint Resolution); ROADMAP 02-04 checked; closure commit present on main
