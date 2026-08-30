@@ -34,30 +34,30 @@ struct CaptureFramingTests {
     // MARK: - ASC Preset Table
 
     @Test func presetPixelSizesMatchAppleSpecExactly() {
-        #expect(ASCFramePreset.iphone69_1320x2868.pixelSize == makeSize(1320, 2868))
-        #expect(ASCFramePreset.iphone69_1290x2796.pixelSize == makeSize(1290, 2796))
-        #expect(ASCFramePreset.iphone69_1260x2736.pixelSize == makeSize(1260, 2736))
-        #expect(ASCFramePreset.iphone65_1284x2778.pixelSize == makeSize(1284, 2778))
-        #expect(ASCFramePreset.iphone65_1242x2688.pixelSize == makeSize(1242, 2688))
-        #expect(ASCFramePreset.ipad13_2064x2752.pixelSize == makeSize(2064, 2752))
-        #expect(ASCFramePreset.ipad13_2048x2732.pixelSize == makeSize(2048, 2732))
+        #expect(ASCFramePreset.iphone69x1320.pixelSize == makeSize(1320, 2868))
+        #expect(ASCFramePreset.iphone69x1290.pixelSize == makeSize(1290, 2796))
+        #expect(ASCFramePreset.iphone69x1260.pixelSize == makeSize(1260, 2736))
+        #expect(ASCFramePreset.iphone65x1284.pixelSize == makeSize(1284, 2778))
+        #expect(ASCFramePreset.iphone65x1242.pixelSize == makeSize(1242, 2688))
+        #expect(ASCFramePreset.ipad13x2064.pixelSize == makeSize(2064, 2752))
+        #expect(ASCFramePreset.ipad13x2048.pixelSize == makeSize(2048, 2732))
     }
 
     @Test func presetDeviceFamiliesGroupCorrectly() {
-        #expect(ASCFramePreset.iphone69_1320x2868.deviceFamily == .iphone69)
-        #expect(ASCFramePreset.iphone69_1290x2796.deviceFamily == .iphone69)
-        #expect(ASCFramePreset.iphone69_1260x2736.deviceFamily == .iphone69)
-        #expect(ASCFramePreset.iphone65_1284x2778.deviceFamily == .iphone65)
-        #expect(ASCFramePreset.iphone65_1242x2688.deviceFamily == .iphone65)
-        #expect(ASCFramePreset.ipad13_2064x2752.deviceFamily == .ipad13)
-        #expect(ASCFramePreset.ipad13_2048x2732.deviceFamily == .ipad13)
+        #expect(ASCFramePreset.iphone69x1320.deviceFamily == .iphone69)
+        #expect(ASCFramePreset.iphone69x1290.deviceFamily == .iphone69)
+        #expect(ASCFramePreset.iphone69x1260.deviceFamily == .iphone69)
+        #expect(ASCFramePreset.iphone65x1284.deviceFamily == .iphone65)
+        #expect(ASCFramePreset.iphone65x1242.deviceFamily == .iphone65)
+        #expect(ASCFramePreset.ipad13x2064.deviceFamily == .ipad13)
+        #expect(ASCFramePreset.ipad13x2048.deviceFamily == .ipad13)
     }
 
     // MARK: - Framing Math
 
     @Test func frameCentersContentInsidePaddingInsetCanvas() {
         let content = makeSize(100, 200)
-        let preset = ASCFramePreset.iphone69_1320x2868
+        let preset = ASCFramePreset.iphone69x1320
         let padding: CGFloat = 24
 
         let result = CaptureCompositor.frame(content: content, preset: preset, padding: padding, mode: .none)
@@ -80,8 +80,8 @@ struct CaptureFramingTests {
 
     @Test func simulatorNativeFramingMatchesNoBezelFraming() {
         let content = makeSize(400, 800)
-        let plain = CaptureCompositor.frame(content: content, preset: .iphone65_1284x2778, padding: 12, mode: .none)
-        let native = CaptureCompositor.frame(content: content, preset: .iphone65_1284x2778, padding: 12, mode: .simulatorNative)
+        let plain = CaptureCompositor.frame(content: content, preset: .iphone65x1284, padding: 12, mode: .none)
+        let native = CaptureCompositor.frame(content: content, preset: .iphone65x1284, padding: 12, mode: .simulatorNative)
         #expect(plain == native)
     }
 
@@ -102,7 +102,7 @@ struct CaptureFramingTests {
     // MARK: - Opaque Output
 
     @Test func renderFlattensTransparentInputOntoSolidBackground() {
-        let preset = ASCFramePreset.iphone69_1290x2796
+        let preset = ASCFramePreset.iphone69x1290
         let output = CaptureCompositor.render(
             content: makeImage(width: 64, height: 128, transparent: true),
             preset: preset, bezel: .none, background: .solid, padding: 12
@@ -114,7 +114,7 @@ struct CaptureFramingTests {
     }
 
     @Test func renderFlattensTransparentInputOntoGradientBackground() {
-        let preset = ASCFramePreset.ipad13_2048x2732
+        let preset = ASCFramePreset.ipad13x2048
         let output = CaptureCompositor.render(
             content: makeImage(width: 90, height: 120, transparent: true),
             preset: preset, bezel: .drawn, background: .gradient, padding: 8
@@ -129,7 +129,7 @@ struct CaptureFramingTests {
 
     @Test func drawnBezelCutoutInsetsContentOnAllSides() {
         let content = makeSize(500, 1000)
-        let preset = ASCFramePreset.iphone69_1320x2868
+        let preset = ASCFramePreset.iphone69x1320
         let padding: CGFloat = 20
 
         let plain = CaptureCompositor.frame(content: content, preset: preset, padding: padding, mode: .none)

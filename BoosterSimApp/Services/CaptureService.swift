@@ -1,312 +1,200 @@
-// CaptureService.swift — Screen recording and capture for Simulator
+// CaptureService.swift — Sync Combine facade over the async screenshot pipeline
 import Foundation
 import AppKit
-import AVFoundation
-import ScreenCaptureKit
 import Combine
+import CoreGraphics
+import ImageIO
+import OSLog
+import UniformTypeIdentifiers
 
 @MainActor
 final class CaptureService: ObservableObject {
 
-    // MARK: - SCStreamDelegate wrapper
-
-    private var streamDelegate: StreamDelegate?
-
     // MARK: - Published State
 
-    @Published var isRecording = false
-    @Published var recordingDuration: TimeInterval = 0
-    @Published var outputFileURL: URL?
-    @Published var exportFormat: ExportFormat = .mp4
-    @Published var quality: CaptureQuality = .medium
-    @Published var showTouchIndicators = true
-    @Published var selectedBezel: DeviceBezel = .none
-    @Published var lastError: String?
+    @Published private(set) var permissionGranted = false
+    /// TCC grants apply only after relaunch (Pitfall 2) — drives the quit-and-reopen prompt.
+    @Published private(set) var needsRelaunch = false
+    @Published private(set) var isCapturing = false
+    @Published private(set) var lastError: String?
+    @Published private(set) var lastSavedURL: URL?
 
-    // MARK: - Types
+    // Session capture options (plan 02-01 task 2 moves these onto AppSettings)
+    @Published private(set) var selectedPreset: ASCFramePreset
+    @Published private(set) var bezelMode: BezelMode
+    @Published private(set) var background: CaptureBackground
+    @Published private(set) var destination: CaptureDestination
 
-    enum ExportFormat: String, CaseIterable {
-        case mp4 = "MP4"
-        case gif = "GIF"
-    }
-
-    enum CaptureQuality: String, CaseIterable {
-        case low = "Low (320px)"
-        case medium = "Medium (480px)"
-        case high = "High (640px)"
-
-        var fps: Int {
-            switch self {
-            case .low: return 8
-            case .medium: return 12
-            case .high: return 15
-            }
-        }
-
-        var width: Int {
-            switch self {
-            case .low: return 320
-            case .medium: return 480
-            case .high: return 640
-            }
-        }
-    }
-
-    enum DeviceBezel: String, CaseIterable {
-        case none = "None"
-        case iPhone15 = "iPhone 15"
-        case iPhone15Pro = "iPhone 15 Pro"
-        case iPadPro = "iPad Pro"
+    /// Options snapshot at capture start — mid-flight UI changes never tear a capture.
+    private struct CapturePlan {
+        let preset: ASCFramePreset
+        let bezel: BezelMode
+        let background: CaptureBackground
     }
 
     // MARK: - Private
 
-    private var stream: SCStream?
-    private var streamOutput: CaptureStreamOutput?
-    private var recordingStartTime: Date?
-    private var timer: Timer?
-    private var capturedFrames: [CMSampleBuffer] = []
-    private var touchPoints: [TouchPoint] = []
+    private let screenshotService: ScreenshotService
+    private let thumbnailPanel: CaptureThumbnailPanel
+    private let permissionManager: PermissionManager
+    private let tracker: SimulatorWindowTracker
 
-    struct TouchPoint {
-        let position: CGPoint
-        let timestamp: Date
+    // MARK: - Lifecycle
+
+    /// Production entry point with fresh dependencies (convenience-init precedent).
+    convenience init(tracker: SimulatorWindowTracker = SimulatorWindowTracker()) {
+        self.init(screenshotService: ScreenshotService(), thumbnailPanel: CaptureThumbnailPanel(),
+                  permissionManager: PermissionManager(), tracker: tracker)
     }
 
-    deinit {
-        timer?.invalidate()
+    /// Injects every dependency; previews and tests construct each piece directly.
+    init(screenshotService: ScreenshotService, thumbnailPanel: CaptureThumbnailPanel,
+         permissionManager: PermissionManager, tracker: SimulatorWindowTracker) {
+        self.screenshotService = screenshotService
+        self.thumbnailPanel = thumbnailPanel
+        self.permissionManager = permissionManager
+        self.tracker = tracker
+        selectedPreset = .iphone69x1320
+        bezelMode = .simulatorNative
+        background = .solid
+        destination = .desktop
+        refreshPermissionState()
     }
 
-    // MARK: - Public API
+    // MARK: - Permission
 
-    func startRecording() async {
-        do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            guard let display = content.displays.first else {
-                lastError = "No display found"
-                return
-            }
+    /// Re-preflights at launch — grants since last quit only apply now (Pitfall 2).
+    func refreshPermissionState() {
+        permissionManager.checkScreenRecording()
+        permissionGranted = permissionManager.screenRecordingGranted
+    }
 
-            let filter = SCContentFilter(display: display, excludingApplications: [], exceptingWindows: [])
-            let config = SCStreamConfiguration()
-            config.width = display.width * 2
-            config.height = display.height * 2
-            config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(quality.fps))
-            config.capturesAudio = false
-
-            streamOutput = CaptureStreamOutput(onFrame: { [weak self] frame in
-                self?.capturedFrames.append(frame)
-            })
-
-            streamDelegate = StreamDelegate(owner: self)
-            stream = SCStream(filter: filter, configuration: config, delegate: streamDelegate)
-            try stream?.addStreamOutput(streamOutput!, type: .screen, sampleHandlerQueue: .main)
-            try await stream?.startCapture()
-
-            await MainActor.run {
-                isRecording = true
-                recordingStartTime = Date()
-                capturedFrames.removeAll()
-                touchPoints.removeAll()
-                startTimer()
-            }
-        } catch {
-            await MainActor.run {
-                lastError = error.localizedDescription
-            }
+    /// Opens System Settings and polls (1s); on grant, publish the quit-and-reopen hint.
+    func requestPermission() {
+        permissionManager.requestScreenRecording()
+        permissionManager.openScreenRecordingSettings()
+        permissionManager.startScreenRecordingPolling { [weak self] in
+            self?.permissionGranted = true
+            self?.needsRelaunch = true
         }
     }
 
-    func stopRecording() async {
-        do {
-            try await stream?.stopCapture()
-            stream = nil
-            streamOutput = nil
+    // MARK: - Options
 
-            await MainActor.run {
-                isRecording = false
-                stopTimer()
-                Task {
-                    await exportCapture()
-                }
-            }
-        } catch {
-            await MainActor.run {
-                lastError = error.localizedDescription
-            }
-        }
-    }
+    func selectPreset(_ preset: ASCFramePreset) { selectedPreset = preset }
+    func selectBezel(_ mode: BezelMode) { bezelMode = mode }
+    func selectBackground(_ fill: CaptureBackground) { background = fill }
+    func selectDestination(_ destination: CaptureDestination) { self.destination = destination }
 
-    func addTouchPoint(at position: CGPoint) {
-        guard isRecording && showTouchIndicators else { return }
-        let point = TouchPoint(position: position, timestamp: Date())
-        touchPoints.append(point)
-    }
+    // MARK: - Screenshot
 
-    func saveToFile() {
-        guard let url = outputFileURL else { return }
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = exportFormat == .gif ? [.gif] : [.movie]
-        panel.nameFieldStringValue = "BoosterSim-Capture.\(exportFormat == .gif ? "gif" : "mp4")"
-
-        if panel.runModal() == .OK, let saveURL = panel.url {
-            do {
-                try FileManager.default.copyItem(at: url, to: saveURL)
-            } catch {
-                lastError = error.localizedDescription
-            }
-        }
-    }
-
-    // MARK: - Private
-
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self, let start = self.recordingStartTime else { return }
-            self.recordingDuration = Date().timeIntervalSince(start)
-        }
-    }
-
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-    }
-
-    /// Called by StreamDelegate when SCStream stops unexpectedly.
-    func handleStreamError(_ message: String) {
-        isRecording = false
-        lastError = message
-        stopTimer()
-    }
-
-    private func exportCapture() async {
-        guard !capturedFrames.isEmpty else {
-            lastError = "No frames captured"
+    /// One-click capture; never throws at the UI — failures land in `lastError`.
+    func takeScreenshot() {
+        guard !isCapturing else { return }
+        guard CGPreflightScreenCaptureAccess() else {
+            permissionGranted = false
+            lastError = nil
             return
         }
-
-        if exportFormat == .gif {
-            await exportAsGIF()
-        } else {
-            await exportAsMP4()
-        }
-    }
-
-    private func exportAsMP4() async {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("boostersim-capture-\(UUID().uuidString).mp4")
-
-        do {
-            guard let firstFrame = capturedFrames.first,
-                  let formatDesc = CMSampleBufferGetFormatDescription(firstFrame) else {
-                lastError = "Invalid frame format"
-                return
-            }
-            let dimensions = CMVideoFormatDescriptionGetDimensions(formatDesc)
-            if dimensions.width == 0 || dimensions.height == 0 {
-                lastError = "Invalid frame format"
-                return
-            }
-
-            let writer = try AVAssetWriter(url: tempURL, fileType: .mp4)
-            let settings: [String: Any] = [
-                AVVideoCodecKey: AVVideoCodecType.h264,
-                AVVideoWidthKey: dimensions.width,
-                AVVideoHeightKey: dimensions.height
-            ]
-            let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
-            let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: nil)
-
-            writer.add(input)
-            writer.startWriting()
-            writer.startSession(atSourceTime: .zero)
-
-            for (index, frame) in capturedFrames.enumerated() {
-                if let buffer = CMSampleBufferGetImageBuffer(frame) {
-                    let time = CMTime(value: CMTimeValue(index), timescale: CMTimeScale(quality.fps))
-                    while !input.isReadyForMoreMediaData {
-                        try await Task.sleep(nanoseconds: 10_000_000)
-                    }
-                    adaptor.append(buffer, withPresentationTime: time)
-                }
-            }
-
-            input.markAsFinished()
-            await writer.finishWriting()
-
-            await MainActor.run {
-                outputFileURL = tempURL
-            }
-        } catch {
-            await MainActor.run {
-                lastError = error.localizedDescription
-            }
-        }
-    }
-
-    private func exportAsGIF() async {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("boostersim-capture-\(UUID().uuidString).gif")
-
-        guard let destination = CGImageDestinationCreateWithURL(tempURL as CFURL, "com.compuserve.gif" as CFString, capturedFrames.count, nil) else {
-            lastError = "Failed to create GIF destination"
+        permissionGranted = true
+        guard let simulator = tracker.activeSimulator, !simulator.isMinimized else {
+            lastError = "No Simulator window is being tracked"
             return
         }
-
-        let frameProperties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 1.0 / Double(quality.fps)]] as CFDictionary
-
-        for frame in capturedFrames {
-            if let buffer = CMSampleBufferGetImageBuffer(frame) {
-                let ciImage = CIImage(cvPixelBuffer: buffer)
-                let context = CIContext()
-                if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
-                    CGImageDestinationAddImage(destination, cgImage, frameProperties)
-                }
-            }
-        }
-
-        let gifProperties = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary
-        CGImageDestinationSetProperties(destination, gifProperties)
-
-        if CGImageDestinationFinalize(destination) {
-            await MainActor.run {
-                outputFileURL = tempURL
-            }
-        } else {
-            await MainActor.run {
-                lastError = "Failed to finalize GIF"
-            }
+        isCapturing = true
+        let plan = CapturePlan(preset: selectedPreset, bezel: bezelMode, background: background)
+        let deviceName = simulator.deviceName
+        Task { [weak self] in
+            await self?.performCapture(windowID: simulator.id, windowFrame: simulator.frame,
+                                       plan: plan, deviceName: deviceName)
         }
     }
-}
 
-// MARK: - Stream Output
+    // MARK: - Filename
 
-private class CaptureStreamOutput: NSObject, SCStreamOutput {
-    let onFrame: (CMSampleBuffer) -> Void
-
-    init(onFrame: @escaping (CMSampleBuffer) -> Void) {
-        self.onFrame = onFrame
+    /// Sanitized timestamp-unique filename: "BoosterSim-" + device + "-" + preset + "-" + stamp + ".png".
+    /// Allowlist is alphanumeric + hyphen; every other character collapses to a single
+    /// hyphen (threat T-02-05 — device strings must never reach the path raw).
+    static func captureFilename(device: String?, preset: ASCFramePreset, date: Date) -> String {
+        let stamp = filenameDateFormatter.string(from: date)
+        return "BoosterSim-\(sanitizedDevice(device))-\(preset.rawValue)-\(stamp).png"
     }
 
-    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .screen else { return }
-        onFrame(sampleBuffer)
+    private static let filenameDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    private static func sanitizedDevice(_ device: String?) -> String {
+        var result = ""
+        var lastWasSeparator = false
+        for character in (device ?? "Simulator").lowercased() {
+            let isAllowed = (character.isLetter || character.isNumber) && character.isASCII
+            if isAllowed {
+                result.append(character)
+                lastWasSeparator = false
+            } else if !lastWasSeparator {
+                result.append("-")
+                lastWasSeparator = true
+            }
+        }
+        let trimmed = result.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return trimmed.isEmpty ? "simulator" : trimmed
     }
-}
 
-// MARK: - SCStreamDelegate
-
-/// Wrapper to avoid NSObject inheritance on CaptureService.
-private final class StreamDelegate: NSObject, SCStreamDelegate {
-    weak var owner: CaptureService?
-
-    init(owner: CaptureService) {
-        self.owner = owner
+    private func performCapture(windowID: CGWindowID, windowFrame: CGRect,
+                                plan: CapturePlan, deviceName: String?) async {
+        defer { isCapturing = false }
+        do {
+            let raw = try await screenshotService.capture(windowID: windowID, windowFrame: windowFrame)
+            let framed = CaptureCompositor.render(
+                content: raw,
+                preset: plan.preset,
+                bezel: plan.bezel,
+                background: plan.background,
+                padding: CaptureCompositor.defaultPadding
+            )
+            guard let png = Self.pngData(from: framed) else {
+                lastError = "Failed to encode PNG"
+                return
+            }
+            let url = try saveToDesktop(png, deviceName: deviceName, preset: plan.preset)
+            thumbnailPanel.show(url: url, anchorNear: windowFrame)
+        } catch let error as ScreenshotService.CaptureError {
+            lastError = Self.message(for: error)
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
-    func stream(_ stream: SCStream, didStopWithError error: Error) {
-        Task { @MainActor [weak self] in
-            guard let owner = self?.owner else { return }
-            owner.handleStreamError(error.localizedDescription)
+    /// Tracer destination: Desktop write with a timestamped name — second captures
+    /// never touch the first (in-memory routing, no temp files).
+    private func saveToDesktop(_ png: Data, deviceName: String?, preset: ASCFramePreset) throws -> URL {
+        let url = CaptureDestination.defaultDesktopFolder()
+            .appendingPathComponent(Self.captureFilename(device: deviceName, preset: preset, date: Date()))
+        try png.write(to: url, options: .atomic)
+        lastSavedURL = url
+        AppLogger.capture.info("Saved capture (preset \(preset.rawValue, privacy: .public))")
+        return url
+    }
+
+    private static func pngData(from image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
+    }
+
+    private static func message(for error: ScreenshotService.CaptureError) -> String {
+        switch error {
+        case .windowNotFound: return "Simulator window not found — reopen it and retry"
+        case .screenRecordingDenied: return "Screen Recording permission required"
+        case .captureFailed(let reason): return "Capture failed: \(reason)"
         }
     }
 }

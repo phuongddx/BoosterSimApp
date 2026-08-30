@@ -24,8 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var networkConditionService = NetworkConditionService()
     lazy var deepLinkService     = DeepLinkService()
     lazy var designComparisonService = DesignComparisonService()
-    lazy var captureService         = CaptureService()
+    lazy var captureService         = CaptureService(
+        screenshotService: ScreenshotService(),
+        thumbnailPanel: captureThumbnailPanel,
+        permissionManager: PermissionManager(),
+        tracker: tracker
+    )
     lazy var axHighlightPanel    = AXHighlightPanel()
+    lazy var captureThumbnailPanel = CaptureThumbnailPanel()
 
     // MARK: - Windows
 
