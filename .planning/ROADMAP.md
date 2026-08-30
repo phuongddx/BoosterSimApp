@@ -56,7 +56,23 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
   3. User can record the Simulator screen (ScreenCaptureKit), including 120 FPS, with touch indicators visible during recordings
   4. User can export a recording as GIF or video (MP4/MOV)
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+**Wave 1**
+
+- [ ] 02-01-screenshot-tracer-PLAN.md — Tracer: SCScreenshotManager window screenshot → ASC-preset compositor → Desktop save + floating thumbnail, end-to-end (criterion 1 + destination spine)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-recording-pipeline-PLAN.md — SCRecordingOutput direct-to-disk recording (CMTime 1/120, queueDepth 5) + ShowSingleTouches touch indicators (criterion 3)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-03-export-formats-PLAN.md — GIF (ImageIO centisecond quantization) + MP4/MOV (AVAssetExportSession) export with destination routing (criterion 4)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 02-04-phase-gate-closure-PLAN.md — Docs update, full-suite + no-SPM-change gate, phase-gate manual smoke
 **UI hint**: yes
 
 ### Phase 3: App Actions
@@ -161,7 +177,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
-| 2. Capture Tools | 0/TBD | Not started | - |
+| 2. Capture Tools | 0/4 | Not started | - |
 | 3. App Actions | 0/TBD | Not started | - |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
