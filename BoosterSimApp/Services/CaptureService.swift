@@ -36,6 +36,7 @@ final class CaptureService: ObservableObject {
 
     let recordingService = RecordingService()
     let touchIndicatorController = TouchIndicatorController()
+    let exporter = CaptureExporter()
 
     // MARK: - Published State
 
@@ -55,6 +56,9 @@ final class CaptureService: ObservableObject {
     @Published var bezelMode: BezelMode { didSet { settings.captureBezelMode = bezelMode } }
     @Published var background: CaptureBackground { didSet { settings.captureBackground = background } }
     @Published var destinationKind: CaptureDestinationKind { didSet { settings.captureDestination = destinationKind } }
+    @Published var exportFormat: CaptureExportFormat { didSet { settings.captureExportFormat = exportFormat } }
+    @Published var gifSize: Int { didSet { settings.captureGIFSize = gifSize } }
+    @Published var gifFPS: Int { didSet { settings.captureGIFFps = gifFPS } }
     @Published var showTouchIndicators: Bool {
         didSet {
             settings.captureShowTouchIndicators = showTouchIndicators
@@ -83,6 +87,9 @@ final class CaptureService: ObservableObject {
         selectedPreset = settings.captureASCFramePreset
         bezelMode = settings.captureBezelMode
         background = settings.captureBackground
+        exportFormat = settings.captureExportFormat
+        gifSize = settings.captureGIFSize
+        gifFPS = settings.captureGIFFps
         destinationKind = settings.captureDestination
         showTouchIndicators = settings.captureShowTouchIndicators
         // Re-preflight: grants since last quit only apply now (Pitfall 2).
@@ -153,6 +160,40 @@ final class CaptureService: ObservableObject {
     func stopRecording() {
         recordingService.stop()
         touchIndicatorController.restore() // every exit path (T-02-02)
+    }
+
+    // MARK: - Export
+
+    /// Exports the staged recording in the chosen format. Routing failures and
+    /// cancellations leave the staged file intact for retry; the staged file is
+    /// deleted only after the destination write succeeds (retention rule).
+    func exportRecording(as format: CaptureExportFormat) {
+        guard let staged = stagedRecordingURL, !exporter.exportState.isWorking else { return }
+        exporter.export(source: staged, format: format,
+                        gifWidth: gifSize, gifFPS: gifFPS) { [weak self] result in
+            self?.handleExportResult(result, staged: staged)
+        }
+    }
+
+    func cancelExport() {
+        exporter.cancel()
+    }
+
+    private func handleExportResult(_ result: Result<URL, ExportError>, staged: URL) {
+        switch result {
+        case .success(let output):
+            saveRouter.route(fileAt: output, anchor: tracker.activeSimulator?.frame ?? .zero) { [weak self] in
+                self?.deleteStagedRecording(at: staged)
+            }
+        case .failure(let error):
+            if case .cancelled = error {} else { lastError = error.userMessage }
+        }
+    }
+
+    /// Lifecycle close: the staged temp recording dies after the durable write.
+    private func deleteStagedRecording(at url: URL) {
+        try? FileManager.default.removeItem(at: url)
+        if stagedRecordingURL == url { stagedRecordingURL = nil }
     }
 
     // MARK: - Capture Flow

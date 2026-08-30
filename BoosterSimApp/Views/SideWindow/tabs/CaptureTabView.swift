@@ -1,4 +1,4 @@
-// CaptureTabView.swift — Screenshot + recording capture controls (recording section: RecordingSectionView)
+// CaptureTabView.swift — Capture tab shell (sections: capture/, recording + export + destination)
 import SwiftUI
 import AppKit
 
@@ -33,6 +33,7 @@ struct CaptureTabView: View {
                     .animation(animation, value: captureService.permissionGranted)
                 }
                 RecordingSectionView(recording: captureService.recordingService)
+                ExportSectionView(exporter: captureService.exporter)
                 destinationSection
             }
         }

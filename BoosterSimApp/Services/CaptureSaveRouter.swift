@@ -47,6 +47,33 @@ final class CaptureSaveRouter {
         }
     }
 
+    /// Routes an on-disk exported file (GIF/MP4/MOV). `onPersisted` fires once
+    /// the destination write succeeds — the caller then deletes the staged
+    /// recording (retention rule). Clipboard keeps the temp payload as the
+    /// paste object; abandoned save panels delete it.
+    func route(fileAt sourceURL: URL, anchor: CGRect, onPersisted: @escaping () -> Void) {
+        switch resolvedDestination() {
+        case .desktop:
+            persistFile(from: sourceURL,
+                        to: CaptureDestination.defaultDesktopFolder()
+                            .appendingPathComponent(sourceURL.lastPathComponent),
+                        anchor: anchor, onPersisted: onPersisted)
+        case .clipboard:
+            // Clipboard receives a file URL only via this user-selected
+            // destination (T-02-03) — paste into Finder reveals the movie.
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.writeObjects([sourceURL as NSURL])
+            onSaved(sourceURL)
+            onPersisted()
+        case .custom(let folder):
+            presentFilePanel(directory: folder, sourceURL: sourceURL,
+                             anchor: anchor, onPersisted: onPersisted)
+        case .ask:
+            presentFilePanel(directory: nil, sourceURL: sourceURL,
+                             anchor: anchor, onPersisted: onPersisted)
+        }
+    }
+
     // MARK: - Private
 
     private func resolvedDestination() -> CaptureDestination {
@@ -82,6 +109,53 @@ final class CaptureSaveRouter {
             AppLogger.capture.info("Saved capture")
         } catch {
             onError(error.localizedDescription)
+        }
+    }
+
+    /// Non-modal save panel for exported files; the format-correct extension
+    /// rides the pre-populated name. Cancel deletes the abandoned export.
+    private func presentFilePanel(directory: URL?, sourceURL: URL, anchor: CGRect,
+                                  onPersisted: @escaping () -> Void) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = panelContentTypes(forExtension: sourceURL.pathExtension)
+        panel.nameFieldStringValue = sourceURL.lastPathComponent
+        panel.directoryURL = directory
+        panel.begin { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else {
+                try? FileManager.default.removeItem(at: sourceURL)
+                return
+            }
+            if self.settings.captureDestination == .custom {
+                self.settings.customCaptureFolder = url.deletingLastPathComponent()
+            }
+            self.persistFile(from: sourceURL, to: url, anchor: anchor, onPersisted: onPersisted)
+        }
+    }
+
+    /// Deterministic replacement (T-02-07): the export overwrites only its own
+    /// name; the temp source is deleted once the durable write lands.
+    private func persistFile(from sourceURL: URL, to destination: URL,
+                             anchor: CGRect, onPersisted: @escaping () -> Void) {
+        do {
+            try? FileManager.default.removeItem(at: destination)
+            try FileManager.default.copyItem(at: sourceURL, to: destination)
+            try? FileManager.default.removeItem(at: sourceURL)
+            onSaved(destination)
+            thumbnailPanel.show(url: destination, anchorNear: anchor)
+            AppLogger.capture.info("Saved export")
+            onPersisted()
+        } catch {
+            try? FileManager.default.removeItem(at: sourceURL)
+            onError(error.localizedDescription)
+        }
+    }
+
+    private func panelContentTypes(forExtension pathExtension: String) -> [UTType] {
+        switch pathExtension {
+        case "gif": return [.gif]
+        case "mp4": return [.mpeg4Movie]
+        case "mov": return [.quickTimeMovie]
+        default: return []
         }
     }
 }
