@@ -1,6 +1,7 @@
 // OverlayPersistenceTests.swift — Toggle/preset persistence: versioned schema, one-shot legacy import, tolerance
 import Foundation
 import CoreGraphics
+import AppKit
 import Testing
 @testable import BoosterSimApp
 
@@ -35,6 +36,17 @@ struct OverlayPersistenceTests {
             gridSpacing: 20, showGrid: showGrid, showRuler: showRuler
         )]
         defaults.set(try JSONEncoder().encode(legacy), forKey: "DesignComparisonPresets")
+    }
+
+    /// Synthetic artboard: real bitmap representation sized in pixels (the dimension-cap input).
+    private func makeImage(pixelsWide: Int, pixelsHigh: Int) throws -> NSImage {
+        let representation = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: pixelsWide, pixelsHigh: pixelsHigh,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let image = NSImage(size: NSSize(width: pixelsWide, height: pixelsHigh))
+        image.addRepresentation(representation)
+        return image
     }
 
     // MARK: - Toggle Round Trip
@@ -157,5 +169,97 @@ struct OverlayPersistenceTests {
         let service = DesignOverlayService(defaults: defaults)
         #expect(service.presets.isEmpty)
         #expect(defaults.bool(forKey: "DesignOverlayLegacyImported") == true)
+    }
+
+    // MARK: - Safe-Area State Persistence (D-02)
+
+    @Test func showSafeAreaToggleRoundTripsLikeShowGrid() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = DesignOverlayService(defaults: defaults)
+        #expect(first.showSafeArea == false)
+        first.showSafeArea = true
+
+        let second = DesignOverlayService(defaults: defaults)
+        #expect(second.showSafeArea == true)
+    }
+
+    @Test func manualInsetValuesRoundTripAcrossReInit() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = DesignOverlayService(defaults: defaults)
+        first.useManualInsets = true
+        first.manualTop = 44
+        first.manualBottom = 21
+        first.manualLeading = 12
+        first.manualTrailing = 13
+        first.calibrationX = 3.5
+        first.calibrationY = -2
+
+        let second = DesignOverlayService(defaults: defaults)
+        #expect(second.useManualInsets == true)
+        #expect(second.manualTop == 44)
+        #expect(second.manualBottom == 21)
+        #expect(second.manualLeading == 12)
+        #expect(second.manualTrailing == 13)
+        #expect(second.calibrationX == 3.5)
+        #expect(second.calibrationY == -2)
+    }
+
+    @Test func effectiveInsetsManualWinsUntilReset() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let service = DesignOverlayService(defaults: defaults)
+        let resolved = SafeAreaCatalog.Insets(top: 59, bottom: 34, left: 0, right: 0)
+        service.resolvedInsets = resolved
+        #expect(service.effectiveInsets == resolved)   // auto-resolution wins by default
+
+        service.useManualInsets = true
+        service.manualTop = 44
+        #expect(service.effectiveInsets == SafeAreaCatalog.Insets(top: 44, bottom: 34, left: 0, right: 0))
+
+        service.resetInsetsToDevice()
+        #expect(service.useManualInsets == false)
+        #expect(service.effectiveInsets == resolved)
+    }
+
+    // MARK: - Import Accept/Reject (T-04-03 decompression-bomb guard)
+
+    @Test func acceptUnderCapImageReplacesSlotAndClearsError() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = DesignOverlayService(defaults: defaults)
+
+        let first = try makeImage(pixelsWide: 512, pixelsHigh: 512)
+        service.accept(image: first)
+        #expect(service.overlayImage === first)
+        #expect(service.importError == nil)
+
+        // Re-import replaces the single slot — never accumulates (idempotency edge).
+        let second = try makeImage(pixelsWide: 256, pixelsHigh: 128)
+        service.accept(image: second)
+        #expect(service.overlayImage === second)
+    }
+
+    @Test func rejectOverCapImageSetsCaptionAndNeverCaches() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = DesignOverlayService(defaults: defaults)
+
+        #expect(DesignOverlayService.validateImported(try makeImage(pixelsWide: 512, pixelsHigh: 512)))
+        let bomb = try makeImage(pixelsWide: DesignOverlayService.maxImportedEdge + 1, pixelsHigh: 8)
+        #expect(DesignOverlayService.validateImported(bomb) == false)
+
+        service.accept(image: bomb)
+        #expect(service.overlayImage == nil)
+        #expect(service.importError != nil)
+
+        // A later valid import clears the rejection caption.
+        service.accept(image: try makeImage(pixelsWide: 64, pixelsHigh: 64))
+        #expect(service.overlayImage != nil)
+        #expect(service.importError == nil)
     }
 }
