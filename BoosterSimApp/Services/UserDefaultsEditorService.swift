@@ -49,26 +49,40 @@ final class UserDefaultsEditorService: ObservableObject {
 
     // MARK: - Private
 
-    private let simCtl: SimCtlService
+    private let simCtl: any SimCtlRunning
     private var cancellables = Set<AnyCancellable>()
+    /// A load requested while another is in flight — the newest target wins (03-REVIEW WR-02).
+    private var pendingLoad: (udid: String, bundle: String)?
 
     // MARK: - Lifecycle
 
-    init(simCtl: SimCtlService) {
+    init(simCtl: any SimCtlRunning) {
         self.simCtl = simCtl
     }
 
     // MARK: - Load (plist FILE through the app container)
 
     /// Reads the active app's on-disk Preferences plist via its data container. An app that
-    /// has never written a default has no plist file — that renders an EMPTY list, not an error.
+    /// has never written a default has no plist file — that renders an EMPTY list, not an
+    /// error. A request made while a load is in flight SUPERSEDES it (03-REVIEW WR-02): the
+    /// newest (udid, bundle) target re-runs when the pipeline frees, and the stale domain's
+    /// result is never published.
     func loadDomain(udid: String, bundle: String) {
         guard !udid.isEmpty else {
             loadError = DefaultsEditorError.noDevice.message
             return
         }
-        guard operation != .loading else { return }
+        guard operation != .loading else {
+            pendingLoad = (udid, bundle)         // never drop the newest target mid-load
+            return
+        }
+        startLoad(udid: udid, bundle: bundle)
+    }
+
+    private func startLoad(udid: String, bundle: String) {
         operation = .loading
+        entries = []                             // never render the previous domain's rows under this header
+        loadError = nil
         simCtl.run(Self.containerArgs(udid: udid, bundle: bundle))
             .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
             .receive(on: DispatchQueue.main)
@@ -76,12 +90,22 @@ final class UserDefaultsEditorService: ObservableObject {
                 receiveCompletion: { [weak self] completion in
                     guard let self, case .failure(let error) = completion else { return }
                     AppLogger.actions.error("defaults load failed for \(bundle, privacy: .public)")
+                    if let pending = self.pendingLoad {  // a newer load supersedes this stale failure
+                        self.pendingLoad = nil
+                        self.startLoad(udid: pending.udid, bundle: pending.bundle)
+                        return
+                    }
                     self.entries = []
                     self.loadError = "Could not read the app's preferences: \(error.localizedDescription)"
                     self.operation = .error(self.loadError!)
                 },
                 receiveValue: { [weak self] containerPath in
                     guard let self else { return }
+                    if let pending = self.pendingLoad {  // the stale domain's result is never published
+                        self.pendingLoad = nil
+                        self.startLoad(udid: pending.udid, bundle: pending.bundle)
+                        return
+                    }
                     let plistPath = Self.preferencesPlistPath(containerPath: containerPath, bundleID: bundle)
                     self.entries = Self.parseEntries(fromPlistAt: plistPath)
                     // Keys-count only — key names and values stay out of the log line.

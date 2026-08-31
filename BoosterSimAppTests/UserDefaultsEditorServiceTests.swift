@@ -177,4 +177,69 @@ struct UserDefaultsEditorServiceTests {
         #expect(entries.first(where: { $0.key == "recentSearches" })?.value == .array(["swift", "simctl", "defaults"]))
         #expect(entries.first(where: { $0.key == "blob" })?.value == .json(blob))
     }
+
+    // MARK: - Load Supersede (03-REVIEW WR-02 — never drop a newer target, never show a stale domain)
+
+    /// Synthesizes a data-container root whose Library/Preferences/<bundle>.plist carries
+    /// `entries` — the exact layout preferencesPlistPath composes from the container verb.
+    private func makeContainer(bundle: String, entries: [String: Any]) throws -> String {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("defaults-editor-\(UUID().uuidString)", isDirectory: true)
+        let prefs = root.appendingPathComponent("Library/Preferences", isDirectory: true)
+        try FileManager.default.createDirectory(at: prefs, withIntermediateDirectories: true)
+        try (entries as NSDictionary).write(to: prefs.appendingPathComponent("\(bundle).plist"))
+        return root.path
+    }
+
+    /// Switching apps A→B while A's container verb is in flight must load B — the newest
+    /// request supersedes the in-flight one and A's keys never render under B's domain.
+    @MainActor
+    @Test func loadDuringLoadingSupersedesTheInFlightLoadWithTheNewestTarget() async throws {
+        let containerA = try makeContainer(bundle: "com.a", entries: ["OldKey": "old"])
+        let containerB = try makeContainer(bundle: "com.b", entries: ["NewKey": "new"])
+        let simCtl = ScriptedSimCtlDouble()
+        simCtl.hold("get_app_container")
+        let service = UserDefaultsEditorService(simCtl: simCtl)
+
+        service.loadDomain(udid: "UDID", bundle: "com.a")
+        service.loadDomain(udid: "UDID", bundle: "com.b")      // while .loading — supersede, not drop
+        #expect(service.operation == .loading)
+
+        simCtl.complete("get_app_container", with: containerA) // stale A lands — must be skipped
+        await simCtl.pumpMainQueue()
+        #expect(simCtl.requestedVerbs == ["get_app_container", "get_app_container"])  // B re-ran
+        #expect(service.entries.isEmpty)                       // A's rows never render under B's header
+        #expect(service.operation == .loading)
+
+        simCtl.complete("get_app_container", with: containerB) // newest target's result publishes
+        await simCtl.pumpMainQueue()
+        #expect(service.entries.map(\.key) == ["NewKey"])
+        #expect(service.operation == .idle)
+        #expect(service.loadError == nil)
+    }
+
+    /// A load clears `entries` at start, so the outgoing app's rows are never displayed
+    /// during the round trip.
+    @MainActor
+    @Test func loadClearsThePreviousDomainRowsAtStart() async throws {
+        let containerA = try makeContainer(bundle: "com.a", entries: ["OldKey": "old"])
+        let containerB = try makeContainer(bundle: "com.b", entries: ["NewKey": "new"])
+        let simCtl = ScriptedSimCtlDouble()
+        simCtl.hold("get_app_container")
+        let service = UserDefaultsEditorService(simCtl: simCtl)
+
+        service.loadDomain(udid: "UDID", bundle: "com.a")
+        simCtl.complete("get_app_container", with: containerA)
+        await simCtl.pumpMainQueue()
+        #expect(service.entries.map(\.key) == ["OldKey"])      // A loaded normally first
+
+        service.loadDomain(udid: "UDID", bundle: "com.b")
+        #expect(service.entries.isEmpty)                       // cleared BEFORE B's result lands
+        #expect(service.operation == .loading)
+
+        simCtl.complete("get_app_container", with: containerB)
+        await simCtl.pumpMainQueue()
+        #expect(service.entries.map(\.key) == ["NewKey"])
+        #expect(service.operation == .idle)
+    }
 }

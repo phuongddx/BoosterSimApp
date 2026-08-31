@@ -21,9 +21,36 @@ final class ScriptedSimCtlDouble: SimCtlRunning {
     /// The verb (first argv token) of every run, in order.
     var requestedVerbs: [String] { requested.map { $0.first ?? "" } }
 
+    // MARK: - Gated Verbs (hold a run open; complete runs oldest-first)
+
+    private var gatedVerbs: Set<String> = []
+    private var activeGates: [String: PassthroughSubject<String, SimCtlError>] = [:]
+
+    /// Holds every run of `verb` open — each run gets its own gate; complete them in order.
+    func hold(_ verb: String) {
+        gatedVerbs.insert(verb)
+    }
+
+    /// Delivers `output` through the verb's most recent gated run and finishes it.
+    func complete(_ verb: String, with output: String) {
+        guard let subject = activeGates[verb] else {
+            Issue.record("no open gate for verb \(verb)")
+            return
+        }
+        activeGates[verb] = nil
+        subject.send(output)
+        subject.send(completion: .finished)
+    }
+
     func run(_ args: [String], stdin: Data?) -> AnyPublisher<String, SimCtlError> {
         requested.append(args)
-        switch outcomes[args.first ?? ""] {
+        let verb = args.first ?? ""
+        if gatedVerbs.contains(verb) {
+            let subject = PassthroughSubject<String, SimCtlError>()
+            activeGates[verb] = subject
+            return subject.eraseToAnyPublisher()
+        }
+        switch outcomes[verb] {
         case .success(let output):
             return Just(output).setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
         case .failure(let error):
@@ -31,5 +58,15 @@ final class ScriptedSimCtlDouble: SimCtlRunning {
         case nil:
             return Empty().setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
         }
+    }
+}
+
+extension ScriptedSimCtlDouble {
+
+    /// Yields the main actor so `.receive(on: DispatchQueue.main)` deliveries land before
+    /// assertions — Combine hops enqueue async main-queue jobs even with synchronous doubles.
+    @MainActor
+    func pumpMainQueue() async {
+        for _ in 0 ..< 50 { await Task.yield() }
     }
 }
