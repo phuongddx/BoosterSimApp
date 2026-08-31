@@ -5,8 +5,7 @@ struct DesignComparisonView: View {
 
     @ObservedObject var service: DesignOverlayService
 
-    @State private var presetName: String = ""
-    @State private var showSavePreset: Bool = false
+    @State private var isSafeAreaExpanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -68,6 +67,13 @@ struct DesignComparisonView: View {
                     }
                     Slider(value: $service.splitPosition, in: 0...1)
                 }
+            }
+
+            Divider()
+
+            // MARK: - Safe Area (D-02)
+            CollapsibleSection(title: "Safe Area", icon: "rectangle.dashed", isExpanded: $isSafeAreaExpanded) {
+                DesignSafeAreaSection(service: service)
             }
 
             Divider()
@@ -159,70 +165,7 @@ struct DesignComparisonView: View {
             Divider()
 
             // MARK: - Presets
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Label("Presets", systemImage: "square.grid.2x2")
-                        .font(.subheadline.bold())
-                    Spacer()
-                    Button {
-                        showSavePreset = true
-                    } label: {
-                        Image(systemName: "plus.circle")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if showSavePreset {
-                    HStack(spacing: 6) {
-                        TextField("Preset name", text: $presetName)
-                            .textFieldStyle(.roundedBorder)
-                        Button("Save") {
-                            if !presetName.isEmpty {
-                                service.savePreset(name: presetName)
-                                presetName = ""
-                                showSavePreset = false
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(presetName.isEmpty)
-                    }
-                }
-
-                if service.presets.isEmpty {
-                    Text("No presets saved")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    ForEach(service.presets) { preset in
-                        HStack {
-                            Button {
-                                service.loadPreset(preset)
-                            } label: {
-                                HStack {
-                                    Text(preset.name)
-                                        .font(.caption)
-                                    Spacer()
-                                    Text(preset.mode.rawValue)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                service.deletePreset(preset)
-                            } label: {
-                                Image(systemName: "trash")
-                                    .font(.caption2)
-                                    .foregroundColor(.red)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
-            }
+            DesignPresetsSection(service: service)
         }
         .padding(12)
     }
