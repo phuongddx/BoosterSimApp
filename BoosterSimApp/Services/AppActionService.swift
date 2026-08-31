@@ -18,15 +18,25 @@ final class AppActionService: ObservableObject {
     // MARK: - Private
 
     private let simCtl: SimCtlService
-    private let certificateService: CertificateService
+    private let certificateService: any AppKeychainResetting
+    private let keychainEvents: AnyPublisher<CertificateOperation, Never>
     private var cancellables = Set<AnyCancellable>()
     private var scannedApps: [DiscoveredApp] = []
 
     // MARK: - Lifecycle
 
-    init(simCtl: SimCtlService, certificateService: CertificateService) {
+    convenience init(simCtl: SimCtlService, certificateService: CertificateService) {
+        self.init(simCtl: simCtl,
+                  certificateService: certificateService,
+                  keychainEvents: certificateService.$operation.eraseToAnyPublisher())
+    }
+
+    init(simCtl: SimCtlService,
+         certificateService: any AppKeychainResetting,
+         keychainEvents: AnyPublisher<CertificateOperation, Never>) {
         self.simCtl = simCtl
         self.certificateService = certificateService
+        self.keychainEvents = keychainEvents
     }
 
     // MARK: - App Discovery
@@ -38,8 +48,9 @@ final class AppActionService: ObservableObject {
         scannedApps = DerivedDataAppScanner.scan(root: DerivedDataAppScanner.defaultRoot)
         AppLogger.actions.info("Scanned DerivedData — \(self.scannedApps.count) iOS app(s)")
         simCtl.run(Self.listAppsCommand(udid: udid))
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+            .flatMap { [weak self] listAppsXML -> AnyPublisher<String, SimCtlError> in
                 guard let self else { return Empty().eraseToAnyPublisher() }
+                self.installedBundleIDs = Self.parseInstalledApps(fromListAppsXML: listAppsXML)
                 return self.simCtl.run(Self.launchctlCommand(udid: udid))
             }
             .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
@@ -52,7 +63,7 @@ final class AppActionService: ObservableObject {
                 },
                 receiveValue: { [weak self] launchctlOutput in
                     guard let self else { return }
-                    self.installedBundleIDs = Self.parseInstalledApps(fromListAppsXML: launchctlOutput)
+                    self.runningBundleIDs = Self.parseRunningApps(fromLaunchctlOutput: launchctlOutput)
                     self.publishCandidates()
                     self.finish(with: nil)
                 }
@@ -140,6 +151,51 @@ final class AppActionService: ObservableObject {
                 }
             )
             .store(in: &cancellables)
+    }
+
+    // MARK: - Keychain (D-02)
+
+    /// Device-wide keychain wipe + automatic local-CA reconcile (D-02). DELEGATES — never re-implements:
+    /// resetKeychain already runs the device verb, clears the persisted-install record, and lands its own
+    /// state machine. On completion this triggers reconcileStatus (the same entry point SideWindowController
+    /// drives on simulator change) and re-installs the CA when one exists, so certificate trust needs no
+    /// manual steps. The AppResetSectionView dialog names the blast radius before this ever runs.
+    func clearKeychain(udid: String, deviceName: String) {
+        guard Self.isDestructiveUDID(udid) else { failWithAmbiguousUDID(); return }
+        guard !certificateService.operation.isWorking else {
+            fail("Certificate service is busy — try again in a moment.")
+            return
+        }
+        guard begin(.clearingKeychain) else { return }
+        statusCaption = nil
+        keychainEvents
+            .dropFirst()                             // skip the current idle value
+            .first { !$0.isWorking }                 // terminal state of this reset run
+            .flatMap { [weak self] terminal -> AnyPublisher<String, Never> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                self.certificateService.reconcileStatus(udid: udid)
+                if case .error(let message) = terminal {
+                    return Just("Keychain wipe failed: \(message)").eraseToAnyPublisher()
+                }
+                guard self.certificateService.status.certificateMetadata != nil else {
+                    return Just("Keychain cleared — no local CA on disk to reconcile.").eraseToAnyPublisher()
+                }
+                self.certificateService.install(udid: udid, deviceName: deviceName)
+                return self.keychainEvents.dropFirst().first { !$0.isWorking }
+                    .map { installTerminal -> String in
+                        if case .error(let message) = installTerminal {
+                            return "Keychain cleared, but re-installing the local CA failed: \(message)"
+                        }
+                        return "Keychain cleared — local CA re-installed automatically."
+                    }
+                    .eraseToAnyPublisher()
+            }
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] caption in
+                AppLogger.actions.info("Keychain clear finished — CA reconcile completed")  // verb + outcome only
+                self?.finish(with: caption)
+            })
+            .store(in: &cancellables)
+        certificateService.resetKeychain(udid: udid)
     }
 
     // MARK: - State Machine (CertificateService quartet shape)

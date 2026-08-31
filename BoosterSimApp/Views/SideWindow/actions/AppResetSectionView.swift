@@ -11,6 +11,7 @@ struct AppResetSectionView: View {
     @State private var isExpanded = true
     @State private var showResetConfirm = false
     @State private var showUninstallConfirm = false
+    @State private var showKeychainConfirm = false
 
     private var activeUDID: String? { udidProvider() }
     private var activeApp: DiscoveredApp? {
@@ -29,6 +30,7 @@ struct AppResetSectionView: View {
                               + "with a concrete UDID.")
                 }
                 resetButton.padding(.horizontal, Spacing.md)
+                clearKeychainButton.padding(.horizontal, Spacing.md)
                 uninstallButton.padding(.horizontal, Spacing.md)
                 statusRow.padding(.horizontal, Spacing.md)
             }
@@ -57,6 +59,19 @@ struct AppResetSectionView: View {
         } message: {
             Text("Removes \(appName) and its data container from \(deviceNameProvider()).")
         }
+
+        .confirmationDialog("Clear Keychain (All Apps)?", isPresented: $showKeychainConfirm, titleVisibility: .visible) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear Keychain", role: .destructive) {
+                if let udid = activeUDID {
+                    appActionService.clearKeychain(udid: udid, deviceName: deviceNameProvider())
+                }
+            }
+        } message: {
+            Text("Erases EVERY app's keychain on \(deviceNameProvider()) — saved passwords, tokens, and "
+                + "certificates from all apps, not just \(appName)'s — and removes the BoosterSimApp local CA. "
+                + "The CA is re-installed automatically afterward so certificate trust keeps working. No undo.")
+        }
     }
 
     // MARK: - Actions
@@ -84,6 +99,19 @@ struct AppResetSectionView: View {
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.5 : 1)
+    }
+
+    /// The device-wide keychain wipe (D-02) — the wipe call site exists ONLY inside the
+    /// destructive confirmation closure; disabled without a booted device.
+    private var clearKeychainButton: some View {
+        Button { showKeychainConfirm = true } label: {
+            Label("Clear Keychain (All Apps)", systemImage: "key.horizontal.radiowaves.forward")
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+        .buttonStyle(.plain)
+        .disabled(isWorking || activeUDID == nil)
+        .opacity(isWorking || activeUDID == nil ? 0.5 : 1)
     }
 
     // MARK: - Status

@@ -130,3 +130,19 @@ extension AppActionService {
         }
     }
 }
+
+// MARK: - Keychain Seam (D-02)
+
+/// Subset of CertificateService that AppActionService drives for the device-wide keychain clear.
+/// Declared as a protocol so tests pin the reset → reconcile delegate order with a scripted double;
+/// CertificateService conforms for free — every member already exists.
+@MainActor
+protocol AppKeychainResetting: AnyObject {
+    var operation: CertificateOperation { get }
+    var status: CertificateStatus { get }
+    func resetKeychain(udid: String)
+    func reconcileStatus(udid: String?)
+    func install(udid: String, deviceName: String)
+}
+
+extension CertificateService: AppKeychainResetting {}
