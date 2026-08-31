@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: Phase 2 (Capture Tools) complete + verified 4/4 — ready to plan Phase 3 (App Actions); next-phase pointer hand-corrected from CLI's stale 05 (already complete)
-last_updated: "2026-08-31T02:47:55.650Z"
-last_activity: 2026-08-30
-last_activity_desc: Phase 2 complete + verified, advanced to Phase 3
-state_head: da92b9ce429d312e49e24ee6c8021851c397e8fd
+stopped_at: 03-01 halted at Task 3 blocking-human smoke (2/3 tasks done, 107/107 unit green) — resume by approving the 7-step live checklist
+last_updated: "2026-08-31T03:47:36.819Z"
+last_activity: 2026-08-31
+last_activity_desc: Phase 3 execution started
+state_head: daefdc359a9c9935e93f4cd5583ea036011c8749
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 13
-  completed_plans: 8
+  completed_plans: 9
   percent: 29
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-30)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 3 — App Actions (Phases 2 Capture Tools + 5 Network Tools complete + verified 2026-08-30)
+**Current focus:** Phase 3 — App Actions
 
 ## Current Position
 
-Phase: 3 (App Actions) — READY TO EXECUTE
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-30 — Phase 2 complete + verified, advanced to Phase 3
+Phase: 3 (App Actions) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 3
+Last activity: 2026-08-31 — Phase 3 execution started
 
 Progress: [████████░░░░░░░░░░] 4 of 7 phases complete (1, 2, 5, 6) — next: Phase 3 App Actions
 
@@ -86,6 +86,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 02-04]: 02-04: architecture docs carry § Capture Tools (service split + data flow + permissions/degradation + ShowSingleTouches scope/restore + temp lifecycle + honest Up-to-120-fps); stale placeholder/key-list/concurrency lines corrected in the same truth pass
 - [Phase 02-04]: 02-04 phase-gate automated standard green — unit bundle 79/79 exit 0, Debug build clean, swiftpm git diff empty; Package.resolved pin proven by sha256 content stability (70386616a707…, identical to Phase 5) since the file remains untracked — track-the-file recommendation stays open
 - [Phase 02-04]: 02-04 phase-gate smoke user-approved 2026-08-30 — all six steps pass; A2 resolved via MP4 passthrough (HighestQuality fallback wired but not exercised); delivered-fps figure not separately reported (user-verified acceptable); REQ-roadmap-phase2-capture-tools + REQ-nfr-03 closed on this plan
+- [Phase 3]: [Phase 3][03-01] clearKeychain composes resetKeychain → reconcileStatus → install — reconcileStatus alone is status-only and would never restore CA trust; pure delegation, no verb duplication
+- [Phase 3]: [Phase 3][03-01] SimCtlService seam hardened in place: concurrent pipe drains (>64KB deadlock fix), optional stdin, machine-wide serial queue — publisher signature unchanged, zero call-site edits
+- [Phase 3]: [Phase 3][03-01] Scanner fixtures synthesized in temp dirs (nested .app dirs break test-bundle codesign); AppKeychainResetting protocol seam pins the D-02 delegate order on a scripted double
 
 ### Pending Todos
 
@@ -99,6 +102,7 @@ None yet.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
 - [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
+- [03-01] Halted at Task 3 blocking-human smoke — live Simulator + DerivedData-built app + installed local CA required; D-02 keychain wipe is never auto-run. Approve the 7-step checklist to unblock wave 2 (plan 02).
 
 ## Deferred Items
 
@@ -111,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-30
-Stopped at: Phase 2 complete + verified (4/4 criteria, 2/2 reqs); post-review MOV re-check approved; advanced to Phase 3 (App Actions)
-Resume file: None
+Last session: 2026-08-31T03:47:36.525Z
+Stopped at: 03-01 halted at Task 3 blocking-human smoke (2/3 tasks done, 107/107 unit green) — resume by approving the 7-step live checklist
+Resume file: .planning/phases/03-app-actions/03-01-reset-app-tracer-SUMMARY.md
