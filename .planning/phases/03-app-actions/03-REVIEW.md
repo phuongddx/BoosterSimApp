@@ -44,6 +44,7 @@ findings:
   info: 6
   total: 14
 status: issues_found
+fix_status: critical_warning_resolved
 ---
 
 # Phase 03: Code Review Report — App Actions
@@ -323,3 +324,48 @@ seam echo, but the same redaction sweep should cover stderr passthrough when tha
 _Reviewed: 2026-08-31T08:05:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+
+## Fix Resolution (2026-08-31 — gsd-code-fixer)
+
+**Scope:** CR-01 + WR-01..WR-07 (IN-01..IN-06 intentionally left open — rationale below).
+**Verification:** full unit suite exit 0, zero failed cases — 189 passed = 182 baseline
++ 8 regression tests − 1 deleted tautological test; `xcodebuild -configuration Debug build`
+exit 0. UI tests untouched.
+
+| Finding | Status | Commit | Fix |
+|---|---|---|---|
+| CR-01 | RESOLVED | 6d52d27 | terminate-failure emits a continuation value (`Just("")` + `catch`) so the reset chain reaches the listapps presence check; regression tests (scripted seam double) pin terminate-fail → uninstall leg and terminate-fail → honest `.absent`. |
+| WR-01 | RESOLVED | 849151a | `applyLocationPreset` caption and log branch on `bundleID`; `LocationSectionView.relaunchCaption` branches on `activeApp != nil` — no automatic relaunch is claimed when none happens. |
+| WR-02 | RESOLVED | a8bc243 | `loadDomain` queues a request made during `.loading` (newest target supersedes; the stale domain's result or failure is never published) and clears `entries` at load start; two gated-double regression tests. |
+| WR-03 | RESOLVED | a845f3b | stdin writes join the drain group on a concurrent lane after the readers start; `run(_:stdin:)` rejects payloads over the 64 KB pipe bound with typed `SimCtlError.stdinTooLarge` before any subprocess; `drainGroup.wait()` bounded at 60 s with exactly-once promise resolution. |
+| WR-04 | RESOLVED | 02f7938 | `PushPayload.parse` rejects keys outside the supported set with typed `.unsupportedKeys` (reject chosen over passthrough — safer and honest); three new parse tests cover unknown aps keys, unknown top-level keys, and the full supported set. |
+| WR-05 | RESOLVED | b8cd888 | the three `readLocaleState` reads route through a shared `readLocaleKey` helper with the house 30s timeout + failure caption; `DeepLinkService.openInSimulator` arms the same timeout so `lastResult` always lands. |
+| WR-06 | RESOLVED | 1e5b050 | both keychainEvents waits arm a 30s timeout → fallback caption + `finish()` (the machine can no longer wedge in `.clearingKeychain`); the "Keychain clear finished" log moved into the outcome branches. Existing keychain tests updated to pump the now-async delivery. |
+| WR-07 | RESOLVED | 8d4f1b7 | production `applyLocale`/`applyLocationPreset` run `localeWriteChain`/`cityPresetChain` through a shared `runChain` (single source of truth); `fallbackRelaunchArgs` — no production consumer — deleted with its tautological test; the chain tests now pin production argv. |
+
+### Info findings — intentionally left open (rationale)
+
+- **IN-01 (seam argv echo):** deferred by design — tracked in `docs/system-architecture.md`,
+  `deferred-items.md` #2, and the 03-02/03-04 deviations. Redaction belongs to the planned
+  dedicated seam-hygiene change (IN-06 rides the same sweep); WR-03's concurrency restructure
+  deliberately did not mix in the redaction.
+- **IN-02 (file-size budget):** pre-flagged in the phase summaries; both files remain over the
+  <200 LOC target. The split needs the facade-state refactor tracked there, not a review patch.
+- **IN-03 (camera keyword):** needs a product decision (drop the keyword vs. an in-section
+  camera note); neither is a code defect.
+- **IN-04 ("json" add-kind label):** consistent with the documented capsule design; the fix is
+  UI copy (relabel to "data") or a JSON→plist decode feature — a scope decision, left open.
+- **IN-05 (coordinate argv spelling / plist allowlist asymmetry):** hardening nice-to-haves;
+  exotic-numeric failures are already captured with typed captions. Close in a general
+  hardening pass.
+- **IN-06 (`fail()` public stderr logging):** same redaction sweep as IN-01 — kept together.
+
+_Human-verification note (logic-bearing fixes):_ CR-01, WR-02, and WR-06 change execution
+logic. CR-01 and WR-02 carry regression tests pinning the new behavior; WR-06's existing suite
+covers the restructured waits (the 30s arms themselves are not artificially exercised).
+Recommend the verifier smoke Reset App Data against a not-running app once, live.
+
+---
+
+_Resolved: 2026-08-31T07:20:00Z_
+Fixer: Claude (gsd-code-fixer)
