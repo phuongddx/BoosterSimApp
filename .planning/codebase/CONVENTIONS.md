@@ -5,7 +5,7 @@
 ## Language & Concurrency
 
 - **Swift 6** with strict concurrency enabled; deployment target macOS 15 Sequoia
-- **No async/await for service-layer patterns** — use Combine `@Published` + `Timer` per `docs/code-standards.md`. Exception: `CaptureService.swift` and `DeepLinkService.swift` use `async`/`await` because ScreenCaptureKit and `simctl openurl` APIs require it.
+- **No async/await for service-layer patterns** — use Combine `@Published` + `Timer` per `docs/code-standards.md`. Exception: `CaptureService.swift` uses `async`/`await` because ScreenCaptureKit requires it.
 - `@MainActor final class` on all classes that touch UI or own AppKit objects (`AppDelegate`, `SideWindowController`, `CertificateService`, `ConnectService`, `CaptureService`, `SpringAnimator`)
 - `final class` preferred over `class` for all services and controllers
 - No `DispatchQueue.global()` for UI work — background `DispatchQueue.global()` used only for CPU-bound subprocess calls (AX inspection, xcrun simctl, file I/O) in `AXInspectorService.swift:39`, `SimCtlService.swift:37`, `CertificateStore.swift:26`, `CameraService.swift:52`, `SimulatorWindowTracker.swift:66`

@@ -92,7 +92,7 @@ struct SideWindowView: View {
     let certificateService = CertificateService(simCtl: simCtl)
     let connectService      = ConnectService()
     let networkConditionService = NetworkConditionService(commandServer: NoopCommandBroadcast())
-    let deepLinkService = DeepLinkService()
+    let deepLinkService = DeepLinkService(simCtl: simCtl)
     let appActionService = AppActionService(simCtl: simCtl, certificateService: certificateService)
     let captureService = CaptureService()
     let designComparisonService = DesignComparisonService()

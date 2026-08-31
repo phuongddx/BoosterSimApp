@@ -1,7 +1,8 @@
-// DeepLinkService.swift — Manages deep link testing and history
+// DeepLinkService.swift — Manages deep link testing and history over the SimCtlService seam
 import Foundation
 import Combine
 
+@MainActor
 final class DeepLinkService: ObservableObject {
 
     // MARK: - Published State
@@ -34,61 +35,47 @@ final class DeepLinkService: ObservableObject {
 
     // MARK: - Private
 
+    private let simCtl: SimCtlService
+    private let defaults: UserDefaults
     private let historyKey = "DeepLinkHistory"
     private let favoritesKey = "DeepLinkFavorites"
     private let maxHistory = 50
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
-    init() {
+    init(simCtl: SimCtlService, defaults: UserDefaults = .standard) {
+        self.simCtl = simCtl
+        self.defaults = defaults
         loadHistory()
         loadFavorites()
     }
 
     // MARK: - Public API
 
+    /// Opens the current URL on the Simulator through the shared simctl seam (Combine — the
+    /// direct subprocess spawn that used to live here was the convention violation Phase 3 deletes).
     func openInSimulator(udid: String?) {
-        Task { await openInSimulatorAsync(udid: udid) }
-    }
-
-    func openInSimulatorAsync(udid: String?) async {
         let urlString = currentURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !urlString.isEmpty else {
-            await MainActor.run { self.lastResult = .error(message: "URL is empty") }
+        if let message = Self.validationMessage(for: urlString) {
+            lastResult = .error(message: message)
             return
         }
 
-        guard let url = URL(string: urlString), url.scheme != nil else {
-            await MainActor.run { self.lastResult = .error(message: "Invalid URL format") }
-            return
-        }
-
-        let deviceUDID = udid ?? "booted"
-        let result: DeepLinkResult = await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-            process.arguments = ["simctl", "openurl", deviceUDID, urlString]
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-
-                if process.terminationStatus == 0 {
-                    return DeepLinkResult.success(url: urlString)
-                } else {
-                    return DeepLinkResult.error(message: "simctl exited with code \(process.terminationStatus)")
+        simCtl.run(Self.openURLCommand(udid: udid, urlString: urlString))
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self, case .failure(let error) = completion else { return }
+                    self.lastResult = .error(message: error.localizedDescription)
+                },
+                receiveValue: { [weak self] _ in
+                    guard let self else { return }
+                    self.lastResult = .success(url: urlString)
+                    self.addToHistory(url: urlString)
                 }
-            } catch {
-                return DeepLinkResult.error(message: error.localizedDescription)
-            }
-        }.value
-
-        await MainActor.run {
-            self.lastResult = result
-            if case .success = result {
-                self.addToHistory(url: urlString)
-            }
-        }
+            )
+            .store(in: &cancellables)
     }
 
     func toggleFavorite(_ entry: DeepLinkEntry) {
@@ -142,13 +129,31 @@ final class DeepLinkService: ObservableObject {
         let queryItems: [URLQueryItem]?
     }
 
+    // MARK: - Validation & Argv (pure, unit-pinned)
+
+    /// Pure validation — returns the pinned error message for rejectable input, nil when the
+    /// URL may be opened. Rejection happens here, before any subprocess is ever built.
+    nonisolated static func validationMessage(for urlString: String) -> String? {
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "URL is empty" }
+        if URL(string: trimmed)?.scheme == nil { return "Invalid URL format" }
+        return nil
+    }
+
+    /// Pure argv for the open verb — booted-fallback when no concrete UDID is known.
+    nonisolated static func openURLCommand(udid: String?, urlString: String) -> [String] {
+        ["openurl", udid ?? "booted", urlString]
+    }
+
     // MARK: - Presets
 
     static let schemePresets = ["https://", "http://", "myapp://", "deeplink://", "app://"]
 
-    // MARK: - Private
+    // MARK: - History
 
-    private func addToHistory(url: String) {
+    /// Records a successfully opened URL. Internal (not private) so the persistence contract
+    /// is exercisable in tests without spawning a subprocess.
+    func addToHistory(url: String) {
         let entry = DeepLinkEntry(url: url)
         history.insert(entry, at: 0)
         if history.count > maxHistory {
@@ -157,26 +162,28 @@ final class DeepLinkService: ObservableObject {
         saveHistory()
     }
 
+    // MARK: - Private
+
     private func loadHistory() {
-        guard let data = UserDefaults.standard.data(forKey: historyKey),
+        guard let data = defaults.data(forKey: historyKey),
               let decoded = try? JSONDecoder().decode([DeepLinkEntry].self, from: data) else { return }
         history = decoded
     }
 
     private func saveHistory() {
         guard let data = try? JSONEncoder().encode(history) else { return }
-        UserDefaults.standard.set(data, forKey: historyKey)
+        defaults.set(data, forKey: historyKey)
     }
 
     private func loadFavorites() {
-        guard let data = UserDefaults.standard.data(forKey: favoritesKey),
+        guard let data = defaults.data(forKey: favoritesKey),
               let decoded = try? JSONDecoder().decode([DeepLinkEntry].self, from: data) else { return }
         favorites = decoded
     }
 
     private func saveFavorites() {
         guard let data = try? JSONEncoder().encode(favorites) else { return }
-        UserDefaults.standard.set(data, forKey: favoritesKey)
+        defaults.set(data, forKey: favoritesKey)
     }
 }
 

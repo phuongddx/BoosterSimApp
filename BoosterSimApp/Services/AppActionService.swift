@@ -14,6 +14,7 @@ final class AppActionService: ObservableObject {
     @Published private(set) var runningBundleIDs: Set<String> = []
     @Published private(set) var installedBundleIDs: Set<String> = []
     @Published var activeBundleID: String?
+    @Published private(set) var privacyCaption: String?
 
     // MARK: - Private
 
@@ -196,6 +197,86 @@ final class AppActionService: ObservableObject {
             })
             .store(in: &cancellables)
         certificateService.resetKeychain(udid: udid)
+    }
+
+    // MARK: - Privacy (12 TCC services — D-01 companion)
+
+    /// Grants/revokes one TCC service for the active app (`privacy <udid> grant|revoke <service> [<bundle>]`).
+    /// One shared single-hop verb runner: 30s timeout, main delivery, verb+outcome logging only.
+    func setPrivacy(_ permission: PrivacyPermission, action: PrivacyAction, udid: String, bundleID: String? = nil) {
+        guard !udid.isEmpty else {
+            privacyCaption = "No active Simulator — privacy changes need a running device."
+            return
+        }
+        var args = permission.simctlArgs(udid: udid, action: action)
+        if let bundleID { args.append(bundleID) }   // scoped to the picker's active app
+        runVerb(args) { [weak self] result in
+            switch result {
+            case .success:
+                AppLogger.actions.info("privacy \(action.rawValue) completed")   // verb + outcome only
+                self?.privacyCaption = "\(permission.label) \(action == .grant ? "granted" : "revoked")"
+                    + (bundleID != nil ? " for the active app." : ".")
+            case .failure(let error):
+                AppLogger.actions.error("privacy \(action.rawValue) failed")
+                self?.privacyCaption = "\(permission.label) \(action.label.lowercased()) failed: "
+                    + "\(error.localizedDescription)"
+            }
+        }
+    }
+
+    /// `privacy <udid> reset all` — resets TCC services device-wide (NOT notification permission;
+    /// that is managed by iOS per D-01). Destructive: the call site sits only inside a
+    /// confirmationDialog, and the verb refuses the ambiguous `booted`/empty UDIDs.
+    func resetAllPrivacy(udid: String) {
+        guard Self.isDestructiveUDID(udid) else { failWithAmbiguousUDID(); return }
+        runVerb(PrivacyPermission.resetAllArgs(udid: udid)) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                AppLogger.actions.info("privacy reset all completed")
+                self.privacyCaption = "All TCC privacy services reset on the device."
+            case .failure(let error):
+                AppLogger.actions.error("privacy reset all failed")
+                self.privacyCaption = "Privacy reset failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    // MARK: - Device Settings (D-01 Settings link)
+
+    /// Launches the device's Settings app so the user can perform the manual notification
+    /// grant D-01 guides them through. simctl cannot set notification permission — this verb
+    /// only opens the destination; the Send button in the Push section is the verify probe.
+    func openDeviceSettings(udid: String) {
+        guard !udid.isEmpty else { return }
+        runVerb(["launch", udid, "com.apple.Preferences"]) { [weak self] result in
+            if case .failure(let error) = result {
+                AppLogger.actions.error("open device settings failed")
+                self?.privacyCaption = "Could not open Settings: \(error.localizedDescription)"
+            } else {
+                AppLogger.actions.info("opened device settings")
+            }
+        }
+    }
+
+    // MARK: - Single-Hop Verb Runner
+
+    /// Thin shared runner for one-hop verbs (privacy, device settings, later push): 30s timeout,
+    /// main-thread delivery, single sink stored in the facade's cancellables.
+    private func runVerb(
+        _ args: [String], stdin: Data? = nil,
+        onResult: @escaping (Result<String, SimCtlError>) -> Void
+    ) {
+        simCtl.run(args, stdin: stdin)
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion { onResult(.failure(error)) }
+                },
+                receiveValue: { onResult(.success($0)) }
+            )
+            .store(in: &cancellables)
     }
 
     // MARK: - State Machine (CertificateService quartet shape)

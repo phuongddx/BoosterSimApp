@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var certificateService  = CertificateService(simCtl: simCtlService)
     lazy var connectService      = ConnectService()
     lazy var networkConditionService = NetworkConditionService()
-    lazy var deepLinkService     = DeepLinkService()
+    lazy var deepLinkService     = DeepLinkService(simCtl: simCtlService)
     lazy var appActionService    = AppActionService(simCtl: simCtlService, certificateService: certificateService)
     lazy var designComparisonService = DesignComparisonService()
     lazy var captureService         = CaptureService(

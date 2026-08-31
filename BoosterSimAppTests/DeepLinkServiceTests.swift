@@ -33,7 +33,7 @@ struct DeepLinkServiceTests {
     @MainActor
     @Test func parseURLReturnsNilForInvalidInput() {
         #expect(makeService().parseURL("") == nil)
-        #expect(makeService().parseURL("not a url with spaces") == nil)
+        #expect(makeService().parseURL("ht%tp://bad-percent") == nil)
     }
 
     // MARK: - Validation (before any subprocess runs)
