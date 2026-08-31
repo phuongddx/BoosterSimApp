@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 4
 current_phase_name: Design Tools
 status: executing
-stopped_at: Completed 04-01-PLAN.md (overlay grid tracer)
-last_updated: "2026-08-31T13:31:25.830Z"
+stopped_at: Completed 04-02-PLAN.md (safearea-comparison-import)
+last_updated: "2026-08-31T13:56:20.013Z"
 last_activity: 2026-08-31
 last_activity_desc: Phase 4 execution started
-state_head: c60003ba7d7e40e82aca1b95366439bbe306d241
+state_head: f5af4cd13bd5edef3a6c0d31060e6c5b6534c3ac
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
   percent: 43
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 4 (Design Tools) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-31 — Phase 4 execution started
 
@@ -63,6 +63,7 @@ Progress: [████░░░░░░] 43%
 | Phase 03 P03 | 38min | 2 tasks | 6 files |
 | Phase 03 P04 | 22min | 2 tasks | 11 files |
 | Phase 04 P01 | 13min | 2 tasks | 16 files |
+| Phase 4 P02 | 19min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 4]: [Phase 4][04-01] D-04 install contract shipped as addSubview(positioned:.below, relativeTo:) with clamped layer index — AppKit has no insertSubview(at:); z-order deterministic regardless of install order
 - [Phase 4]: [Phase 4][04-01] objectWillChange defers via receive(on: DispatchQueue.main) — post-mutation state reads with zero coroutine keywords (Combine-only controller)
 - [Phase 4]: [Phase 4][04-01] Persistence green-on-arrival: Task 1's spec carried versioned keys + write-through toggles + flag-guarded tolerant import; Task 2's suite locks it (22 Wave-0 tests total)
+- [Phase 4]: [Phase 4][04-02] landscape(from:) is pure data derivation — bottom>0 (home-indicator generations) → (0,21,sides=portrait top), classic 20/0 rows all-zero; the portrait row is the signal, one table, no per-device cases
+- [Phase 4]: [Phase 4][04-02] Controller swaps catalog portrait logical size (w,h)→(h,w) for landscape scale — OverlayGeometry's 04-01 signatures stay frozen; safe-area bands render fixed systemBlue (Xcode-guide look) while grid keeps tunable gridColor
+- [Phase 4]: [Phase 4][04-02] Single accept(image:) gate: open/paste/drop all funnel through the 16384-px dimension cap with importError caption; typed UTType pasteboard reads only; Task { @MainActor in } hop for NSItemProvider callbacks (CommandServer precedent)
+- [Phase 4]: [Phase 4][04-02] Service split into +Presets/+Import extensions and DesignComparisonView into DesignSafeAreaSection/DesignPresetsSection — <200 LOC code standard takes precedence over plan file lists; all plan-named symbols stay on DesignOverlayService
 
 ### Pending Todos
 
@@ -132,6 +137,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T13:31:25.476Z
-Stopped at: Completed 04-01-PLAN.md (overlay grid tracer)
+Last session: 2026-08-31T13:56:19.617Z
+Stopped at: Completed 04-02-PLAN.md (safearea-comparison-import)
 Resume file: None

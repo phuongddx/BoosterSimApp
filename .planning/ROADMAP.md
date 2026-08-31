@@ -125,7 +125,7 @@ Plans:
   3. User can import a Figma/Sketch artboard as a design comparison overlay
   4. Overlays persist when the app loses focus and can be toggled on/off per tool
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 Plans:
 
 **Wave 1**
@@ -134,7 +134,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-safearea-comparison-import-PLAN.md — Orientation-aware safe-area bands with D-02 manual override/reset + Figma/Sketch artboard import (open/drag/paste, decompression-bomb guard) at the bottom D-04 layer (criterion 1 safe-area half + criterion 3)
+- [x] 04-02-safearea-comparison-import-PLAN.md — Orientation-aware safe-area bands with D-02 manual override/reset + Figma/Sketch artboard import (open/drag/paste, decompression-bomb guard) at the bottom D-04 layer (criterion 1 safe-area half + criterion 3)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -220,7 +220,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
 | 3. App Actions | 5/5 | Complete    | 2026-08-31 |
-| 4. Design Tools | 1/4 | In Progress|  |
+| 4. Design Tools | 2/4 | In Progress|  |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |
