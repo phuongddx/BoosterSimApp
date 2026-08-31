@@ -1,5 +1,6 @@
 // AppActionServiceTests.swift — Pure argv-builder, parser, reconcile, and operation contracts for app actions
 import Foundation
+import Combine
 import Testing
 @testable import BoosterSimApp
 
@@ -143,6 +144,101 @@ struct AppActionServiceTests {
         #expect(!AppActionService.isDestructiveUDID(""))
         #expect(!AppActionService.isDestructiveUDID("booted"))
         #expect(AppActionService.isDestructiveUDID("5DD825B4-1111-2222-3333-444455556666"))
+    }
+
+    // MARK: - Keychain Clear (D-02)
+
+    @Test func clearKeychainOperationTransitionsAreLegal() {
+        #expect(AppActionOperation.idle.canTransition(to: .clearingKeychain))
+        #expect(AppActionOperation.clearingKeychain.canTransition(to: .idle))
+        #expect(AppActionOperation.clearingKeychain.canTransition(to: .error("failed")))
+        #expect(AppActionOperation.error("failed").canTransition(to: .clearingKeychain))
+        #expect(!AppActionOperation.clearingKeychain.canTransition(to: .resetting))
+    }
+
+    @MainActor
+    @Test func clearKeychainRefusesAmbiguousUDIDs() {
+        let service = makeService()
+        service.clearKeychain(udid: "booted", deviceName: "iPhone 17")
+        #expect(isTypedError(service.operation))
+        #expect(!service.operation.isWorking)
+
+        service.clearKeychain(udid: "", deviceName: "iPhone 17")
+        #expect(isTypedError(service.operation))
+        #expect(!service.operation.isWorking)
+    }
+
+    @MainActor
+    @Test func clearKeychainDelegatesThenReconcilesExactlyOnce() {
+        let double = KeychainResetDouble()
+        let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
+        let service = AppActionService(
+            simCtl: SimCtlService(),
+            certificateService: double,
+            keychainEvents: events.eraseToAnyPublisher()
+        )
+
+        service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        #expect(double.calls == ["reset"])                // delegate: the device verb goes to CertificateService
+        #expect(service.operation == .clearingKeychain)
+
+        events.send(.resetting)                            // certificate service begins — still working
+        #expect(double.calls == ["reset"])                 // no reconcile while working
+
+        events.send(.idle)                                 // reset landed
+        #expect(double.calls == ["reset", "reconcile"])    // exactly one reconcile, strictly after the reset
+        #expect(service.operation == .idle)
+        #expect(service.statusCaption?.isEmpty == false)
+    }
+
+    @MainActor
+    @Test func clearKeychainReinstallsTheCAWhenOneExists() {
+        let double = KeychainResetDouble()
+        double.status = .generated(cn: "BoosterSim Dev CA", expiry: .distantFuture, sha256: "abc123")
+        let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
+        let service = AppActionService(
+            simCtl: SimCtlService(),
+            certificateService: double,
+            keychainEvents: events.eraseToAnyPublisher()
+        )
+
+        service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        events.send(.resetting)
+        events.send(.idle)                                 // reset done; CA present on disk
+        #expect(double.calls == ["reset", "reconcile", "install"])  // D-02: trust restored automatically
+
+        events.send(.installing)
+        events.send(.idle)                                 // reinstall landed
+        #expect(service.operation == .idle)
+        #expect(service.statusCaption?.contains("re-installed") == true)
+    }
+
+    @MainActor
+    @Test func clearKeychainReportsCertificateFailureHonestly() {
+        let double = KeychainResetDouble()
+        let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
+        let service = AppActionService(
+            simCtl: SimCtlService(),
+            certificateService: double,
+            keychainEvents: events.eraseToAnyPublisher()
+        )
+
+        service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        events.send(.resetting)
+        events.send(.error("simctl failed: boom"))         // the wipe itself failed
+        #expect(double.calls == ["reset", "reconcile"])    // reconcile still runs; no install attempt
+        #expect(service.operation == .idle)
+        #expect(service.statusCaption?.contains("failed") == true)
+    }
+
+    @MainActor
+    private final class KeychainResetDouble: AppKeychainResetting {
+        var calls: [String] = []
+        var operation: CertificateOperation = .idle
+        var status: CertificateStatus = .notGenerated
+        func resetKeychain(udid: String) { calls.append("reset") }
+        func reconcileStatus(udid: String?) { calls.append("reconcile") }
+        func install(udid: String, deviceName: String) { calls.append("install") }
     }
 
     // MARK: - Helpers
