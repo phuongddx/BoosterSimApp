@@ -94,6 +94,7 @@ struct SideWindowView: View {
     let networkConditionService = NetworkConditionService(commandServer: NoopCommandBroadcast())
     let deepLinkService = DeepLinkService(simCtl: simCtl)
     let appActionService = AppActionService(simCtl: simCtl, certificateService: certificateService)
+    let userDefaultsEditorService = UserDefaultsEditorService(simCtl: simCtl)
     let captureService = CaptureService()
     let designComparisonService = DesignComparisonService()
     let controller       = SideWindowController(
@@ -107,7 +108,8 @@ struct SideWindowView: View {
         deepLinkService: deepLinkService,
         designComparisonService: designComparisonService,
         captureService: captureService,
-        appActionService: appActionService
+        appActionService: appActionService,
+        userDefaultsEditorService: userDefaultsEditorService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -121,4 +123,5 @@ struct SideWindowView: View {
         .environmentObject(designComparisonService)
         .environmentObject(captureService)
         .environmentObject(appActionService)
+        .environmentObject(userDefaultsEditorService)
 }

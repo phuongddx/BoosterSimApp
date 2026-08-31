@@ -13,7 +13,7 @@ struct UserDefaultsEditorServiceTests {
             .appendingPathComponent("UserDefaultsEditorServiceTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let path = dir.appendingPathComponent("fixture.plist").path
-        #require(NSDictionary(dictionary: entries).write(toFile: path, atomically: true))
+        try #require(NSDictionary(dictionary: entries).write(toFile: path, atomically: true))
         return (path, dir)
     }
 

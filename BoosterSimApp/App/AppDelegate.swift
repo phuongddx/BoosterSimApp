@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var networkConditionService = NetworkConditionService()
     lazy var deepLinkService     = DeepLinkService(simCtl: simCtlService)
     lazy var appActionService    = AppActionService(simCtl: simCtlService, certificateService: certificateService)
+    lazy var userDefaultsEditorService = UserDefaultsEditorService(simCtl: simCtlService)
     lazy var designComparisonService = DesignComparisonService()
     lazy var captureService         = CaptureService(
         screenshotService: ScreenshotService(),
@@ -50,7 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         deepLinkService: deepLinkService,
         designComparisonService: designComparisonService,
         captureService: captureService,
-        appActionService: appActionService
+        appActionService: appActionService,
+        userDefaultsEditorService: userDefaultsEditorService
     )
 
     // MARK: - Private

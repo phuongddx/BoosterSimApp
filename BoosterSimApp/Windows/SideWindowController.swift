@@ -54,7 +54,8 @@ final class SideWindowController: ObservableObject {
         deepLinkService: DeepLinkService,
         designComparisonService: DesignComparisonService,
         captureService: CaptureService,
-        appActionService: AppActionService
+        appActionService: AppActionService,
+        userDefaultsEditorService: UserDefaultsEditorService
     ) {
         self.settings = settings
         springAnimator.onFrameUpdate = { [weak self] frame in
@@ -73,7 +74,8 @@ final class SideWindowController: ObservableObject {
             deepLinkService: deepLinkService,
             designComparisonService: designComparisonService,
             captureService: captureService,
-            appActionService: appActionService
+            appActionService: appActionService,
+            userDefaultsEditorService: userDefaultsEditorService
         )
         certificateCancellable = tracker.$activeSimulator
             .receive(on: DispatchQueue.main)
@@ -208,7 +210,8 @@ final class SideWindowController: ObservableObject {
         deepLinkService: DeepLinkService,
         designComparisonService: DesignComparisonService,
         captureService: CaptureService,
-        appActionService: AppActionService
+        appActionService: AppActionService,
+        userDefaultsEditorService: UserDefaultsEditorService
     ) {
         let content = SideWindowView(
             tracker: tracker,
@@ -233,6 +236,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(designComparisonService)
             .environmentObject(captureService)
             .environmentObject(appActionService)
+            .environmentObject(userDefaultsEditorService)
         let hv = NSHostingView(rootView: content)
         hv.sizingOptions = [.minSize, .intrinsicContentSize]
         panel.contentView = hv

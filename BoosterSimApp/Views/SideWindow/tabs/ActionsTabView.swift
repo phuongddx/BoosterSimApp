@@ -1,4 +1,4 @@
-// ActionsTabView.swift — Actions tab: env overrides + deep link testing + app picker + app reset
+// ActionsTabView.swift — Actions tab: env overrides + deep link testing + app picker + app actions + defaults editor
 import SwiftUI
 
 struct ActionsTabView: View {
@@ -11,6 +11,7 @@ struct ActionsTabView: View {
     @EnvironmentObject var envOverrideService: EnvironmentOverrideService
     @EnvironmentObject var deepLinkService: DeepLinkService
     @EnvironmentObject var appActionService: AppActionService
+    @EnvironmentObject var userDefaultsEditorService: UserDefaultsEditorService
 
     var body: some View {
         ScrollView {
@@ -27,7 +28,7 @@ struct ActionsTabView: View {
                 LocaleSectionView(udidProvider: { udid })
                 LocationSectionView(udidProvider: { udid })
                 ClipboardSectionView(udidProvider: { udid })
-
+                UserDefaultsEditorView(udidProvider: { udid })
                 AppResetSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
             }
         }
