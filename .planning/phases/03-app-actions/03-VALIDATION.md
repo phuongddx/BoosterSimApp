@@ -55,13 +55,15 @@ created: 2026-08-30
 
 ## Wave 0 Requirements
 
-- [ ] `BoosterSimAppTests/AppActionServiceTests.swift` — command builders + sequencing state
-- [ ] `BoosterSimAppTests/PushPayloadTests.swift` — aps encode + 4096 gate + Simulator Target Bundle key
-- [ ] `BoosterSimAppTests/PrivacyPermissionTests.swift` — verbatim service strings; notifications-absent contract (D-01)
-- [ ] `BoosterSimAppTests/DerivedDataAppScannerTests.swift` — fixture DerivedData tree in test bundle
-- [ ] `BoosterSimAppTests/UserDefaultsEditorServiceTests.swift` — fixture plist parsing + typed arg builders
-- [ ] `BoosterSimAppTests/AppActionCatalogTests.swift` — search behavior
-- [ ] No framework install needed — Swift Testing already configured
+- [x] `BoosterSimAppTests/AppActionServiceTests.swift` — command builders + sequencing state (24 tests, green 03-01)
+- [x] `BoosterSimAppTests/PushPayloadTests.swift` — aps encode + 4096 gate + Simulator Target Bundle key (12 tests, green 03-02)
+- [x] `BoosterSimAppTests/PrivacyPermissionTests.swift` — verbatim service strings; notifications-absent contract (D-01) (7 tests, green 03-02)
+- [x] `BoosterSimAppTests/DeepLinkServiceTests.swift` — seam-migrated deep links: parse/history/favorites round-trip (12 tests, green 03-02 — checkbox restored 03-05, plan-checker advisory 3)
+- [x] `BoosterSimAppTests/LocaleCommandTests.swift` — locale/timezone/location/clipboard builders + parsers (21 tests, green 03-03 — checkbox restored 03-05, plan-checker advisory 3)
+- [x] `BoosterSimAppTests/DerivedDataAppScannerTests.swift` — fixture DerivedData tree (runtime-synthesized, 03-01 deviation 5) (8 tests, green)
+- [x] `BoosterSimAppTests/UserDefaultsEditorServiceTests.swift` — fixture plist parsing + typed arg builders (14 tests, green 03-04)
+- [x] `BoosterSimAppTests/AppActionCatalogTests.swift` — search behavior (9 tests, green 03-04)
+- [x] No framework install needed — Swift Testing already configured
 
 ---
 
