@@ -25,6 +25,8 @@ struct ActionsTabView: View {
                 PushNotificationSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
                 PrivacySectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
                 LocaleSectionView(udidProvider: { udid })
+                LocationSectionView(udidProvider: { udid })
+                ClipboardSectionView(udidProvider: { udid })
 
                 AppResetSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
             }

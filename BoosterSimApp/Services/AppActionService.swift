@@ -21,6 +21,9 @@ final class AppActionService: ObservableObject {
     @Published private(set) var currentLanguages: [String] = []
     @Published private(set) var currentLocaleID: String?
     @Published private(set) var currentTimezone: String?
+    @Published private(set) var locationCaption: String?
+    @Published private(set) var hasSimulatedLocation = false
+    @Published private(set) var clipboardCaption: String?
 
     // MARK: - Private
 
@@ -438,6 +441,128 @@ final class AppActionService: ObservableObject {
             .store(in: &cancellables)
     }
 
+    // MARK: - Location Simulation (SC3 — immediate, with a paired visible Stop)
+
+    /// Sets the simulated location after pure validation — invalid coordinates surface a
+    /// typed caption and never spawn a verb (T-03-13). On success the active-simulation
+    /// flag publishes so the section's Stop/Clear stays visible (Pitfall 10 pairing).
+    func setLocation(lat: String, lon: String, udid: String) {
+        guard !udid.isEmpty else {
+            locationCaption = "No active Simulator — location simulation needs a running device."
+            return
+        }
+        switch Self.locationSetCommand(udid: udid, lat: lat, lon: lon) {
+        case .failure(let error):
+            locationCaption = error.message
+        case .success(let args):
+            locationCaption = nil
+            runVerb(args) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success:
+                    AppLogger.actions.info("location set completed")
+                    self.hasSimulatedLocation = true
+                    self.locationCaption = "Location set — applies immediately to CoreLocation consumers."
+                case .failure(let error):
+                    AppLogger.actions.error("location set failed")
+                    self.locationCaption = "Setting location failed: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Stops the simulation — the visible Stop's action; clears the flag on success.
+    func clearLocation(udid: String) {
+        guard !udid.isEmpty else {
+            locationCaption = "No active Simulator — clearing needs a running device."
+            return
+        }
+        runVerb(Self.locationClearCommand(udid: udid)) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                AppLogger.actions.info("location clear completed")
+                self.hasSimulatedLocation = false
+                self.locationCaption = "Location simulation cleared — real/none location restored."
+            case .failure(let error):
+                AppLogger.actions.error("location clear failed")
+                self.locationCaption = "Clearing location failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    /// City preset: sets coordinates (immediate) AND writes the matching AppleTimeZone, then
+    /// relaunches for the timezone half — GPS + timezone sync in one action (research OQ4).
+    /// The same Pitfall-10 pairing as setLocation: the flag publishes on success.
+    func applyLocationPreset(preset: CityPreset, udid: String, bundleID: String?) {
+        guard !udid.isEmpty else {
+            locationCaption = "No active Simulator — location presets need a running device."
+            return
+        }
+        let setArgs: [String]
+        switch Self.locationSetCommand(udid: udid, lat: preset.lat, lon: preset.lon) {
+        case .success(let args):
+            setArgs = args                       // preset coordinates are test-pinned valid
+        case .failure(let error):
+            locationCaption = error.message      // defensive: typed refusal, never bad argv
+            return
+        }
+        locationCaption = nil
+        simCtl.run(setArgs)
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.run(Self.timezoneArgs(timezone: preset.timezone, udid: udid))
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self, let bundleID else {
+                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
+                }
+                return self.simCtl.run(Self.relaunchArgs(udid: udid, bundleID: bundleID))
+            }
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self, case .failure(let error) = completion else { return }
+                    AppLogger.actions.error("location preset failed")
+                    self.locationCaption = "Location preset failed: \(error.localizedDescription)"
+                },
+                receiveValue: { [weak self] _ in
+                    guard let self else { return }
+                    AppLogger.actions.info("location preset completed — app relaunched")
+                    self.hasSimulatedLocation = true
+                    self.locationCaption = "\(preset.name) set — location applies immediately; "
+                        + "timezone takes effect on the next app launch (app relaunched automatically)."
+                }
+            )
+            .store(in: &cancellables)
+    }
+
+    // MARK: - Clipboard Sync (SC3 — manual pbsync, both directions)
+
+    /// Syncs the pasteboard in one direction via pbsync. Manual-trigger only by design:
+    /// no timer, no polling, and clipboard CONTENT is never read, stored, or logged (T-03-08) —
+    /// logging carries the direction and outcome only.
+    func syncClipboard(direction: ClipboardDirection, udid: String) {
+        guard !udid.isEmpty else {
+            clipboardCaption = "No active Simulator — clipboard sync needs a running device."
+            return
+        }
+        runVerb(Self.pbsyncCommand(direction: direction, udid: udid)) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                AppLogger.actions.info("pbsync \(direction.logLabel) completed")
+                self.clipboardCaption = direction == .macToDevice
+                    ? "Mac clipboard copied to the Simulator."
+                    : "Simulator clipboard copied to the Mac."
+            case .failure(let error):
+                AppLogger.actions.error("pbsync \(direction.logLabel) failed")
+                self.clipboardCaption = "Clipboard sync failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
     // MARK: - Single-Hop Verb Runner
 
     /// Thin shared runner for one-hop verbs (privacy, device settings, later push): 30s timeout,
@@ -628,5 +753,154 @@ extension AppActionService {
     nonisolated static func parseScalarValue(from output: String) -> String? {
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+// MARK: - Location & Clipboard Models (SC3)
+
+/// Typed coordinate-validation failures — surfaced inline BEFORE any verb runs (T-03-13).
+enum CoordinateError: Error, Equatable, Sendable {
+    case latitudeEmpty
+    case longitudeEmpty
+    case latitudeNotNumeric
+    case longitudeNotNumeric
+    case latitudeOutOfRange
+    case longitudeOutOfRange
+
+    var message: String {
+        switch self {
+        case .latitudeEmpty: return "Enter a latitude (e.g. 35.6762)."
+        case .longitudeEmpty: return "Enter a longitude (e.g. 139.6503)."
+        case .latitudeNotNumeric: return "Latitude must be a number (e.g. 35.6762)."
+        case .longitudeNotNumeric: return "Longitude must be a number (e.g. 139.6503)."
+        case .latitudeOutOfRange: return "Latitude must be between -90 and 90."
+        case .longitudeOutOfRange: return "Longitude must be between -180 and 180."
+        }
+    }
+}
+
+/// One-tap city triple: coordinates plus the matching AppleTimeZone, applied together
+/// (research Open Question 4 — GPS + timezone sync in one action).
+enum CityPreset: String, CaseIterable, Identifiable, Sendable {
+    case sanFrancisco = "san-francisco"
+    case newYork = "new-york"
+    case london = "london"
+    case tokyo = "tokyo"
+    case singapore = "singapore"
+    case sydney = "sydney"
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .sanFrancisco: return "San Francisco"
+        case .newYork: return "New York"
+        case .london: return "London"
+        case .tokyo: return "Tokyo"
+        case .singapore: return "Singapore"
+        case .sydney: return "Sydney"
+        }
+    }
+
+    var lat: String {
+        switch self {
+        case .sanFrancisco: return "37.7749"
+        case .newYork: return "40.7128"
+        case .london: return "51.5074"
+        case .tokyo: return "35.6762"
+        case .singapore: return "1.3521"
+        case .sydney: return "-33.8688"
+        }
+    }
+
+    var lon: String {
+        switch self {
+        case .sanFrancisco: return "-122.4194"
+        case .newYork: return "-74.0060"
+        case .london: return "-0.1278"
+        case .tokyo: return "139.6503"
+        case .singapore: return "103.8198"
+        case .sydney: return "151.2093"
+        }
+    }
+
+    var timezone: String {
+        switch self {
+        case .sanFrancisco: return "America/Los_Angeles"
+        case .newYork: return "America/New_York"
+        case .london: return "Europe/London"
+        case .tokyo: return "Asia/Tokyo"
+        case .singapore: return "Asia/Singapore"
+        case .sydney: return "Australia/Sydney"
+        }
+    }
+}
+
+/// The two research-verified pbsync directions.
+enum ClipboardDirection: Sendable {
+    case macToDevice      // `pbsync host <udid>`
+    case deviceToMac      // `pbsync <udid> host`
+
+    var label: String {
+        switch self {
+        case .macToDevice: return "Mac → Simulator"
+        case .deviceToMac: return "Simulator → Mac"
+        }
+    }
+
+    /// Log-safe label — the direction only, never any clipboard content (T-03-08).
+    var logLabel: String {
+        switch self {
+        case .macToDevice: return "host-to-device"
+        case .deviceToMac: return "device-to-host"
+        }
+    }
+}
+
+// MARK: - Pure Location & Clipboard Command Builders (03-RESEARCH Verified Surface)
+
+extension AppActionService {
+
+    /// Validates free-text coordinates into a "lat,lon" pair — or a typed error.
+    /// Input text is used verbatim (trimmed); numeric only, |lat| ≤ 90, |lon| ≤ 180.
+    nonisolated static func coordinatePair(lat: String, lon: String) -> Result<String, CoordinateError> {
+        let latTrimmed = lat.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lonTrimmed = lon.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !latTrimmed.isEmpty else { return .failure(.latitudeEmpty) }
+        guard !lonTrimmed.isEmpty else { return .failure(.longitudeEmpty) }
+        guard let latValue = Double(latTrimmed) else { return .failure(.latitudeNotNumeric) }
+        guard let lonValue = Double(lonTrimmed) else { return .failure(.longitudeNotNumeric) }
+        guard abs(latValue) <= 90 else { return .failure(.latitudeOutOfRange) }
+        guard abs(lonValue) <= 180 else { return .failure(.longitudeOutOfRange) }
+        return .success("\(latTrimmed),\(lonTrimmed)")
+    }
+
+    /// `location <udid> set <lat>,<lon>` — only when validation passes (NO args otherwise).
+    nonisolated static func locationSetCommand(udid: String, lat: String, lon: String) -> Result<[String], CoordinateError> {
+        coordinatePair(lat: lat, lon: lon).map { ["location", udid, "set", $0] }
+    }
+
+    /// The visible Stop's argv — stops the simulation, restores real/none location.
+    nonisolated static func locationClearCommand(udid: String) -> [String] {
+        ["location", udid, "clear"]
+    }
+
+    /// City preset sequence: location set (immediate) → AppleTimeZone write (the Task-1
+    /// builder) → relaunch hop. Identical output on re-apply by construction (idempotent).
+    nonisolated static func cityPresetChain(preset: CityPreset, udid: String, bundleID: String?) -> [[String]] {
+        var chain = [["location", udid, "set", "\(preset.lat),\(preset.lon)"],
+                     timezoneArgs(timezone: preset.timezone, udid: udid)]
+        if let bundleID {
+            chain.append(relaunchArgs(udid: udid, bundleID: bundleID))
+        }
+        return chain
+    }
+
+    /// The two pbsync forms — the direction enum maps to exactly these argv.
+    nonisolated static func pbsyncCommand(direction: ClipboardDirection, udid: String) -> [String] {
+        switch direction {
+        case .macToDevice: return ["pbsync", "host", udid]
+        case .deviceToMac: return ["pbsync", udid, "host"]
+        }
     }
 }
