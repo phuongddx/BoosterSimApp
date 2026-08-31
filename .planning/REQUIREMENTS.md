@@ -57,10 +57,10 @@ Phase 5 in progress).
 ### Roadmap Phase Scope
 
 - [x] **REQ-roadmap-phase1-foundation**: Core app shell with simulator attachment — SwiftUI+AppKit entry, menu bar icon, floating panel, window detection, position sync, 4 position modes, collapse/expand, spring tracking, onboarding, preferences, design tokens, 4-tab UI (complete)
-- [ ] **REQ-roadmap-phase2-capture-tools**: Screenshot and screen recording from the side panel — ScreenCaptureKit capture, device bezels, wallpaper/background padding, App Store Connect framing, floating thumbnail, save to Desktop/clipboard/custom path, ScreenCaptureKit recording, 120 FPS, touch indicators, GIF export, MP4/MOV export
-- [ ] **REQ-roadmap-phase3-app-actions**: Common simulator dev actions — reset app (terminate + clear container), clear Keychain items, send push notification, grant/revoke push permission, trigger deep link, bidirectional clipboard sync, locale switcher, dark/light toggle, Dynamic Type control, location simulation + timezone sync, UserDefaults editor, quick action search, bundle ID detection from DerivedData
+- [x] **REQ-roadmap-phase2-capture-tools**: Screenshot and screen recording from the side panel — ScreenCaptureKit capture, device bezels, wallpaper/background padding, App Store Connect framing, floating thumbnail, save to Desktop/clipboard/custom path, ScreenCaptureKit recording, 120 FPS, touch indicators, GIF export, MP4/MOV export (complete, verified 4/4)
+- [x] **REQ-roadmap-phase3-app-actions**: Common simulator dev actions — reset app (terminate + clear container), clear Keychain items, send push notification, grant/revoke push permission, trigger deep link, bidirectional clipboard sync, locale switcher, dark/light toggle, Dynamic Type control, location simulation + timezone sync, UserDefaults editor, quick action search, bundle ID detection from DerivedData (complete, verified 31/32)
 - [ ] **REQ-roadmap-phase4-design-tools**: Visual overlays — 8pt/4pt grid, safe-area insets, ruler with distance measurement, magnifier with color picker, Figma/Sketch design comparison, focus-persistent overlays, per-tool toggle persistence *(in progress — plans 04-01/04-02 done)*
-- [ ] **REQ-roadmap-phase5-network-tools**: Network inspection and manipulation — ConnectService/PulseServer/PulsePacketDecoder pipeline, BoosterSimConnect framework, traffic viewer (filter, auto-scroll, detail sheet, cURL export), connection UI, certificate trust management complete; network speed control/throttle, Simulator Airplane Mode (per-app, no Mac impact), request blocking (domain/path rules) pending *(in progress)*
+- [x] **REQ-roadmap-phase5-network-tools**: Network inspection and manipulation — ConnectService/PulseServer/PulsePacketDecoder pipeline, BoosterSimConnect framework, traffic viewer (filter, auto-scroll, detail sheet, cURL export), connection UI, certificate trust management; network speed control/throttle, Simulator Airplane Mode (per-app, no Mac impact), request blocking (domain/path rules) (complete, verified 20/20)
 - [x] **REQ-roadmap-phase6-platform-system**: Status bar overrides (4 presets + custom), Simulator camera (Mac camera input via AX menu automation), 11 accessibility environment overrides, Xcode build statistics (count + time graphs), accessibility tree inspector with highlight overlay (complete in source; **reachability gap confirmed 2026-09-01** — status bar/camera/build-stats/AX-tree views have zero call sites outside their own #Preview blocks, only env overrides are wired into the shipping tab UI; wiring closes under REQ-roadmap-phase7-polish-distribution)
 - [ ] **REQ-roadmap-phase7-polish-distribution**: Distribution readiness — code signing + notarization, App Sandbox evaluation (or documented non-sandbox requirement), Sparkle/MAS auto-update, unit tests (PositionCalculator, WindowEnumerator, AppSettings), onboarding UI tests, privacy manifest, app icon, marketing page/README polish, **plus wiring Phase 6's orphaned StatusBarSectionView/BuildStatsSectionView/AXTreeView/CameraView into the side panel**
 
@@ -109,12 +109,12 @@ Deferred candidates surfaced by the 2026-04-12 connect journal (not in current r
 | REQ-nfr-06 | Phase 1 | Complete |
 | REQ-product-success-criteria | Phase 1 | Complete |
 | REQ-roadmap-phase1-foundation | Phase 1 | Complete |
-| REQ-roadmap-phase2-capture-tools | Phase 2 | Pending |
-| REQ-roadmap-phase3-app-actions | Phase 3 | Pending |
+| REQ-roadmap-phase2-capture-tools | Phase 2 | Complete |
+| REQ-roadmap-phase3-app-actions | Phase 3 | Complete |
 | REQ-roadmap-phase4-design-tools | Phase 4 | In Progress |
 | REQ-fr-16 | Phase 5 | Complete |
 | REQ-nfr-03 | Phase 5 | Complete |
-| REQ-roadmap-phase5-network-tools | Phase 5 | In Progress |
+| REQ-roadmap-phase5-network-tools | Phase 5 | Complete |
 | REQ-fr-14 | Phase 6 | Complete |
 | REQ-roadmap-phase6-platform-system | Phase 6 | Complete |
 | REQ-roadmap-phase7-polish-distribution | Phase 7 | Pending |
