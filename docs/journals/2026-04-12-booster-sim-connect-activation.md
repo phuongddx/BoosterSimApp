@@ -11,6 +11,8 @@ The original NWBrowser client-mode architecture (from commit b144e1e) was fundam
 
 35 files changed, 4139 lines inserted, zero external dependencies added. The Pulse binary protocol was reverse-engineered and decoded from scratch: 5-byte header (`[code: UInt8][contentSize: UInt32 BE]`) + zlib-compressed body with a 3-entry manifest for network task completed events.
 
+> **Correction 2026-08-31:** "zero external dependencies added" was accurate on 2026-04-12 — this change decoded the Pulse wire format from scratch without depending on the package. It is no longer true of the project: Pulse 5.2.2 (`Pulse`, `PulseProxy`) was adopted on 2026-06-04 (`2d28bda`) and is declared on BOTH the app target (`project.pbxproj:199-202`) and `BoosterSimConnect` (`:271-274`). The original sentence above is left unedited as the historical record.
+
 ## The Brutal Truth
 
 The NWBrowser client-mode architecture was architecturally backwards from day one. We spent an entire session building 11 files on the assumption that Pulse iOS apps broadcast themselves and we discover them. They do not. They connect *to* a server. That mistake cascaded into a full rewrite of the transport layer. The previous journal entry (0411-1218) even flagged `parsePulseEvent` as a nil-returning stub -- now it is a real protocol decoder with manifest parsing, zlib decompression, and Codable struct mapping. But the fact remains: we built the first version without verifying who connects to whom.
