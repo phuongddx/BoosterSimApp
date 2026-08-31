@@ -125,12 +125,12 @@ Plans:
   3. User can import a Figma/Sketch artboard as a design comparison overlay
   4. Overlays persist when the app loses focus and can be toggled on/off per tool
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 Plans:
 
 **Wave 1**
 
-- [ ] 04-01-overlay-grid-tracer-PLAN.md — Tracer: scaffold cut-over to DesignOverlayService + one persistent click-through DesignOverlayPanel (D-04 layered install contract) + tracker-synced DesignOverlayController → dual 8/4pt grid end-to-end; versioned persistence + one-shot legacy preset import (criterion 1 grid half + criterion 4)
+- [x] 04-01-overlay-grid-tracer-PLAN.md — Tracer: scaffold cut-over to DesignOverlayService + one persistent click-through DesignOverlayPanel (D-04 layered install contract) + tracker-synced DesignOverlayController → dual 8/4pt grid end-to-end; versioned persistence + one-shot legacy preset import (criterion 1 grid half + criterion 4)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -220,7 +220,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
 | 3. App Actions | 5/5 | Complete    | 2026-08-31 |
-| 4. Design Tools | 0/TBD | Not started | - |
+| 4. Design Tools | 1/4 | In Progress|  |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |

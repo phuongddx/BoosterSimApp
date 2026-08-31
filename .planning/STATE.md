@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 4
 current_phase_name: Design Tools
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-08-31T11:46:56.400Z"
+stopped_at: Completed 04-01-PLAN.md (overlay grid tracer)
+last_updated: "2026-08-31T13:31:25.830Z"
 last_activity: 2026-08-31
-last_activity_desc: Phase 3 complete, transitioned to Phase 4
-state_head: d176ba9f059380003288108c1ac37931df7ce1de
+last_activity_desc: Phase 4 execution started
+state_head: c60003ba7d7e40e82aca1b95366439bbe306d241
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
   percent: 43
 ---
 
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 4 — Design Tools (Phases 2 Capture, 3 App Actions, 5 Network complete + verified)
+**Current focus:** Phase 4 — Design Tools
 
 ## Current Position
 
-Phase: 4 (Design Tools) — READY TO EXECUTE
-Plan: Not started
+Phase: 4 (Design Tools) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-31 — Phase 3 complete, transitioned to Phase 4
+Last activity: 2026-08-31 — Phase 4 execution started
 
-Progress: [██████████░░░░░░░░░░] 5 of 7 phases complete (1, 2, 3, 5, 6) — next: Phase 4 Design Tools
+Progress: [████░░░░░░] 43%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [██████████░░░░░░░░░░] 5 of 7 
 | Phase 3 P02 | 33min | 2 tasks | 13 files |
 | Phase 03 P03 | 38min | 2 tasks | 6 files |
 | Phase 03 P04 | 22min | 2 tasks | 11 files |
+| Phase 04 P01 | 13min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 3]: [Phase 3][03-04] Defaults editor reads the on-disk plist FILE via get_app_container's data container (export verb silently unsupported in simulator — grep-checked absent) and writes validated spawn-defaults argv; json capsules write as -data <hex> (live-verified vs `defaults help write` + host scratch-domain round-trip) and are read-only in the UI — binary plists corrupt under text editing
 - [Phase 3]: [Phase 3][03-04] AppActionCatalog (14 actions / 9 sections, fixed mount order incl. the reused environment + deep-link sections) owns BOTH tab section order and search visibility — empty query renders AppActionSection.allCases through the same section table, so the search wiring cannot drop a section; view carries zero query contains-chains
 - [Phase 03]: [Phase 3][03-05] Phase-gate closure pattern (2nd use): docs truth pass (symbols grep-verified vs source) → full-bundle + sha256 pin (git diff vacuous, file untracked) + prohibition greps → blocking-human six-group smoke; requirements stay open at halt, close on approval
+- [Phase 4]: [Phase 4][04-01] D-04 install contract shipped as addSubview(positioned:.below, relativeTo:) with clamped layer index — AppKit has no insertSubview(at:); z-order deterministic regardless of install order
+- [Phase 4]: [Phase 4][04-01] objectWillChange defers via receive(on: DispatchQueue.main) — post-mutation state reads with zero coroutine keywords (Combine-only controller)
+- [Phase 4]: [Phase 4][04-01] Persistence green-on-arrival: Task 1's spec carried versioned keys + write-through toggles + flag-guarded tolerant import; Task 2's suite locks it (22 Wave-0 tests total)
 
 ### Pending Todos
 
@@ -128,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T10:07:59.333Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-design-tools/04-CONTEXT.md
+Last session: 2026-08-31T13:31:25.476Z
+Stopped at: Completed 04-01-PLAN.md (overlay grid tracer)
+Resume file: None
