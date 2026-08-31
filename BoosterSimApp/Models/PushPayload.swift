@@ -41,6 +41,7 @@ enum PushPayloadError: Error, Equatable {
     case notObject            // valid JSON, but the root is not an object
     case missingAPS           // object without the required aps key
     case invalidShape         // values do not decode into the payload shape
+    case unsupportedKeys([String])   // keys outside the supported set — sending would silently drop them
     case tooLarge(Int)        // encoded byte count over the cap
 
     var message: String {
@@ -56,6 +57,11 @@ enum PushPayloadError: Error, Equatable {
         case .invalidShape:
             return "Values do not match the expected shape — \"aps\" needs string alert, "
                 + "integer badge, string sound; \"Simulator Target Bundle\" a string."
+        case .unsupportedKeys(let keys):
+            let names = keys.map { "\"\($0)\"" }.joined(separator: ", ")
+            return "Unsupported key(s) \(names) — delivered pushes must match the editor text, "
+                + "so only \"alert\", \"badge\", \"sound\" inside \"aps\" and the top-level "
+                + "\"Simulator Target Bundle\" are supported."
         case .tooLarge(let size):
             return "The payload is \(size) bytes — simctl rejects anything over "
                 + "\(PushPayload.maxEncodedBytes)."
@@ -78,6 +84,16 @@ extension PushPayload {
         else { return .failure(.invalidJSON) }
         guard let object = root as? [String: Any] else { return .failure(.notObject) }
         guard object.keys.contains("aps") else { return .failure(.missingAPS) }
+        // 03-REVIEW WR-04: the sender re-encodes the strict struct, so any key outside the
+        // supported set would be SILENTLY DROPPED in flight — the delivered push would differ
+        // from the editor text. Reject instead: what-you-see is what-arrives.
+        let supportedAps: Set<String> = ["alert", "badge", "sound"]
+        let supportedTopLevel: Set<String> = ["aps", "Simulator Target Bundle"]
+        if let apsObject = object["aps"] as? [String: Any] {
+            let unknown = Set(apsObject.keys).subtracting(supportedAps)
+                .union(Set(object.keys).subtracting(supportedTopLevel))
+            if !unknown.isEmpty { return .failure(.unsupportedKeys(unknown.sorted())) }
+        }
         do {
             return .success(try JSONDecoder().decode(PushPayload.self, from: data))
         } catch {

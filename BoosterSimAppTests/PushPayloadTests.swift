@@ -99,6 +99,40 @@ struct PushPayloadTests {
         }
     }
 
+    // MARK: - Unknown-Key Rejection (03-REVIEW WR-04 — delivered payload must equal editor text)
+
+    /// A valid APNs key the editor does not support (e.g. mutable-content) would be silently
+    /// stripped by the strict re-encode — parse must reject it with the typed error instead.
+    @Test func parseRejectsUnknownApsKeysInsteadOfSilentlyStrippingThem() {
+        if case .failure(.unsupportedKeys(let keys)) =
+            PushPayload.parse(#"{"aps":{"alert":"x","mutable-content":1}}"#) {
+            #expect(keys == ["mutable-content"])
+        } else {
+            Issue.record("expected .unsupportedKeys for an unknown aps key")
+        }
+    }
+
+    @Test func parseRejectsUnknownTopLevelKeys() {
+        if case .failure(.unsupportedKeys(let keys)) =
+            PushPayload.parse(#"{"aps":{"alert":"x"},"custom":{"id":5}}"#) {
+            #expect(keys == ["custom"])
+        } else {
+            Issue.record("expected .unsupportedKeys for an unknown top-level key")
+        }
+    }
+
+    @Test func parseAcceptsTheFullSupportedFieldSet() {
+        let json = #"{"aps":{"alert":"x","badge":2,"sound":"default"},"Simulator Target Bundle":"com.example.app"}"#
+        if case .success(let payload) = PushPayload.parse(json) {
+            #expect(payload.aps.alert == "x")
+            #expect(payload.aps.badge == 2)
+            #expect(payload.aps.sound == "default")
+            #expect(payload.simulatorTargetBundle == "com.example.app")
+        } else {
+            Issue.record("the fully supported field set must parse cleanly")
+        }
+    }
+
     @Test func parseAcceptsAWellFormedPayload() {
         if case .success(let payload) = PushPayload.parse(#"{"aps":{"alert":"Hi","badge":1}}"#) {
             #expect(payload.aps.alert == "Hi")
