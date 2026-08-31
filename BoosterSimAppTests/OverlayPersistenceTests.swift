@@ -262,4 +262,29 @@ struct OverlayPersistenceTests {
         #expect(service.overlayImage != nil)
         #expect(service.importError == nil)
     }
+
+    // MARK: - Interactive Tool State (04-03)
+
+    @Test func magnificationPersistsAndSingleToolArmingHolds() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = DesignOverlayService(defaults: defaults)
+        #expect(first.magnification == OverlayMetrics.loupeMagnificationDefault)
+
+        // Single-tool rule: arming one tool disarms the other (input mode is singular by construction).
+        first.armMagnifier()
+        first.armRuler()
+        #expect(first.isRulerArmed)
+        #expect(first.isMagnifierArmed == false)
+        first.armMagnifier()
+        #expect(first.isMagnifierArmed)
+        #expect(first.isRulerArmed == false)
+
+        first.magnification = 12
+
+        let second = DesignOverlayService(defaults: defaults)
+        #expect(second.magnification == 12)
+        #expect(defaults.double(forKey: "DesignOverlayMagnification") == 12)
+    }
 }

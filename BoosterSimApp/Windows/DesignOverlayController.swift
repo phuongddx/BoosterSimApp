@@ -17,6 +17,7 @@ final class DesignOverlayController: ObservableObject {
     private let safeAreaOverlayView = SafeAreaOverlayView()
     private let gridOverlayView = GridOverlayView()
     let rulerView = RulerOverlayView()
+    let magnifierView = MagnifierView()
     var service: DesignOverlayService?
     var pixelSampler: PixelSamplerService?
     var inputMode: OverlayInputMode = .clickThrough
@@ -36,12 +37,17 @@ final class DesignOverlayController: ObservableObject {
         safeAreaOverlayView.isHidden = true
         gridOverlayView.isHidden = true
         rulerView.isHidden = true
+        magnifierView.isHidden = true
         panel.install(comparisonImageView, at: .comparison)   // bottom slot — guides always above (D-04)
         panel.install(safeAreaOverlayView, at: .safeArea)
         panel.install(gridOverlayView, at: .grid)
         panel.install(rulerView, at: .interactive)            // ruler/magnifier band: above image, below guides
+        panel.install(magnifierView, at: .interactive)
         rulerView.onCommit = { [weak self] start, end, distance in
             self?.commitRuler(start: start, end: end, deviceDistance: distance)
+        }
+        magnifierView.onPick = { [weak self] point in
+            self?.pickColor(at: point)
         }
     }
 
@@ -80,6 +86,10 @@ final class DesignOverlayController: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] armed in self?.setRulerMode(armed) }
             .store(in: &cancellables)
+        service.$isMagnifierArmed
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] armed in self?.setMagnifierMode(armed) }
+            .store(in: &cancellables)
 
         // Sampler captions (permission denied / no Simulator / capture failed) mirror into the service
         // so the Design tab can degrade honestly — verbs and outcomes only, never pixel data (T-04-06).
@@ -114,7 +124,7 @@ final class DesignOverlayController: ObservableObject {
         )
         // An armed interactive tool keeps the panel front even with every render tool off.
         let anyToolOn = service.showGrid || service.showSafeArea || service.overlayImage != nil
-            || service.isRulerArmed
+            || service.isRulerArmed || service.isMagnifierArmed
         if anyToolOn, currentSimulator != nil {
             panel.orderFront(nil)
         } else {
@@ -142,7 +152,10 @@ final class DesignOverlayController: ObservableObject {
         gridOverlayView.update(contentRect: contentRect, scale: scale)
         safeAreaOverlayView.update(contentRect: contentRect, scale: scale)
         rulerView.update(contentRect: contentRect, scale: scale)
-        // The magnifier's armed re-capture rule (frame change → fresh capture, A5) arrives with its tool.
+        // While the magnifier is armed, a resize re-captures (A5); pure translation only re-applies geometry.
+        if inputMode == .magnifier {
+            pixelSampler?.refreshIfFrameChanged(sim.frame)
+        }
     }
 
     /// Content rect + persisted calibration offsets — the bezel escape hatch (Pitfall 3 / Open Question 5).

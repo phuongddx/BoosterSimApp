@@ -46,6 +46,10 @@ final class DesignOverlayService: ObservableObject {
     @Published private(set) var isMagnifierArmed = false
     @Published var rulerDistance: String?
     @Published var samplerError: String?   // mirrored from PixelSamplerService by the overlay controller
+    @Published var liveHex: String?
+    @Published var magnification: Double {
+        didSet { defaults.set(magnification, forKey: Keys.magnification) }
+    }
 
     // MARK: - Types
 
@@ -96,6 +100,7 @@ final class DesignOverlayService: ObservableObject {
 
     func disarmMagnifier() {
         isMagnifierArmed = false
+        liveHex = nil
     }
 
     // MARK: - Private
@@ -112,6 +117,7 @@ final class DesignOverlayService: ObservableObject {
         static let showSafeArea = "DesignOverlayShowSafeArea"
         static let useManualInsets = "DesignOverlayUseManualInsets"
         static let manualTop = "DesignOverlayManualTop"
+        static let magnification = "DesignOverlayMagnification"
         static let manualBottom = "DesignOverlayManualBottom"
         static let manualLeading = "DesignOverlayManualLeading"
         static let manualTrailing = "DesignOverlayManualTrailing"
@@ -133,6 +139,8 @@ final class DesignOverlayService: ObservableObject {
         manualTrailing = Self.read(defaults, Keys.manualTrailing, SafeAreaCatalog.manualDefaults.right)
         calibrationX = Self.read(defaults, Keys.calibrationX, 0)
         calibrationY = Self.read(defaults, Keys.calibrationY, 0)
+        magnification = (defaults.object(forKey: Keys.magnification) as? Double)
+            ?? OverlayMetrics.loupeMagnificationDefault
         importLegacyPresets()
         loadPresets()
         AppLogger.design.debug("[DesignOverlayService] initialized with \(self.presets.count) presets")
