@@ -181,30 +181,49 @@ final class AppActionService: ObservableObject {
         }
         guard begin(.clearingKeychain) else { return }
         statusCaption = nil
+        // Both waits are bounded (03-REVIEW WR-06): a CertificateService run that never
+        // transitions would otherwise pin this machine in .clearingKeychain forever — the
+        // fallback caption lands via finish() and reentrancy recovers. Logging reflects the
+        // ACTUAL outcome of each branch, never an unconditional success line.
         keychainEvents
             .dropFirst()                             // skip the current idle value
             .first { !$0.isWorking }                 // terminal state of this reset run
+            .setFailureType(to: SimCtlError.self)
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
             .flatMap { [weak self] terminal -> AnyPublisher<String, Never> in
                 guard let self else { return Empty().eraseToAnyPublisher() }
                 self.certificateService.reconcileStatus(udid: udid)
                 if case .error(let message) = terminal {
+                    AppLogger.actions.error("keychain clear failed — wipe errored")
                     return Just("Keychain wipe failed: \(message)").eraseToAnyPublisher()
                 }
                 guard self.certificateService.status.certificateMetadata != nil else {
+                    AppLogger.actions.info("keychain clear completed — no CA to reconcile")
                     return Just("Keychain cleared — no local CA on disk to reconcile.").eraseToAnyPublisher()
                 }
                 self.certificateService.install(udid: udid, deviceName: deviceName)
                 return self.keychainEvents.dropFirst().first { !$0.isWorking }
+                    .setFailureType(to: SimCtlError.self)
+                    .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
                     .map { installTerminal -> String in
                         if case .error(let message) = installTerminal {
+                            AppLogger.actions.error("keychain clear failed — CA install errored")
                             return "Keychain cleared, but re-installing the local CA failed: \(message)"
                         }
+                        AppLogger.actions.info("keychain clear finished — CA reconcile completed")
                         return "Keychain cleared — local CA re-installed automatically."
+                    }
+                    .catch { error in
+                        AppLogger.actions.error("keychain clear failed — CA install wait timed out")
+                        return Just("Keychain clear did not finish: \(error.localizedDescription).")
                     }
                     .eraseToAnyPublisher()
             }
+            .catch { error in
+                AppLogger.actions.error("keychain clear failed — wipe wait timed out")
+                return Just("Keychain clear did not finish: \(error.localizedDescription).")
+            }
             .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] caption in
-                AppLogger.actions.info("Keychain clear finished — CA reconcile completed")  // verb + outcome only
                 self?.finish(with: caption)
             })
             .store(in: &cancellables)

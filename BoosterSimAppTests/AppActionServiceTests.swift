@@ -217,7 +217,7 @@ struct AppActionServiceTests {
     }
 
     @MainActor
-    @Test func clearKeychainDelegatesThenReconcilesExactlyOnce() {
+    @Test func clearKeychainDelegatesThenReconcilesExactlyOnce() async {
         let double = KeychainResetDouble()
         let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
         let service = AppActionService(
@@ -227,20 +227,23 @@ struct AppActionServiceTests {
         )
 
         service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        await pumpMainQueue()
         #expect(double.calls == ["reset"])                // delegate: the device verb goes to CertificateService
         #expect(service.operation == .clearingKeychain)
 
         events.send(.resetting)                            // certificate service begins — still working
+        await pumpMainQueue()
         #expect(double.calls == ["reset"])                 // no reconcile while working
 
         events.send(.idle)                                 // reset landed
+        await pumpMainQueue()                              // the bounded wait delivers via the main scheduler
         #expect(double.calls == ["reset", "reconcile"])    // exactly one reconcile, strictly after the reset
         #expect(service.operation == .idle)
         #expect(service.statusCaption?.isEmpty == false)
     }
 
     @MainActor
-    @Test func clearKeychainReinstallsTheCAWhenOneExists() {
+    @Test func clearKeychainReinstallsTheCAWhenOneExists() async {
         let double = KeychainResetDouble()
         double.status = .generated(cn: "BoosterSim Dev CA", expiry: .distantFuture, sha256: "abc123")
         let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
@@ -251,18 +254,23 @@ struct AppActionServiceTests {
         )
 
         service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        await pumpMainQueue()
         events.send(.resetting)
+        await pumpMainQueue()
         events.send(.idle)                                 // reset done; CA present on disk
+        await pumpMainQueue()
         #expect(double.calls == ["reset", "reconcile", "install"])  // D-02: trust restored automatically
 
         events.send(.installing)
+        await pumpMainQueue()
         events.send(.idle)                                 // reinstall landed
+        await pumpMainQueue()
         #expect(service.operation == .idle)
         #expect(service.statusCaption?.contains("re-installed") == true)
     }
 
     @MainActor
-    @Test func clearKeychainReportsCertificateFailureHonestly() {
+    @Test func clearKeychainReportsCertificateFailureHonestly() async {
         let double = KeychainResetDouble()
         let events = CurrentValueSubject<CertificateOperation, Never>(.idle)
         let service = AppActionService(
@@ -272,8 +280,11 @@ struct AppActionServiceTests {
         )
 
         service.clearKeychain(udid: "CONCRETE-UDID", deviceName: "iPhone 17")
+        await pumpMainQueue()
         events.send(.resetting)
+        await pumpMainQueue()
         events.send(.error("simctl failed: boom"))         // the wipe itself failed
+        await pumpMainQueue()
         #expect(double.calls == ["reset", "reconcile"])    // reconcile still runs; no install attempt
         #expect(service.operation == .idle)
         #expect(service.statusCaption?.contains("failed") == true)
