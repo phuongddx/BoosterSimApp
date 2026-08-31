@@ -125,7 +125,25 @@ Plans:
   3. User can import a Figma/Sketch artboard as a design comparison overlay
   4. Overlays persist when the app loses focus and can be toggled on/off per tool
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 04-01-overlay-grid-tracer-PLAN.md — Tracer: scaffold cut-over to DesignOverlayService + one persistent click-through DesignOverlayPanel (D-04 layered install contract) + tracker-synced DesignOverlayController → dual 8/4pt grid end-to-end; versioned persistence + one-shot legacy preset import (criterion 1 grid half + criterion 4)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 04-02-safearea-comparison-import-PLAN.md — Orientation-aware safe-area bands with D-02 manual override/reset + Figma/Sketch artboard import (open/drag/paste, decompression-bomb guard) at the bottom D-04 layer (criterion 1 safe-area half + criterion 3)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 04-03-ruler-magnifier-PLAN.md — PixelSamplerService cached-capture sampling (sanctioned Task-bridge) + ruler with device-point distance readout + magnifier loupe with click-to-commit color picker via capture-mode input (criterion 2)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 04-04-phase-gate-closure-PLAN.md — Docs truth pass (architecture section, file map, async-exemption wording), full suite + dependency-pin gate, six-group blocking manual smoke closing all flagged assumptions
+
 **UI hint**: yes
 
 ### Phase 5: Network Tools

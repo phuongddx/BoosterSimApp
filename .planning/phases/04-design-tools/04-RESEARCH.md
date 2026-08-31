@@ -418,16 +418,17 @@ enum SafeAreaCatalog {
 | A6 | File/drag/paste import satisfies "import a Figma/Sketch artboard" (users export PNG themselves) | Import Path | If the user expected native .fig/.sketch file parsing, scope changes materially — neither format is publicly documented; flag at planning |
 | A7 | 14 Pro top inset = 54 | SafeAreaCatalog | Minor; same-size 15-series row (59) dominates in practice |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Split comparison mode: keep or cut?**
    - What we know: scaffold has `ComparisonMode.overlay`/`.split` + `splitPosition`; D-04 defines z-order only for overlay mode.
    - What's unclear: whether split view (left half design, right half Simulator) is in scope for "design comparison overlay".
    - Recommendation: keep as a cheap mode of `ComparisonImageView` (clip rect), since state already exists; cut only if planning wants tighter scope.
-2. **Legacy preset disposition** — versioned new key vs tolerant legacy mapping (Pitfall 5). Recommendation: new key `DesignOverlayPresets` + one-shot best-effort legacy import; presets are low-value data.
-3. **17-series rows** — confirm iPhone 17/Air insets at smoke time against a live simulator (readout from any running app's safe-area) or leave manual. Recommendation: verify opportunistically during phase-gate smoke; don't block.
-4. **Magnifier default factor** — 4× vs 8× loupe. Recommendation: 8× default, adjustable stepper; not load-bearing.
-5. **Bezel-on alignment** — manual calibration fields (recommended v1) vs capture-based screen-rect detection (deferred enhancement). Recommendation: manual fields now; detection is a v2 candidate.
+   - **RESOLVED:** keep — adopted by 04-02 Task 3 (ComparisonImageView clips at splitPosition in .split mode; the scaffold's split state carried into DesignOverlayService is the implementation).
+2. **Legacy preset disposition** — versioned new key vs tolerant legacy mapping (Pitfall 5). Recommendation: new key `DesignOverlayPresets` + one-shot best-effort legacy import; presets are low-value data. **RESOLVED:** adopted by 04-01 Task 2 — new key `DesignOverlayPresets` + flag-guarded one-shot import (`DesignOverlayLegacyImported`), idempotent and unit-locked in OverlayPersistenceTests.
+3. **17-series rows** — confirm iPhone 17/Air insets at smoke time against a live simulator (readout from any running app's safe-area) or leave manual. Recommendation: verify opportunistically during phase-gate smoke; don't block. **RESOLVED:** adopted by 04-04 Task 2 — opportunistic live check at the phase-gate smoke; 59-family default + manual override until then (disposition recorded at the gate, see A3).
+4. **Magnifier default factor** — 4× vs 8× loupe. Recommendation: 8× default, adjustable stepper; not load-bearing. **RESOLVED:** adopted by 04-03 Task 3 — OverlayMetrics.loupeMagnificationDefault = 8 with an adjustable stepper (range 2…16).
+5. **Bezel-on alignment** — manual calibration fields (recommended v1) vs capture-based screen-rect detection (deferred enhancement). Recommendation: manual fields now; detection is a v2 candidate. **RESOLVED:** adopted by 04-02 Task 2 — persisted x/y calibration offsets added to contentRect before geometry computation; capture-based detection stays out of scope.
 
 ## Environment Availability
 
@@ -448,7 +449,7 @@ enum SafeAreaCatalog {
 ### Test Framework
 | Property | Value |
 |----------|-------|
-| Framework | XCTest (existing `BoosterSimAppTests` target; 20 unit files incl. `ScriptedSimCtl` fixture) |
+| Framework | Swift Testing (`import Testing`, `@Test`, `#expect`) — existing `BoosterSimAppTests` target; measured live: 20/20 unit files use Swift Testing, 0 `import XCTest` (XCTest appears only in the BoosterSimAppUITests target). Corrected from "XCTest" in revision 1 per plan-checker W3 |
 | Config file | none — scheme-based (`BoosterSimApp.xcodeproj`, scheme `BoosterSimApp`) |
 | Quick run command | `xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppTests -skip-testing:BoosterSimAppUITests -parallel-testing-enabled NO` |
 | Full suite command | `xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination platform=macOS test` (config.json `test_command`; gate timeout 1500s) |
@@ -475,7 +476,7 @@ enum SafeAreaCatalog {
 - [ ] `BoosterSimAppTests/GridGeometryTests.swift` — spacing/scale math
 - [ ] `BoosterSimAppTests/RulerMathTests.swift` — Y-flip/scale mapping + distance
 - [ ] `BoosterSimAppTests/OverlayPersistenceTests.swift` — toggle + preset round-trip, legacy-key tolerance
-- [ ] Framework install: none needed (XCTest in place)
+- [ ] Framework install: none needed (Swift Testing in place — all 20 BoosterSimAppTests files already use it; XCTest only in the BoosterSimAppUITests target)
 
 ## Security Domain
 
