@@ -1,7 +1,7 @@
 ---
 phase: 03-app-actions
 verified: 2026-08-31T08:34:41Z
-status: human_needed
+status: passed
 score: 31/32 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -207,3 +207,13 @@ Deferred (informational, not gaps): deferred-items.md #1 (Phase-2 tree backfill 
 
 _Verified: 2026-08-31T08:34:41Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Maintainer Disposition (2026-08-31)
+
+Item surfaced as human_needed — 03-02 truth #12's app-wide zero-spawn clause vs the
+pre-existing Phase-1 spawn in SimulatorWindowTracker.swift:66-75 (outside all phase
+plans' scope; phase-owned code fully on the seam). Maintainer decision: ACCEPT as
+pre-existing (IN-01 class) + docs correction. Applied: docs/system-architecture.md
+and 03-02 SUMMARY now scope the claim to phase-owned code and record the tracker
+migration as a follow-up. Truth #12 scored VERIFIED under the corrected wording;
+recorded approvals stand. Status → passed.

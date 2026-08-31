@@ -9,7 +9,7 @@ requires:
   - phase: 03-app-actions (plan 01)
     provides: hardened SimCtlService seam (stdin parameter, serial queue), AppActionService facade + extend-the-seam recipe, AppPickerBar, ActionsTabView shell, AppLogger.actions
 provides:
-  - DeepLinkService migrated onto the SimCtlService seam — the app's last out-of-seam subprocess spawn deleted; async-exemption list shrinks to CaptureService alone
+  - DeepLinkService migrated onto the SimCtlService seam — the last out-of-seam subprocess spawn in phase-owned code deleted (pre-existing exception: SimulatorWindowTracker's Phase-1 list-devices spawn — follow-up recorded, verifier disposition 2026-08-31); async-exemption list shrinks to CaptureService alone
   - PrivacyPermission model — 12 verbatim simctl TCC service strings, grant/revoke/reset-all argv builders, no notifications case (D-01 locked by tests)
   - Privacy verbs on the facade — setPrivacy (per-app scoped), resetAllPrivacy (destructive confirm + booted-UDID refusal), openDeviceSettings (com.apple.Preferences launch)
   - PushPayload model — typed parse gate (empty/invalidJSON/notObject/missingAPS/invalidShape) + pure 4096-byte validate gate on JSONEncoder output, verbatim "Simulator Target Bundle" CodingKey, template presets, encodedByteCount helper
@@ -103,7 +103,7 @@ status: complete
 
 # Phase 3 Plan 02: Push / Deep-Link Migration / Privacy Summary
 
-**Push notifications end-to-end on the stdin seam (typed 4096-byte gate, D-01 guided-grant control that never fakes a toggle), the 12-service privacy section with honest captions, and DeepLinkService migrated onto SimCtlService — deleting the app's last out-of-seam subprocess spawn; 31 new unit tests, full bundle 138/138.**
+**Push notifications end-to-end on the stdin seam (typed 4096-byte gate, D-01 guided-grant control that never fakes a toggle), the 12-service privacy section with honest captions, and DeepLinkService migrated onto SimCtlService — deleting the last out-of-seam subprocess spawn in phase-owned code; 31 new unit tests, full bundle 138/138.**
 
 ## Performance
 
