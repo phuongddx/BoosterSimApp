@@ -57,9 +57,9 @@ iOS developers spend significant time switching between the Simulator and extern
 - FR-16: Certificate trust management (CA generation, install, rotate, reset in Simulator keychain)
 
 ### Non-Functional
-- NFR-01: macOS 15+ only (no backwards compat shims)
+- NFR-01: macOS 26.2+ only (`MACOSX_DEPLOYMENT_TARGET = 26.2`; no backwards compat shims)
 - NFR-02: Swift 6 strict concurrency (no data races)
-- NFR-03: Zero external dependencies (Apple frameworks only)
+- NFR-03: Apple frameworks only, with one approved exception — Pulse/PulseProxy SPM (user-resolved 2026-08-29). Declared on BOTH the app target (`project.pbxproj:199-202`) and `BoosterSimConnect` (`:271-274`); only `BoosterSimConnect.swift` imports them, behind `#if DEBUG && targetEnvironment(simulator)`
 - NFR-04: Non-sandboxed (runtime permissions via AXIsProcessTrusted, CGPreflightScreenCaptureAccess)
 - NFR-05: LSUIElement = true (no Dock icon)
 - NFR-06: 0.5s polling fallback when Accessibility permission not granted

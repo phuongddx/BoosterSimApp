@@ -28,3 +28,6 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 .gitnexus
+
+# Archify visual-check evidence (regenerable via `archify visual-check`)
+docs/diagrams/*.visual-check.*

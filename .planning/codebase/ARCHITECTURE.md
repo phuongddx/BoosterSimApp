@@ -215,7 +215,7 @@ BoosterSimApp is a macOS menu-bar (LSUIElement) utility that attaches a floating
 - **Non-sandboxed:** required for Accessibility APIs, `CGWindowList`, CFPreferences writes into Simulator's domain, and simctl; entitlements file `BoosterHealth-Entitlements.plist` at repo root
 - **One seam for subprocesses:** all `xcrun simctl` goes through `SimCtlService`; direct `Process` spawns are prohibited in phase-owned code
 - **Schema sync duplication:** `BoosterCommand` semantics must be mirrored identically in `BoosterSimConnect/NetworkConditionController.swift`; every change is a two-side change
-- **Dependency isolation:** Pulse/PulseProxy (SPM) link only into the `BoosterSimConnect` framework target; the app target itself is Apple-frameworks-only
+- **Dependency linkage:** Pulse/PulseProxy (SPM) are declared on BOTH the app target (`project.pbxproj:199-202`) and `BoosterSimConnect` (`:271-274`) — the app target links them because its `fileSystemSynchronizedGroups` includes the `BoosterSimConnect/` folder. Only `BoosterSimConnect/BoosterSimConnect.swift` imports them, behind `#if DEBUG && targetEnvironment(simulator)`; there is NO app-target-is-Apple-only isolation
 - **Project settings:** `MACOSX_DEPLOYMENT_TARGET = 26.2`, `SWIFT_VERSION = 5.0` language mode with strict-concurrency upcoming features, 4 Xcode targets (app, unit tests, UI tests, framework) in `BoosterSimApp.xcodeproj/project.pbxproj`
 - **Global state:** `AppSettings()` instances intentionally share `.standard` UserDefaults so convenience-instantiated services and the AppDelegate's instance agree (`BoosterSimApp/Services/CaptureService.swift:18`); no other module-level singletons
 

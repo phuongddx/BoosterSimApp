@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "BoosterSimApp — Runtime Architecture",
+    "output": "boostersimapp-runtime.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "primary-loop",
+        "label": "Observe, present, act",
+        "focus": [
+          "simulator",
+          "tracker",
+          "sidewindow",
+          "simctl"
+        ],
+        "note": "The closed control loop: Simulator window state is observed, surfaced in the side panel, and acted on through the single simctl seam."
+      },
+      {
+        "id": "capture-and-trust",
+        "label": "Capture and TCC",
+        "focus": [
+          "tcc",
+          "capture",
+          "sidewindow",
+          "simulator"
+        ],
+        "note": "ScreenCaptureKit work is preflighted against Screen Recording grants; a denied grant degrades to an honest caption instead of an error path."
+      },
+      {
+        "id": "cross-process",
+        "label": "Cross-process channel",
+        "focus": [
+          "channels",
+          "framework",
+          "sidewindow"
+        ],
+        "note": "The only cross-process wire: loopback TCP with Bonjour discovery between the host app and the DEBUG framework injected into Simulator apps."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "simulator",
+      "type": "external",
+      "label": "iOS Simulator",
+      "sublabel": "Simulator.app + device",
+      "tag": "foreign process",
+      "pos": [
+        60,
+        122
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "framework",
+      "type": "external",
+      "label": "BoosterSimConnect",
+      "sublabel": "DEBUG framework, in-app",
+      "tag": "sole Pulse import site",
+      "pos": [
+        60,
+        338
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "tracker",
+      "type": "backend",
+      "label": "SimulatorWindowTracker",
+      "sublabel": "CGWindowList + AXObserver",
+      "tag": "needs Accessibility",
+      "pos": [
+        380,
+        50
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "simctl",
+      "type": "backend",
+      "label": "SimCtlService",
+      "sublabel": "sole xcrun simctl seam",
+      "tag": "serialized queue",
+      "pos": [
+        380,
+        194
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "channels",
+      "type": "messagebus",
+      "label": "Pulse + Command servers",
+      "sublabel": "NWListener + Bonjour",
+      "tag": "loopback only",
+      "pos": [
+        380,
+        338
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "appdelegate",
+      "type": "backend",
+      "label": "AppDelegate",
+      "sublabel": "composition root",
+      "tag": "@MainActor",
+      "pos": [
+        700,
+        50
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "sidewindow",
+      "type": "frontend",
+      "label": "SideWindowController",
+      "sublabel": "floating NSPanel, 4 tabs",
+      "pos": [
+        700,
+        194
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "menubar",
+      "type": "frontend",
+      "label": "MenuBarExtra + Settings",
+      "sublabel": "LSUIElement, no Dock icon",
+      "pos": [
+        700,
+        338
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "overlay",
+      "type": "frontend",
+      "label": "DesignOverlayController",
+      "sublabel": "click-through panel",
+      "tag": "locked layer order",
+      "pos": [
+        1020,
+        50
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "capture",
+      "type": "backend",
+      "label": "Capture and sampling",
+      "sublabel": "ScreenCaptureKit bridge",
+      "tag": "sanctioned async site",
+      "pos": [
+        1020,
+        194
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "tcc",
+      "type": "security",
+      "label": "PermissionManager",
+      "sublabel": "TCC grants + polling",
+      "tag": "relaunch to apply",
+      "pos": [
+        1020,
+        338
+      ],
+      "size": [
+        180,
+        72
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "iOS Simulator process — DEBUG injection only",
+      "wraps": [
+        "simulator",
+        "framework"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "BoosterSimApp — non-sandboxed host process, @MainActor",
+      "wraps": [
+        "tracker",
+        "simctl",
+        "channels",
+        "appdelegate",
+        "sidewindow",
+        "menubar",
+        "overlay",
+        "capture",
+        "tcc"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "macOS TCC — Screen Recording",
+      "wraps": [
+        "capture",
+        "tcc"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "observe-windows",
+      "from": "simulator",
+      "to": "tracker",
+      "label": "AX + window poll",
+      "variant": "emphasis"
+    },
+    {
+      "id": "publish-active",
+      "from": "tracker",
+      "to": "sidewindow",
+      "label": "activeSimulator",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invoke-verbs",
+      "from": "sidewindow",
+      "to": "simctl",
+      "label": "action verbs",
+      "variant": "emphasis",
+      "labelDy": 16
+    },
+    {
+      "id": "mutate-device",
+      "from": "simctl",
+      "to": "simulator",
+      "label": "xcrun simctl",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tool-toggles",
+      "from": "sidewindow",
+      "to": "overlay",
+      "label": "tool toggles"
+    },
+    {
+      "id": "request-capture",
+      "from": "sidewindow",
+      "to": "capture",
+      "label": "screenshot / record",
+      "labelDy": 16
+    },
+    {
+      "id": "grant-recording",
+      "from": "tcc",
+      "to": "capture",
+      "label": "preflight grant",
+      "variant": "security",
+      "labelAt": [
+        1110,
+        302
+      ]
+    },
+    {
+      "id": "toggle-panel",
+      "from": "menubar",
+      "to": "sidewindow",
+      "label": "show / hide panel",
+      "variant": "dashed",
+      "labelAt": [
+        790,
+        302
+      ]
+    },
+    {
+      "id": "construct-panel",
+      "from": "appdelegate",
+      "to": "sidewindow",
+      "label": "constructs + attaches",
+      "variant": "dashed",
+      "labelAt": [
+        790,
+        158
+      ]
+    },
+    {
+      "id": "network-controls",
+      "from": "sidewindow",
+      "to": "channels",
+      "label": "network conditions"
+    },
+    {
+      "id": "broadcast-commands",
+      "from": "channels",
+      "to": "framework",
+      "label": "BoosterCommand",
+      "labelDy": -18
+    },
+    {
+      "id": "stream-telemetry",
+      "from": "framework",
+      "to": "channels",
+      "label": "Pulse telemetry",
+      "labelDy": 18
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Primary loop",
+      "items": [
+        "Window state: NSWorkspace, poll, AX",
+        "Panel and overlay are parallel sinks",
+        "Placement is pure calculator math"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Seams and purity",
+      "items": [
+        "All subprocesses via SimCtlService",
+        "Geometry and argv are pure statics",
+        "Combine only; two Task bridges"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust and permissions",
+      "items": [
+        "Non-sandboxed: AX, CGWindowList, simctl",
+        "No auth; TCC + loopback-only channel",
+        "Denied grants degrade to captions"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "State and dependencies",
+      "items": [
+        "Toggles persist via @AppStorage",
+        "Pulse links into both targets",
+        "BoosterCommand mirrored both sides"
+      ]
+    }
+  ]
+}
