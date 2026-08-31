@@ -57,7 +57,7 @@ BoosterSimApp/                        # Xcode project root
 
 **`BoosterSimApp/BoosterSimApp/Services/`:**
 - Purpose: All business logic, external process orchestration, protocol handling, and permission management
-- Contains: 21 Swift files covering simulator control, accessibility, screen capture, certificates, network protocol, deep links, design comparison, permissions, window enumeration, Xcode detection
+- Contains: 31 Swift files covering simulator control, accessibility, screen capture, certificates, network protocol, deep links, design comparison, permissions, window enumeration, Xcode detection, and (Phase 3) app actions, DerivedData scanning, and the UserDefaults editor
 - Key files: `BoosterSimApp/Services/SimCtlService.swift` (shared `xcrun simctl` executor), `BoosterSimApp/Services/ConnectService.swift` (network event aggregation), `BoosterSimApp/Services/PulseServer.swift` (TCP server)
 
 **`BoosterSimApp/BoosterSimApp/Windows/`:**
@@ -68,7 +68,7 @@ BoosterSimApp/                        # Xcode project root
 **`BoosterSimApp/BoosterSimApp/Views/SideWindow/`:**
 - Purpose: Main floating panel UI — tab bar, device header, 4 tab content views, feature sections
 - Contains: `SideWindowView.swift` (root), `TabBarView.swift`, `SideTab.swift`, `CollapsedStripView.swift`, `SideWindowFooter.swift`, `DeviceHeaderView.swift`, plus 8 feature section views
-- Subdirectories: `tabs/` (4 tab views: Capture, Design, Actions, Network), `network/` (network subviews + `NetworkEventModel.swift`)
+- Subdirectories: `tabs/` (4 tab views: Capture, Design, Actions, Network), `network/` (network subviews + `NetworkEventModel.swift`), `actions/` (Phase 3 app-action section views — picker, reset, push, privacy, locale, location, clipboard, defaults editor, search bar)
 - Key files: `BoosterSimApp/Views/SideWindow/SideWindowView.swift` (root view), `BoosterSimApp/Views/SideWindow/TabBarView.swift` (tab navigation)
 
 **`BoosterSimApp/BoosterSimApp/Views/MenuBar/`:**

@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: 03-04 defaults editor + quick search complete (plan 4/5 of Phase 3); next: 03-05 (Wave 5 — phase-gate closure)
-last_updated: "2026-08-31T05:18:00.000Z"
+stopped_at: "03-05 HALTED at Task 3 blocking-human phase-gate smoke (Tasks 1-2 complete: docs truth pass 59c22e6, automated gates green 182/0 + pin + prohibitions); awaiting user smoke approval"
+last_updated: "2026-08-31T05:26:04.517Z"
 last_activity: 2026-08-31
 last_activity_desc: 03-04 defaults editor + action search complete — plan 4/5 of Phase 3
-state_head: 19ce3e4e6eb84e2ec45ebacd3abbb33087f1745f
+state_head: d8f95a686d4342688146fe56e373f6569b396911
 progress:
   total_phases: 7
   completed_phases: 2
@@ -100,6 +100,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 3]: [Phase 3][03-03] Global-domain token pinned as .GlobalPreferences (single named constant) — live read-verified on the booted iOS 26.3 device; applyLocale's optional trailing timezone gives presets ONE relaunch hop; location/clipboard/locale verbs publish dedicated captions + hasSimulatedLocation instead of riding the 03-01-pinned operation machine
 - [Phase 3]: [Phase 3][03-04] Defaults editor reads the on-disk plist FILE via get_app_container's data container (export verb silently unsupported in simulator — grep-checked absent) and writes validated spawn-defaults argv; json capsules write as -data <hex> (live-verified vs `defaults help write` + host scratch-domain round-trip) and are read-only in the UI — binary plists corrupt under text editing
 - [Phase 3]: [Phase 3][03-04] AppActionCatalog (14 actions / 9 sections, fixed mount order incl. the reused environment + deep-link sections) owns BOTH tab section order and search visibility — empty query renders AppActionSection.allCases through the same section table, so the search wiring cannot drop a section; view carries zero query contains-chains
+- [Phase 03]: [Phase 3][03-05] Phase-gate closure pattern (2nd use): docs truth pass (symbols grep-verified vs source) → full-bundle + sha256 pin (git diff vacuous, file untracked) + prohibition greps → blocking-human six-group smoke; requirements stay open at halt, close on approval
 
 ### Pending Todos
 
@@ -113,6 +114,7 @@ None yet.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
 - [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
+- [Phase 3][03-05] Task 3 blocking-human phase-gate smoke pending — six groups (detection / reset+D-02 CA reconcile / push+D-01 grant+deep link / environment / defaults+search / docs) on one booted Simulator with the plan's user_setup state; REQ-roadmap-phase3-app-actions + REQ-fr-13 close only on approval
 
 ## Deferred Items
 
@@ -125,6 +127,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T05:18:00.000Z
-Stopped at: 03-04 defaults editor + quick search complete (plan 4/5); Wave 5 (03-05 phase-gate closure) next
+Last session: 2026-08-31T05:25:54.417Z
+Stopped at: 03-05 HALTED at Task 3 blocking-human phase-gate smoke (Tasks 1-2 complete: docs truth pass 59c22e6, automated gates green 182/0 + pin + prohibitions); awaiting user smoke approval
 Resume file: .planning/phases/03-app-actions/03-05-phase-gate-closure-PLAN.md
