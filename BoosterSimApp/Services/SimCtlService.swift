@@ -9,15 +9,49 @@ enum SimCtlError: Error, LocalizedError {
     case commandFailed(String)
     case xcrunNotFound
     case timeout
+    case stdinTooLarge(Int)
 
     var errorDescription: String? {
         switch self {
         case .commandFailed(let msg): return "simctl failed: \(msg)"
         case .xcrunNotFound:         return "xcrun not found at /usr/bin/xcrun"
         case .timeout:               return "simctl command timed out"
+        case .stdinTooLarge(let size):
+            return "The request carries \(size) bytes of stdin — the seam rejects payloads "
+                + "over the \(SimCtlLimits.maxStdinBytes)-byte pipe bound."
         }
     }
 }
+
+/// Seam-wide constants.
+enum SimCtlLimits {
+    /// The classic POSIX pipe buffer on macOS — stdin at or below this can never block the
+    /// writer against a child that is not reading (03-REVIEW WR-03: bound enforced at the seam).
+    static let maxStdinBytes = 64 * 1024
+}
+
+/// The only seam surface verb facades need — declared so facades take scripted doubles in
+/// tests (the AppKeychainResetting pattern). SimCtlService conforms for free.
+@MainActor
+protocol SimCtlRunning: AnyObject {
+    func run(_ args: [String], stdin: Data?) -> AnyPublisher<String, SimCtlError>
+}
+
+extension SimCtlService: SimCtlRunning {}
+
+/// Runs its body exactly once across racing call sites (a drain timeout vs. a late reader
+/// finally completing) — the promise must fire exactly once per invocation.
+private final class Once {
+    private let lock = NSLock()
+    private var fired = false
+    func fire(_ body: () -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        guard !fired else { return }
+        fired = true
+        body()
+    }
+}
+
 
 // MARK: - Pipe Drain
 
@@ -56,9 +90,15 @@ final class SimCtlService: ObservableObject {
     /// Both pipes drain concurrently with process exit — outputs past the 64 KB pipe buffer would
     /// otherwise deadlock the child against `waitUntilExit` (listapps is already ~33 KB) — and every
     /// invocation queues on one serial queue. When `stdin` is present it is written to the child's
-    /// standard input and closed afterward (serves `push <udid> -`).
+    /// standard input on a concurrent lane alongside the drains and closed afterward (serves
+    /// `push <udid> -`); payloads over the pipe bound are rejected BEFORE any subprocess — an
+    /// oversized synchronous write ahead of the drains would wedge both sides and pin this
+    /// machine-wide queue (03-REVIEW WR-03).
     func run(_ args: [String], stdin: Data? = nil) -> AnyPublisher<String, SimCtlError> {
         print("[SimCtl] xcrun simctl \(args.joined(separator: " "))")
+        if let stdin, stdin.count > SimCtlLimits.maxStdinBytes {
+            return Fail(error: .stdinTooLarge(stdin.count)).eraseToAnyPublisher()
+        }
         return Future { promise in
             SimCtlService.invocationQueue.async {
                 guard FileManager.default.fileExists(atPath: "/usr/bin/xcrun") else {
@@ -82,11 +122,10 @@ final class SimCtlService: ObservableObject {
                     DispatchQueue.main.async { promise(.failure(.xcrunNotFound)) }
                     return
                 }
-                if let stdin, let stdinPipe {
-                    try? stdinPipe.fileHandleForWriting.write(contentsOf: stdin)
-                    try? stdinPipe.fileHandleForWriting.close()
-                }
-                Self.drainAndComplete(proc, stdoutPipe: stdoutPipe, stderrPipe: stderrPipe, promise: promise)
+                Self.drainAndComplete(
+                    proc, stdoutPipe: stdoutPipe, stderrPipe: stderrPipe,
+                    stdinPipe: stdinPipe, stdin: stdin, promise: promise
+                )
             }
         }
         .eraseToAnyPublisher()
@@ -99,15 +138,35 @@ final class SimCtlService: ObservableObject {
 
     // MARK: - Private
 
+    /// Backstop for the machine-wide serialization (03-REVIEW WR-03): every verb carries its
+    /// own 30s Combine timeout, so the seam drain only needs to outlive that with margin —
+    /// a grandchild inheriting the pipe FDs must never pin the invocation queue forever.
+    private static let drainTimeout: TimeInterval = 60
+
     /// Reads both pipes concurrently with the child, then resolves the promise only after
-    /// exit status AND both EOFs have landed (concurrent-pipe-reads deadlock fix).
+    /// exit status AND both EOFs have landed (concurrent-pipe-reads deadlock fix). The stdin
+    /// write joins the drain group on a concurrent lane — writing it synchronously here
+    /// BEFORE the readers start would let an oversized payload deadlock both sides and pin
+    /// the machine-wide invocation queue (03-REVIEW WR-03). The whole drain is bounded;
+    /// a timed-out drain resolves the verb and frees the queue (the promise fires exactly once).
     private static func drainAndComplete(
         _ proc: Process, stdoutPipe: Pipe, stderrPipe: Pipe,
+        stdinPipe: Pipe?, stdin: Data?,
         promise: @escaping (Result<String, SimCtlError>) -> Void
     ) {
         let stdoutBuffer = PipeBuffer()
         let stderrBuffer = PipeBuffer()
         let drainGroup = DispatchGroup()
+        let resolution = Once()
+
+        if let stdinPipe, let stdin {
+            drainGroup.enter()
+            DispatchQueue.global(qos: .userInitiated).async {
+                try? stdinPipe.fileHandleForWriting.write(contentsOf: stdin)
+                try? stdinPipe.fileHandleForWriting.close()
+                drainGroup.leave()
+            }
+        }
         for (pipe, buffer) in [(stdoutPipe, stdoutBuffer), (stderrPipe, stderrBuffer)] {
             drainGroup.enter()
             DispatchQueue.global(qos: .userInitiated).async {
@@ -116,14 +175,21 @@ final class SimCtlService: ObservableObject {
             }
         }
         proc.waitUntilExit()
-        drainGroup.wait()
+        if drainGroup.wait(timeout: .now() + drainTimeout) == .timedOut {
+            resolution.fire {
+                DispatchQueue.main.async { promise(.failure(.timeout)) }
+            }
+            return
+        }
         let stdout = String(data: stdoutBuffer.contents(), encoding: .utf8) ?? ""
         let stderr = String(data: stderrBuffer.contents(), encoding: .utf8) ?? ""
-        DispatchQueue.main.async {
-            if proc.terminationStatus == 0 {
-                promise(.success(stdout))
-            } else {
-                promise(.failure(.commandFailed(stderr.isEmpty ? stdout : stderr)))
+        resolution.fire {
+            DispatchQueue.main.async {
+                if proc.terminationStatus == 0 {
+                    promise(.success(stdout))
+                } else {
+                    promise(.failure(.commandFailed(stderr.isEmpty ? stdout : stderr)))
+                }
             }
         }
     }
