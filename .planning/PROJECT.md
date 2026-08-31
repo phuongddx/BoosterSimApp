@@ -22,7 +22,7 @@ from the side panel.
 
 - ✓ Simulator attachment — floating panel detects, tracks, and follows the Simulator window across move/resize/minimize with spring physics and a 0.5s polling fallback — Phase 1
 - ✓ Full app shell — menu-bar status icon, 4-step permission onboarding, preferences, 4-tab side panel (Capture/Design/Actions/Network) — Phase 1
-- ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector — Phase 6
+- ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector shipped in source — Phase 6. **Reachability gap (confirmed 2026-09-01)**: only env overrides are wired into the tab UI; status bar/camera/build-stats/AX-tree views have zero call sites outside `#Preview` — wiring folded into Phase 7 per user decision
 - ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — delivered pre-.planning (Phase 5 scope)
 - ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
 - ✓ Capture tools — SCScreenshotManager window screenshots with 7 exact ASC presets + bezel modes + solid/gradient backgrounds, floating thumbnail, Desktop/clipboard/custom saves, SCRecordingOutput recordings at the 120 fps ceiling with Simulator-native touch indicators, GIF (centisecond-quantized) / MP4 / MOV export — Phase 2 (verified 4/4)
@@ -33,7 +33,7 @@ from the side panel.
 <!-- Current scope. Building toward these. -->
 
 - [ ] Phase 4 — Design tools: grid/safe-area overlays, ruler, magnifier/color picker, Figma/Sketch comparison
-- [ ] Phase 7 — Polish & distribution: signing/notarization, auto-update, tests, privacy manifest, icon
+- [ ] Phase 7 — Polish & distribution: signing/notarization, auto-update, tests, privacy manifest, icon, plus wiring Phase 6's four orphaned views (status bar/camera/build-stats/AX-tree) into the side panel
 
 ### Out of Scope
 

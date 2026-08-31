@@ -191,7 +191,7 @@ Plans:
   4. User can view Xcode build statistics (build count, time graphs)
   5. User can inspect the Simulator accessibility tree with a highlight overlay
 
-**Plans**: N/A — completed before .planning bootstrap (note: these views are complete but not yet wired into the side panel tabs — see STATE.md concerns)
+**Plans**: N/A — completed before .planning bootstrap. **Reachability gap confirmed 2026-09-01**: `StatusBarSectionView`, `BuildStatsSectionView`, `AXTreeView`, `CameraView` exist and compile but have zero call sites in `SideWindowView.swift`'s tab switch (4 tabs only: capture/design/actions/network) or anywhere else outside their own `#Preview` blocks — criteria 1, 2, 4, 5 above are unreachable from the running app. Only criterion 3 (env overrides, via the separately-wired `EnvironmentOverridesView`) actually ships. Wiring work is scoped into Phase 7 (see below) rather than reopening this phase.
 **UI hint**: yes
 
 ### Phase 7: Polish & Distribution
@@ -199,12 +199,14 @@ Plans:
 **Goal**: The app is distributable — signed, notarized, updatable, tested, and store-ready
 **Depends on**: Phase 2, Phase 3, Phase 4, Phase 5
 **Requirements**: REQ-roadmap-phase7-polish-distribution
+**Includes**: wiring Phase 6's four orphaned views (StatusBarSectionView, BuildStatsSectionView, AXTreeView, CameraView) into the side panel — a 5th tab, sub-sections of an existing tab, or another integration point (planning's call) — confirmed gap, see Phase 6 note above
 **Success Criteria** (what must be TRUE):
 
   1. App is code-signed and notarized (archive → notarytool → stapler → DMG), and the non-sandbox requirement is documented (sandbox is incompatible with AX/CGWindowList/simctl usage)
   2. Auto-update works (Sparkle or Mac App Store updates)
   3. Unit tests cover PositionCalculator, WindowEnumerator, and AppSettings; UI tests cover the onboarding flow
   4. Privacy manifest, app icon, and README/marketing polish are complete
+  5. User can reach Status Bar overrides, Build Stats, the AX Tree Inspector, and Camera routing from the side panel (Phase 6 views instantiated in source but never wired into the tab switch — this criterion closes that gap)
 
 **Plans**: TBD
 

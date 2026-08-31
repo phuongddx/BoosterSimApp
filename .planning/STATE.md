@@ -122,7 +122,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 6]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView are complete but not wired into the side panel tabs (per codebase-summary) — Phases 5 and 2 closed without wiring; pick the wiring point during Phase 3 planning.
+- [Phase 6][resolved 2026-09-01]: StatusBarSectionView, BuildStatsSectionView/BuildChartView, AXTreeView, CameraView confirmed to have zero call sites outside their own #Preview blocks (grepped SideWindowView.swift's 4-case tab switch) — folded into Phase 7 as explicit scope (user decision) rather than reopening Phase 6.
 - [Phase 5]: TrafficDetailView shows placeholder timing metrics (real PulseMetrics is a v2 candidate, NET-02).
 - [Phase 5][follow-up]: throttle pacing formula omits ÷1000 kilo factor (as-shipped: 3G paces 16 s per 1500 B chunk) — rescale candidate, documented in docs/system-architecture.md.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
