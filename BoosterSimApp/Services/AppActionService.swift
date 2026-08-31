@@ -17,6 +17,10 @@ final class AppActionService: ObservableObject {
     @Published private(set) var privacyCaption: String?
     @Published private(set) var pushResult: PushActionResult?
     @Published private(set) var isSendingPush = false
+    @Published private(set) var localeCaption: String?
+    @Published private(set) var currentLanguages: [String] = []
+    @Published private(set) var currentLocaleID: String?
+    @Published private(set) var currentTimezone: String?
 
     // MARK: - Private
 
@@ -312,6 +316,128 @@ final class AppActionService: ObservableObject {
         return line.isEmpty ? "Notification sent." : line
     }
 
+    // MARK: - Locale & Region (SC3 — relaunch domain, device-wide global writes)
+
+    /// Reads the device's current global locale state (three typed spawn-defaults reads,
+    /// EnvironmentOverrideService pattern). Fields update as each read lands; a key that is
+    /// unset on the device stays nil.
+    func readLocaleState(udid: String) {
+        guard !udid.isEmpty else { return }
+        currentLanguages = []
+        currentLocaleID = nil
+        currentTimezone = nil
+        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.languagesKey))
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                self?.currentLanguages = Self.parseLanguagesArray(from: output)
+            })
+            .store(in: &cancellables)
+        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.localeKey))
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                self?.currentLocaleID = Self.parseScalarValue(from: output)
+            })
+            .store(in: &cancellables)
+        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.timezoneKey))
+            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
+                self?.currentTimezone = Self.parseScalarValue(from: output)
+            })
+            .store(in: &cancellables)
+    }
+
+    /// Writes AppleLanguages + AppleLocale (+ AppleTimeZone when given) on the global domain,
+    /// then relaunches the selected app in the SAME chain (EnvironmentOverrideService chain
+    /// shape). Pitfall 6: a bare write looks like a no-op — the relaunch hop makes the effect
+    /// deterministic for the selected app. Re-apply is idempotent (identical device state).
+    func applyLocale(languages: [String], locale: String, timezone: String? = nil,
+                     udid: String, bundleID: String?) {
+        guard !udid.isEmpty else {
+            localeCaption = "No active Simulator — locale changes need a running device."
+            return
+        }
+        let trimmedLanguages = languages
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let trimmedLocale = locale.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLanguages.isEmpty, !trimmedLocale.isEmpty else {
+            localeCaption = "Enter both a language code and a locale identifier."
+            return
+        }
+        let trimmedTimezone = timezone?.trimmingCharacters(in: .whitespacesAndNewlines)
+        localeCaption = nil
+        simCtl.run(Self.languageArgs(languages: trimmedLanguages, udid: udid))
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self else { return Empty().eraseToAnyPublisher() }
+                return self.simCtl.run(Self.localeArgs(locale: trimmedLocale, udid: udid))
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self, let trimmedTimezone else {
+                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
+                }
+                return self.simCtl.run(Self.timezoneArgs(timezone: trimmedTimezone, udid: udid))
+            }
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self, let bundleID else {
+                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
+                }
+                return self.simCtl.run(Self.relaunchArgs(udid: udid, bundleID: bundleID))
+            }
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self, case .failure(let error) = completion else { return }
+                    AppLogger.actions.error("locale apply failed")   // verb + outcome only
+                    self.localeCaption = "Locale change failed: \(error.localizedDescription)"
+                },
+                receiveValue: { [weak self] _ in
+                    guard let self else { return }
+                    AppLogger.actions.info("locale apply completed — app relaunched")
+                    self.localeCaption = bundleID == nil
+                        ? "Locale written — takes effect on the next app launch."
+                        : "Locale applied and the app relaunched — effective on this launch."
+                    self.readLocaleState(udid: udid)
+                }
+            )
+            .store(in: &cancellables)
+    }
+
+    /// Writes AppleTimeZone on the global domain, then relaunches — same relaunch-required
+    /// semantics as the locale chain (Pitfall 6).
+    func setTimezone(tz: String, udid: String, bundleID: String?) {
+        guard !udid.isEmpty else {
+            localeCaption = "No active Simulator — timezone changes need a running device."
+            return
+        }
+        let trimmed = tz.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            localeCaption = "Enter a timezone identifier (e.g. Asia/Tokyo)."
+            return
+        }
+        localeCaption = nil
+        simCtl.run(Self.timezoneArgs(timezone: trimmed, udid: udid))
+            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                guard let self, let bundleID else {
+                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
+                }
+                return self.simCtl.run(Self.relaunchArgs(udid: udid, bundleID: bundleID))
+            }
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self, case .failure(let error) = completion else { return }
+                    AppLogger.actions.error("timezone apply failed")
+                    self.localeCaption = "Timezone change failed: \(error.localizedDescription)"
+                },
+                receiveValue: { [weak self] _ in
+                    guard let self else { return }
+                    AppLogger.actions.info("timezone apply completed — app relaunched")
+                    self.localeCaption = "Timezone applied and the app relaunched — effective on this launch."
+                    self.readLocaleState(udid: udid)
+                }
+            )
+            .store(in: &cancellables)
+    }
+
     // MARK: - Single-Hop Verb Runner
 
     /// Thin shared runner for one-hop verbs (privacy, device settings, later push): 30s timeout,
@@ -382,5 +508,125 @@ final class AppActionService: ObservableObject {
 
     private func appName(for bundleID: String) -> String {
         scannedApps.first(where: { $0.bundleID == bundleID })?.name ?? bundleID
+    }
+}
+
+// MARK: - Locale Preset Model (SC3)
+
+/// One-tap locale triple — the global-domain values a preset writes together.
+/// Raw values are the AppleLanguages codes; `locale` uses the underscore form Apple expects.
+enum LocalePreset: String, CaseIterable, Identifiable, Sendable {
+    case englishUS = "en-US"
+    case englishUK = "en-GB"
+    case vietnameseVN = "vi-VN"
+    case japaneseJP = "ja-JP"
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .englishUS: return "English (US)"
+        case .englishUK: return "English (UK)"
+        case .vietnameseVN: return "Vietnamese (VN)"
+        case .japaneseJP: return "Japanese (JP)"
+        }
+    }
+
+    var languages: [String] { [rawValue] }
+
+    var locale: String {
+        switch self {
+        case .englishUS: return "en_US"
+        case .englishUK: return "en_GB"
+        case .vietnameseVN: return "vi_VN"
+        case .japaneseJP: return "ja_JP"
+        }
+    }
+
+    /// Optional third member of the triple — a preset may leave the timezone untouched.
+    var timezone: String? {
+        switch self {
+        case .englishUS: return "America/New_York"
+        case .englishUK: return "Europe/London"
+        case .vietnameseVN: return "Asia/Ho_Chi_Minh"
+        case .japaneseJP: return "Asia/Tokyo"
+        }
+    }
+}
+
+// MARK: - Pure Locale Command Builders (global domain — 03-RESEARCH Verified Surface)
+
+extension AppActionService {
+
+    /// The single global-domain token every locale/timezone verb targets (live-verified
+    /// read round-trip on iOS 26.3; the EnvironmentOverrideService `.GlobalPreferences`
+    /// precedent). One constant — never forked per call site.
+    static let globalDefaultsDomain = ".GlobalPreferences"
+
+    static let languagesKey = "AppleLanguages"
+    static let localeKey = "AppleLocale"
+    static let timezoneKey = "AppleTimeZone"
+
+    /// `spawn defaults write <global domain> AppleLanguages -array <codes…>`
+    nonisolated static func languageArgs(languages: [String], udid: String) -> [String] {
+        ["spawn", udid, "defaults", "write", globalDefaultsDomain,
+         languagesKey, "-array"] + languages
+    }
+
+    /// `spawn defaults write <global domain> AppleLocale -string <id>`
+    nonisolated static func localeArgs(locale: String, udid: String) -> [String] {
+        ["spawn", udid, "defaults", "write", globalDefaultsDomain,
+         localeKey, "-string", locale]
+    }
+
+    /// `spawn defaults write <global domain> AppleTimeZone -string <id>`
+    nonisolated static func timezoneArgs(timezone: String, udid: String) -> [String] {
+        ["spawn", udid, "defaults", "write", globalDefaultsDomain,
+         timezoneKey, "-string", timezone]
+    }
+
+    /// Restore-to-unset: deletes the key from the global domain (reversibility path, T-03-09).
+    nonisolated static func deleteKeyArgs(udid: String, key: String) -> [String] {
+        ["spawn", udid, "defaults", "delete", globalDefaultsDomain, key]
+    }
+
+    /// Current-state read for one of the three keys.
+    nonisolated static func readKeyArgs(udid: String, key: String) -> [String] {
+        ["spawn", udid, "defaults", "read", globalDefaultsDomain, key]
+    }
+
+    /// One-call relaunch (flagged assumption A1): `launch --terminate-running-process`.
+    nonisolated static func relaunchArgs(udid: String, bundleID: String) -> [String] {
+        ["launch", udid, bundleID, "--terminate-running-process"]
+    }
+
+    /// Two-step fallback if the one-call form misbehaves at the smoke: terminate, then launch.
+    nonisolated static func fallbackRelaunchArgs(udid: String, bundleID: String) -> [[String]] {
+        [["terminate", udid, bundleID], ["launch", udid, bundleID]]
+    }
+
+    /// The exact verb sequence a preset application runs — writes first, relaunch hop LAST
+    /// (the chain invariant applyLocale executes; idempotent on re-apply by construction).
+    nonisolated static func localePresetChain(preset: LocalePreset, udid: String, bundleID: String) -> [[String]] {
+        var chain = [languageArgs(languages: preset.languages, udid: udid),
+                     localeArgs(locale: preset.locale, udid: udid)]
+        if let timezone = preset.timezone {
+            chain.append(timezoneArgs(timezone: timezone, udid: udid))
+        }
+        chain.append(relaunchArgs(udid: udid, bundleID: bundleID))
+        return chain
+    }
+
+    /// Parses `defaults read` array output (old-style `("en-US", "vi-VN")`) into elements.
+    nonisolated static func parseLanguagesArray(from output: String) -> [String] {
+        output.split(separator: "\"", omittingEmptySubsequences: false)
+            .enumerated()
+            .compactMap { index, piece in index % 2 == 1 ? String(piece) : nil }
+    }
+
+    /// Parses a scalar `defaults read` value — trimmed; nil when absent or blank.
+    nonisolated static func parseScalarValue(from output: String) -> String? {
+        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
