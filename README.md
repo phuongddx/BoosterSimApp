@@ -1,6 +1,6 @@
 # BoosterSimApp
 
-macOS menu bar companion app that attaches a floating side panel and design overlays to the iOS Simulator. Built with AppKit + SwiftUI. The app target links Apple frameworks only; the optional in-Simulator companion framework is the sole consumer of external packages.
+macOS menu bar companion app that attaches a floating side panel and design overlays to the iOS Simulator. Built with AppKit + SwiftUI, on Apple frameworks plus one approved SPM exception (Pulse/PulseProxy, linked by both the app and the in-Simulator companion framework — see [Dependencies](#dependencies)).
 
 ## Architecture
 
