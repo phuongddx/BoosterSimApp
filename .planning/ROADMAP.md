@@ -125,7 +125,7 @@ Plans:
   3. User can import a Figma/Sketch artboard as a design comparison overlay
   4. Overlays persist when the app loses focus and can be toggled on/off per tool
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 Plans:
 
 **Wave 1**
@@ -142,7 +142,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 04-04-phase-gate-closure-PLAN.md — Docs truth pass (architecture section, file map, async-exemption wording), full suite + dependency-pin gate, six-group blocking manual smoke closing all flagged assumptions
+- [x] 04-04-phase-gate-closure-PLAN.md — Docs truth pass (architecture section, file map, async-exemption wording), full suite + dependency-pin gate, six-group blocking manual smoke closing all flagged assumptions
 
 **UI hint**: yes
 
@@ -220,7 +220,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
 | 3. App Actions | 5/5 | Complete    | 2026-08-31 |
-| 4. Design Tools | 3/4 | In Progress|  |
+| 4. Design Tools | 4/4 | In Progress|  |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |
