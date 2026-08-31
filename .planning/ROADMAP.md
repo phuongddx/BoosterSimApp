@@ -20,7 +20,7 @@ docs/project-roadmap.md so REQ-roadmap-phaseN requirements stay traceable.
 - [x] **Phase 1: Foundation** - Core app shell with simulator attachment (complete)
 - [x] **Phase 2: Capture Tools** - Screenshots and screen recording from the side panel (completed 2026-08-30)
 - [x] **Phase 3: App Actions** - Common simulator dev actions from the side panel (completed 2026-08-31)
-- [ ] **Phase 4: Design Tools** - Visual overlays on top of the Simulator window
+- [x] **Phase 4: Design Tools** - Visual overlays on top of the Simulator window (completed 2026-09-01)
 - [x] **Phase 5: Network Tools** - Inspection delivered; finish throttle, airplane mode, request blocking (completed 2026-08-30)
 - [x] **Phase 6: Platform & System** - Status bar, camera, env overrides, build stats, AX inspector (complete)
 - [ ] **Phase 7: Polish & Distribution** - Signing, notarization, updates, tests, privacy, icon
@@ -222,7 +222,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
 | 3. App Actions | 5/5 | Complete    | 2026-08-31 |
-| 4. Design Tools | 4/4 | In Progress|  |
+| 4. Design Tools | 4/4 | Complete    | 2026-09-01 |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
 | 7. Polish & Distribution | 0/TBD | Not started | - |

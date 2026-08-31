@@ -27,12 +27,12 @@ from the side panel.
 - ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
 - ✓ Capture tools — SCScreenshotManager window screenshots with 7 exact ASC presets + bezel modes + solid/gradient backgrounds, floating thumbnail, Desktop/clipboard/custom saves, SCRecordingOutput recordings at the 120 fps ceiling with Simulator-native touch indicators, GIF (centisecond-quantized) / MP4 / MOV export — Phase 2 (verified 4/4)
 - ✓ App actions — hardened SimCtlService seam (stdin, concurrent pipes, serialized), DerivedData∩installed∩running app detection with picker, reset/uninstall + destructive keychain clear w/ CA auto-reconcile (D-02), push w/ 4096 gate + guided permission grant (D-01), deep links on-seam, 12-service privacy, locale/timezone relaunch, location presets + tz sync, pbsync clipboard, typed UserDefaults editor + whole-tab quick search — Phase 3 (verified 31/32)
+- ✓ Design tools — persistent click-through overlay panel (D-04 layered install), dual 8/4pt grid, safe-area bands (auto-resolved + manual override/reset, orientation-aware), ruler with device-point readout, magnifier/color picker (cached-capture sampling), Figma/Sketch artboard comparison (open/drag/paste), versioned per-tool persistence — Phase 4 (verified 25/25; human gate closed via blanket approval 2026-09-01, not a per-group walkthrough — see 04-VERIFICATION.md)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Phase 4 — Design tools: grid/safe-area overlays, ruler, magnifier/color picker, Figma/Sketch comparison
 - [ ] Phase 7 — Polish & distribution: signing/notarization, auto-update, tests, privacy manifest, icon, plus wiring Phase 6's four orphaned views (status bar/camera/build-stats/AX-tree) into the side panel
 
 ### Out of Scope
@@ -110,4 +110,4 @@ from the side panel.
 | UserDefaults editor reads the container plist file; writes via allowlist-validated spawn defaults (export verb silently unsupported) | Typed, testable, avoids the silent-empty-output trap | ✓ Good |
 
 ---
-*Last updated: 2026-08-31 after Phase 3 (App Actions) completion*
+*Last updated: 2026-09-01 after Phase 4 (Design Tools) completion*

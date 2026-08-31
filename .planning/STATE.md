@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
-current_phase: 4
-current_phase_name: Design Tools
-status: executing
-stopped_at: 04-04 halted at blocking-human smoke gate (Task 2) — automated gate green, awaiting six-group smoke
-last_updated: "2026-08-31T14:52:36.827Z"
-last_activity: 2026-08-31
-last_activity_desc: Phase 4 execution started
-state_head: d7ba0117affb7d892d8fa1218ff42660d0199c2e
+current_phase: 07
+current_phase_name: Polish & Distribution
+status: planning
+stopped_at: Phase 4 complete; Phase 5 was already complete pre-.planning-tracking — next actionable phase is 7 (Polish & Distribution, deps 2/3/4/5 now all satisfied)
+last_updated: "2026-08-31T17:39:16.403Z"
+last_activity: 2026-09-01
+last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
+state_head: bc9ee89e920d8cacd6b0339ad217bac947e8cf53
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 17
-  completed_plans: 16
-  percent: 43
+  completed_plans: 17
+  percent: 57
 ---
 
 # Project State
@@ -23,22 +23,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 4 — Design Tools
+**Current focus:** Phase 7 — Polish & Distribution
 
 ## Current Position
 
-Phase: 4 (Design Tools) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-08-31 — Phase 4 execution started
+Phase: 07 — Polish & Distribution
+Plan: Not started
+Status: Ready to plan (deps 2/3/4/5 all complete)
+Last activity: 2026-09-01 — Phase 4 complete; current-phase pointer corrected to 07
 
-Progress: [████░░░░░░] 43%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 13 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Total plans completed: 17 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
 - Average duration: 18min
 - Total execution time: 72min
 
@@ -49,6 +49,7 @@ Progress: [████░░░░░░] 43%
 | 5 | 4 | - | - |
 | 2 | 4 | - | - |
 | 3 | 5 | - | - |
+| 4 | 4 | - | - |
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |
@@ -142,5 +143,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-08-31T14:52:34.485Z
-Stopped at: 04-04 halted at blocking-human smoke gate (Task 2) — automated gate green, awaiting six-group smoke
+Stopped at: Phase 4 complete; current-phase pointer corrected to 07 (Phase 05 was already complete pre-.planning-tracking)
 Resume file: checkpoint reply
