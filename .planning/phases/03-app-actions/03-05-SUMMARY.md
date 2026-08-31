@@ -13,13 +13,13 @@ provides:
   - docs/codebase-summary.md — Phase 3 inventory truth pass (17 new source + 8 test files enumerated, primary-types table, corrected Feature Sections/Wired sections/Largest Files)
   - Automated phase-gate evidence: full unit bundle 182 passed / 0 failed (exit 0), Debug build clean, Package.resolved sha256 byte-stable vs the Phase 5/2 pin, all prohibition spot-checks green
   - 03-VALIDATION.md Wave-0 checklist completed (8/8 checked, incl. the two restored checkboxes)
-  - HALTED at the Task-3 blocking-human phase-gate smoke (gate="blocking-human", AUTO_MODE=false — never auto-approved)
+  - Task-3 blocking-human phase-gate smoke USER-APPROVED 2026-08-31 — all six groups verified on one booted Simulator (gate=human-verify, result=approved)
 affects: [phase-3 verifier, /gsd-verify-work, Phase 4 planning (docs context)]
 
 actuals:
   tokens: 9500    # chars/4 over the realized diff (docs 35,184 + VALIDATION + STRUCTURE + deferred-items 1,366 + this SUMMARY ≈ 38k chars) — vs. 14,000 estimate (confidence was low)
-  tasks: 2        # of 3 — Tasks 1-2 complete; Task 3 is the blocking-human smoke, pending user
-  commits: 2      # 59c22e6 (docs truth pass) + d8f95a6 (VALIDATION checkboxes), excluding the halt docs commit
+  tasks: 3        # of 3 — Tasks 1-2 automation + Task 3 blocking-human six-group smoke (user-approved 2026-08-31)
+  commits: 3      # 59c22e6 (docs truth pass) + d8f95a6 (VALIDATION checkboxes) + this closure commit (92716a2 halt metadata excluded)
 
 tech-stack:
   added: []       # closure plan — zero packages; Package.resolved byte-identical (REQ-nfr-03)
@@ -45,7 +45,7 @@ key-decisions:
 patterns-established:
   - "Phase-gate closure recipe (2nd use after 02-04): docs truth pass → full-bundle + pin + prohibition assertions → six-group blocking-human smoke; verify commands must discriminate on exit"
 
-requirements-completed: []   # DELIBERATELY EMPTY at halt — REQ-roadmap-phase3-app-actions + REQ-fr-13 close on THIS plan's completion (shared-ID gate); they flip when the Task-3 smoke is approved and this summary becomes status: complete
+requirements-completed: [REQ-roadmap-phase3-app-actions, REQ-fr-13]   # shared-ID gate: both close on this plan's completion (smoke approved 2026-08-31; plans 01-04 kept them open deliberately)
 
 coverage:
   - id: D1
@@ -71,26 +71,29 @@ coverage:
   - id: D3
     description: "Phase-gate manual smoke — six groups on one booted Simulator (detection; reset + D-02 keychain/CA reconcile; push + D-01 guided grant + deep link; environment round-trip; defaults editor + search; docs match) with per-group pass/fail and the five probe truths observed"
     requirement: REQ-roadmap-phase3-app-actions
-    verification: []
+    verification:
+      - kind: other
+        ref: "user-run six-group smoke on one booted Simulator 2026-08-31 — DETECTION / RESET / PUSH+DEEP LINK / ENVIRONMENT / DEFAULTS / DOCS all pass (user reply: approved)"
+        status: pass
     human_judgment: true
-    rationale: "Blocking-human gate (gate=\"blocking-human\"): live device-state behaviors (keychain wipe, banner delivery, TCC, CoreLocation, relaunch localization, cfprefsd round-trip) are impossible to exercise headless; AUTO_MODE=false forbids self-approval — PENDING USER"
+    rationale: "Blocking-human gate (gate=\"blocking-human\", AUTO_MODE=false): live device-state behaviors (keychain wipe, banner delivery, TCC, CoreLocation, relaunch localization, cfprefsd round-trip) are impossible to exercise headless — user ran all six groups and replied approved (2026-08-31)"
 
 # Metrics
 duration: 12min
 completed: 2026-08-31
-status: halted
+status: complete
 ---
 
 # Phase 3 Plan 05: Phase-Gate Closure Summary
 
-**Docs truth pass landed (§ App Actions + Phase 3 inventory, every symbol source-verified) and all automated phase-gate checks green (182/0 full bundle, Debug build, byte-stable dependency pin, prohibitions) — HALTED at the Task-3 blocking-human six-group smoke that gates phase 3.**
+**Docs truth pass landed (§ App Actions + Phase 3 inventory, every symbol source-verified), all automated phase-gate checks green (182/0 full bundle, Debug build, byte-stable dependency pin, prohibitions), and the Task-3 blocking-human six-group smoke USER-APPROVED (2026-08-31) — Phase 3 App Actions complete.**
 
 ## Performance
 
 - **Duration:** 12 min (05:12–05:24 UTC, automation portion)
 - **Started:** 2026-08-31T05:12:20Z
-- **Completed:** 2026-08-31T05:24:34Z (automation; Task 3 smoke pending user)
-- **Tasks:** 2 of 3 (Task 3 = `checkpoint:human-verify gate="blocking-human"` — awaiting user)
+- **Completed:** 2026-08-31T06:43:08Z (Task-3 smoke approved; phase gate closed)
+- **Tasks:** 3 of 3 (Task 3 = `checkpoint:human-verify gate="blocking-human"` — user-approved 2026-08-31)
 - **Files modified:** 6 (1 created, 5 modified)
 
 ## Accomplishments
@@ -105,7 +108,7 @@ status: halted
 2. **Task 2:** no commit (files: none) — verification-only task; evidence recorded in this summary (full-bundle log /tmp/03-05-full.log, build log /tmp/03-05-build.log, pin sha, prohibition greps)
 3. **Advisory-3 fix:** `d8f95a6` — docs(03-05): restore missing Wave-0 checkboxes in 03-VALIDATION
 
-**Task 3:** `checkpoint:human-verify gate="blocking-human"` — **HALTED here** (never auto-run: destructive device-state paths + AUTO_MODE=false). ROADMAP 03-05 left unchecked; STATE blocker recorded.
+**Task 3:** `checkpoint:human-verify gate="blocking-human"` — user ran all six groups 2026-08-31 and replied **approved** (never auto-run: destructive device-state paths + AUTO_MODE=false). ROADMAP 03-05 checked; STATE blocker cleared; closure docs commit follows.
 
 **Plan metadata:** see the halt docs commit (this summary + STATE.md + STRUCTURE.md).
 
@@ -195,28 +198,33 @@ status: halted
 2. BoosterSimApp local CA generated + installed (side panel → Network → Certificates) to prove the D-02 reconcile
 3. BoosterSimApp running with the side panel on the Actions tab against that Simulator
 
-## Checkpoint (Task 3 — PENDING)
+## Checkpoint Resolution (Task 3 — APPROVED)
 
-**Type:** human-verify · **Gate:** blocking-human · **Status:** awaiting user — six gate groups from 03-VALIDATION.md:
-1. DETECTION — picker lists the DerivedData-built installed app with a running badge; explicit selection; quick search query + clear → full tab returns in fixed order
-2. RESET — Reset App Data → fresh on relaunch; Clear Keychain → red blast-radius dialog → wipe → CA re-reconciles automatically; run Reset twice — second run errors nothing
-3. PUSH + DEEP LINK — send the alert template with permission → banner + tap-through; re-check the D-01 control (caption + Open Settings); open a preset deep link
-4. ENVIRONMENT — locale preset → relaunch + localization; Dark Mode + Dynamic Type (instant, existing section); city preset → Maps moves + timezone changes; Clear location; clipboard round-trip both directions
-5. DEFAULTS — view keys typed; edit one value → app reads it on next launch; add a bool key; delete it; re-edit the same key twice → identical plist state
-6. DOCS — § App Actions in docs/system-architecture.md read against the running app — services, captions, both platform limits match
-**Resume signal:** "approved" → close phase 3 (flip this summary to complete, mark REQ-roadmap-phase3-app-actions + REQ-fr-13, check ROADMAP 03-05, proceed to /gsd-verify-work); a failing group → gap-closure replan (do not patch past the gate)
+**Gate:** human-verify · **Gate attr:** blocking-human · **Result:** approved · **Date:** 2026-08-31
+
+The user ran all six gate groups from 03-VALIDATION.md on one booted Simulator and replied "approved" — every group observed passing:
+
+1. DETECTION — picker intersection lists the DerivedData-built installed app with a running badge; explicit selection; search + clear restored the fixed-order tab ✓
+2. RESET — app fresh on relaunch; D-02 blast-radius dialog → wipe → automatic CA re-reconcile; second reset idempotent ✓
+3. PUSH + DEEP LINK — banner delivered + tap-through; D-01 caption + Open Settings verified; preset deep link opened ✓
+4. ENVIRONMENT — locale relaunch-localized; Dark Mode/Dynamic Type instant; city preset moved Maps + timezone; Clear worked; clipboard round-tripped ✓
+5. DEFAULTS — typed key view; edit landed on next launch; add bool; delete; re-edit twice → identical state ✓
+6. DOCS — § App Actions matches the running app, incl. both platform limits ✓
+
+**Resolution applied:** this summary flipped to complete; ROADMAP 03-05 checked; STATE blocker cleared; REQ-roadmap-phase3-app-actions + REQ-fr-13 close on this plan (shared-ID gate — plans 01-04 kept them open deliberately). Next: /gsd-verify-work.
 
 ## Next Phase Readiness
 - Docs are the single source of truth again; every automated phase-gate check is green
-- **Blocker:** Task 3 blocking-human smoke pending user approval — phase 3 cannot close without it (by design)
-- On approval: REQ-roadmap-phase3-app-actions + REQ-fr-13 close on this plan (shared-ID gate — plans 01-04 kept them open deliberately)
+- **Blocker resolved:** Task 3 blocking-human smoke user-approved 2026-08-31 — phase 3 closed by design
+- REQ-roadmap-phase3-app-actions + REQ-fr-13 closed on this plan (shared-ID gate — plans 01-04 kept them open deliberately); next stop: /gsd-verify-work
 
 ## Self-Check: PASSED
 - All 5 modified/created files exist on disk (docs ×2, VALIDATION, STRUCTURE, deferred-items)
-- Commits 59c22e6, d8f95a6 present on main; no deletions in either
+- Commits 59c22e6, d8f95a6, 92716a2 present on main; no deletions in any
 - Task 1 acceptance criteria: symbol check (8 types × both docs) exit 0; 33-symbol source cross-check exit 0; stale-sweep clean (only the pending-Phase-4 Design placeholder remains)
 - Task 2 acceptance criteria: full bundle 182/0 exit 0; pin sha256 identical to Phase 5/2; D-01/relaunch caption greps ≥1; detect-changes substitute shows only the two named docs
+- Task 3 acceptance criteria: six-group blocking-human smoke user-verified 6/6 (approved 2026-08-31), on top of the automated 182 passed / 0 failed full-bundle evidence
 
 ---
 *Phase: 03-app-actions — Plan: 05 (phase-gate closure)*
-*Status: halted — Task 3 blocking-human six-group smoke awaiting user*
+*Status: complete — Task 3 six-group smoke user-approved 2026-08-31; Phase 3 App Actions closed*

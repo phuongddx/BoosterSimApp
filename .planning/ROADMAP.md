@@ -88,7 +88,7 @@ Plans:
   3. User can switch locale (with relaunch), toggle dark/light mode, change Dynamic Type size, simulate location (GPS coordinates + timezone sync), and sync the clipboard bidirectionally Mac ↔ Simulator
   4. User can view/edit/add UserDefaults keys for the active app (bundle ID detected from DerivedData) and filter long action lists via quick search
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 Plans:
 
 **Wave 1**
@@ -109,7 +109,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 03-05-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin gate, phase-gate manual smoke
+- [x] 03-05-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin gate, phase-gate manual smoke
 
 **UI hint**: yes
 
@@ -201,7 +201,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
-| 3. App Actions | 4/5 | In Progress|  |
+| 3. App Actions | 5/5 | In Progress|  |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
