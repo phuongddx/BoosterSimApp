@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: Completed 03-02-push-deeplink-privacy-PLAN.md
-last_updated: "2026-08-31T04:23:59.265Z"
+stopped_at: Halted at 03-03 Task 3 blocking-human smoke (pending user verification)
+last_updated: "2026-08-31T04:40:33.624Z"
 last_activity: 2026-08-31
 last_activity_desc: 03-02 push/deep-link/privacy complete — plan 2/5 of Phase 3
-state_head: eaead3a6b8b807677549573033bc6f56c1d249a4
+state_head: 0559fef8127314e52308dc5529956a08bb22e3ed
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
   percent: 29
 ---
 
@@ -59,6 +59,7 @@ Progress: [███░░░░░░░] 29%
 | Phase 02-03 P03 | 10min | 2 tasks | 8 files |
 | Phase 03 P01 | 15min | 3 tasks | 13 files |
 | Phase 3 P02 | 33min | 2 tasks | 13 files |
+| Phase 03 P03 | 38min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 3]: [Phase 3][03-02] DeepLinkService rides the seam: init(simCtl:defaults:) with injectable UserDefaults (default .standard) + internal addToHistory make the isolated-suite persistence contract testable; parse/history behavior byte-for-byte identical, failure captions now carry simctl stderr per plan
 - [Phase 3]: [Phase 3][03-02] Push gate before any subprocess: PushPayload.parse (typed empty/invalidJSON/notObject/missingAPS/invalidShape) + validate (4096-byte cap on JSONEncoder output); sendPush logs verb+byte-size+outcome only; explicit bundle arg beats the embedded Simulator Target Bundle key
 - [Phase 3]: [Phase 3][03-02] Single-hop verbs (privacy/settings/push) publish dedicated privacyCaption/pushResult instead of riding the 03-01-pinned AppActionOperation machine; shared runVerb helper (30s timeout) — CONVENTIONS async-exemption list shrinks to CaptureService alone
+- [Phase 3]: [Phase 3][03-03] Global-domain token pinned as .GlobalPreferences (single named constant) — live read-verified on the booted iOS 26.3 device; applyLocale's optional trailing timezone gives presets ONE relaunch hop; location/clipboard/locale verbs publish dedicated captions + hasSimulatedLocation instead of riding the 03-01-pinned operation machine
+- [Phase 3]: [Phase 3][03-03] Preset models + pure builders co-located in AppActionService.swift (906 LOC) because AppActionModels.swift is outside the plan's file list — flagged for the plan-05 review gate
 
 ### Pending Todos
 
@@ -108,6 +111,7 @@ None yet.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
 - [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
+- [Phase 3][03-03] Task 3 blocking-human smoke (9 steps) pending — criterion 3 live proof + plan-02 re-verification + A1/A2 close; Wave 4 waits on approval (resume: reply approved)
 
 ## Deferred Items
 
@@ -120,6 +124,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T04:23:59.055Z
-Stopped at: Completed 03-02-push-deeplink-privacy-PLAN.md
+Last session: 2026-08-31T04:40:33.385Z
+Stopped at: Halted at 03-03 Task 3 blocking-human smoke (pending user verification)
 Resume file: .planning/phases/03-app-actions/03-03-locale-location-clipboard-PLAN.md
