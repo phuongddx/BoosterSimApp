@@ -88,7 +88,7 @@ Plans:
   3. User can switch locale (with relaunch), toggle dark/light mode, change Dynamic Type size, simulate location (GPS coordinates + timezone sync), and sync the clipboard bidirectionally Mac ↔ Simulator
   4. User can view/edit/add UserDefaults keys for the active app (bundle ID detected from DerivedData) and filter long action lists via quick search
 
-**Plans**: 1/5 plans executed
+**Plans**: 2/5 plans executed
 Plans:
 
 **Wave 1**
@@ -97,7 +97,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-push-deeplink-privacy-PLAN.md — DeepLinkService seam migration + 12-service privacy section + PushPayload/stdin push sender with D-01 guided grant (criterion 2)
+- [x] 03-02-push-deeplink-privacy-PLAN.md — DeepLinkService seam migration + 12-service privacy section + PushPayload/stdin push sender with D-01 guided grant (criterion 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -201,7 +201,7 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 |-------|----------------|--------|-----------|
 | 1. Foundation | — | Complete | pre-.planning |
 | 2. Capture Tools | 4/4 | Complete    | 2026-08-30 |
-| 3. App Actions | 1/5 | In Progress|  |
+| 3. App Actions | 2/5 | In Progress|  |
 | 4. Design Tools | 0/TBD | Not started | - |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |

@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: 03-01 complete — Task 3 blocking-human smoke user-approved 2026-08-30 (3/3 tasks, 107/107 unit green); Phase 3 Wave 2 (03-02) ready to dispatch
-last_updated: "2026-08-31T03:57:02.000Z"
-last_activity: 2026-08-30
-last_activity_desc: 03-01 tracer smoke user-approved — reset spine complete (plan 1/5)
-state_head: 21bb5676aa976ee2b9aea0296371fa2e34137b4e
+stopped_at: Completed 03-02-push-deeplink-privacy-PLAN.md
+last_updated: "2026-08-31T04:23:59.265Z"
+last_activity: 2026-08-31
+last_activity_desc: 03-02 push/deep-link/privacy complete — plan 2/5 of Phase 3
+state_head: eaead3a6b8b807677549573033bc6f56c1d249a4
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 13
   completed_plans: 10
-  percent: 77
+  percent: 29
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 3 (App Actions) — EXECUTING
-Plan: 1 of 5 complete (03-01 smoke approved 2026-08-30) — next: 03-02 (Wave 2)
+Plan: 2 of 5 complete (03-01 smoke approved 2026-08-30; 03-02 push/deep-link/privacy 2026-08-31) — next: 03-03 (Wave 3)
 Status: Executing Phase 3
-Last activity: 2026-08-30 — 03-01 tracer smoke user-approved; reset spine complete (1/5 Phase-3 plans)
+Last activity: 2026-08-31 — 03-02 complete: push on the stdin seam, D-01 guided-grant control, 12-service privacy, DeepLinkService migrated onto SimCtlService (138/138 unit green)
 
-Progress: [████████░░░░░░░░░░] 4 of 7 phases complete (1, 2, 5, 6) — next: Phase 3 App Actions
+Progress: [███░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████████░░░░░░░░░░] 4 of 7 phases
 | Phase 05 P04 | 9min | 3 tasks | 2 files |
 | Phase 02-03 P03 | 10min | 2 tasks | 8 files |
 | Phase 03 P01 | 15min | 3 tasks | 13 files |
+| Phase 3 P02 | 33min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,10 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 3]: [Phase 3][03-01] clearKeychain composes resetKeychain → reconcileStatus → install — reconcileStatus alone is status-only and would never restore CA trust; pure delegation, no verb duplication
 - [Phase 3]: [Phase 3][03-01] SimCtlService seam hardened in place: concurrent pipe drains (>64KB deadlock fix), optional stdin, machine-wide serial queue — publisher signature unchanged, zero call-site edits
 - [Phase 3]: [Phase 3][03-01] Scanner fixtures synthesized in temp dirs (nested .app dirs break test-bundle codesign); AppKeychainResetting protocol seam pins the D-02 delegate order on a scripted double
+- [Phase 3]: [Phase 3][03-02] D-01 shipped as guided manual grant: honest caption + com.apple.Preferences launch verb + inline steps + Send-as-test-push probe — no control anywhere claims to toggle notification authorization (PrivacyPermissionTests locks notifications out of the enum)
+- [Phase 3]: [Phase 3][03-02] DeepLinkService rides the seam: init(simCtl:defaults:) with injectable UserDefaults (default .standard) + internal addToHistory make the isolated-suite persistence contract testable; parse/history behavior byte-for-byte identical, failure captions now carry simctl stderr per plan
+- [Phase 3]: [Phase 3][03-02] Push gate before any subprocess: PushPayload.parse (typed empty/invalidJSON/notObject/missingAPS/invalidShape) + validate (4096-byte cap on JSONEncoder output); sendPush logs verb+byte-size+outcome only; explicit bundle arg beats the embedded Simulator Target Bundle key
+- [Phase 3]: [Phase 3][03-02] Single-hop verbs (privacy/settings/push) publish dedicated privacyCaption/pushResult instead of riding the 03-01-pinned AppActionOperation machine; shared runVerb helper (30s timeout) — CONVENTIONS async-exemption list shrinks to CaptureService alone
 
 ### Pending Todos
 
@@ -115,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T03:57:02.000Z
-Stopped at: 03-01 complete — Task 3 blocking-human smoke user-approved 2026-08-30 (3/3 tasks); Wave 2 (03-02 push-deep-link-privacy) ready to dispatch
-Resume file: .planning/phases/03-app-actions/03-02-push-deeplink-privacy-PLAN.md
+Last session: 2026-08-31T04:23:59.055Z
+Stopped at: Completed 03-02-push-deeplink-privacy-PLAN.md
+Resume file: .planning/phases/03-app-actions/03-03-locale-location-clipboard-PLAN.md
