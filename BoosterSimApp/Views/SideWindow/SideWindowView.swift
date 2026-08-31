@@ -96,7 +96,7 @@ struct SideWindowView: View {
     let appActionService = AppActionService(simCtl: simCtl, certificateService: certificateService)
     let userDefaultsEditorService = UserDefaultsEditorService(simCtl: simCtl)
     let captureService = CaptureService()
-    let designComparisonService = DesignComparisonService()
+    let designOverlayService = DesignOverlayService()
     let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
@@ -106,7 +106,7 @@ struct SideWindowView: View {
         connectService: connectService,
         networkConditionService: networkConditionService,
         deepLinkService: deepLinkService,
-        designComparisonService: designComparisonService,
+        designOverlayService: designOverlayService,
         captureService: captureService,
         appActionService: appActionService,
         userDefaultsEditorService: userDefaultsEditorService
@@ -120,7 +120,7 @@ struct SideWindowView: View {
         .environmentObject(networkConditionService)
         .environmentObject(connectService)
         .environmentObject(deepLinkService)
-        .environmentObject(designComparisonService)
+        .environmentObject(designOverlayService)
         .environmentObject(captureService)
         .environmentObject(appActionService)
         .environmentObject(userDefaultsEditorService)

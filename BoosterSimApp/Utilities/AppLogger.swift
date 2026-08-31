@@ -14,4 +14,5 @@ enum AppLogger {
     static let network         = Logger(subsystem: subsystem, category: "Network")
     static let capture         = Logger(subsystem: subsystem, category: "Capture")
     static let actions         = Logger(subsystem: subsystem, category: "Actions")
+    static let design         = Logger(subsystem: subsystem, category: "Design")
 }

@@ -1,9 +1,9 @@
-// DesignComparisonView.swift — UI for design comparison tools
+// DesignComparisonView.swift — Side-panel UI for design overlay tools (grid, ruler, color readout, presets)
 import SwiftUI
 
 struct DesignComparisonView: View {
 
-    @ObservedObject var service: DesignComparisonService
+    @ObservedObject var service: DesignOverlayService
 
     @State private var presetName: String = ""
     @State private var showSavePreset: Bool = false
@@ -12,7 +12,7 @@ struct DesignComparisonView: View {
         VStack(alignment: .leading, spacing: 12) {
             // MARK: - Comparison Mode
             Picker("Mode", selection: $service.comparisonMode) {
-                ForEach(DesignComparisonService.ComparisonMode.allCases, id: \.self) { mode in
+                ForEach(DesignOverlayService.ComparisonMode.allCases, id: \.self) { mode in
                     Text(mode.rawValue).tag(mode)
                 }
             }
@@ -73,21 +73,31 @@ struct DesignComparisonView: View {
             Divider()
 
             // MARK: - Grid Overlay
-            Toggle("Grid Overlay", isOn: $service.showGrid)
-                .font(.subheadline.bold())
+            Toggle(isOn: $service.showGrid) {
+                Label("Grid Overlay", systemImage: "grid")
+                    .font(.subheadline.bold())
+            }
 
             if service.showGrid {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     HStack {
-                        Text("Spacing")
+                        Text("Grid Color")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("\(Int(service.gridSpacing))px")
+                        ColorPicker("", selection: $service.gridColor, supportsOpacity: false)
+                            .labelsHidden()
+                    }
+                    HStack {
+                        Text("Opacity")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("\(Int(service.gridOpacity * 100))%")
                             .font(.caption.monospacedDigit())
                             .foregroundColor(.secondary)
                     }
-                    Slider(value: $service.gridSpacing, in: 5...100, step: 5)
+                    Slider(value: $service.gridOpacity, in: 0.05...1)
                 }
             }
 
@@ -115,11 +125,6 @@ struct DesignComparisonView: View {
                     .font(.subheadline.bold())
 
                 HStack(spacing: 8) {
-                    Button("Pick Color") {
-                        // Color picking is handled by the overlay
-                    }
-                    .buttonStyle(.bordered)
-
                     if let color = service.pickedColor {
                         HStack(spacing: 6) {
                             RoundedRectangle(cornerRadius: 4)

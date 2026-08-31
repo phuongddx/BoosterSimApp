@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var deepLinkService     = DeepLinkService(simCtl: simCtlService)
     lazy var appActionService    = AppActionService(simCtl: simCtlService, certificateService: certificateService)
     lazy var userDefaultsEditorService = UserDefaultsEditorService(simCtl: simCtlService)
-    lazy var designComparisonService = DesignComparisonService()
+    lazy var designOverlayService = DesignOverlayService()
     lazy var captureService         = CaptureService(
         screenshotService: ScreenshotService(),
         thumbnailPanel: captureThumbnailPanel,
@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         tracker: tracker
     )
     lazy var axHighlightPanel    = AXHighlightPanel()
+    lazy var designOverlayPanel     = DesignOverlayPanel()
+    lazy var designOverlayController = DesignOverlayController(panel: designOverlayPanel)
     lazy var captureThumbnailPanel = CaptureThumbnailPanel()
 
     // MARK: - Windows
@@ -49,7 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         connectService: connectService,
         networkConditionService: networkConditionService,
         deepLinkService: deepLinkService,
-        designComparisonService: designComparisonService,
+        designOverlayService: designOverlayService,
         captureService: captureService,
         appActionService: appActionService,
         userDefaultsEditorService: userDefaultsEditorService
@@ -73,8 +75,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             return
         }
 
+
         // Wire side window to simulator tracker
         sideWindowController.attach(to: tracker)
+
+        // Design overlays track the Simulator frame through the same tracker
+        designOverlayController.attach(to: tracker, service: designOverlayService)
 
         // Start simulator detection + build monitoring
         tracker.startTracking()

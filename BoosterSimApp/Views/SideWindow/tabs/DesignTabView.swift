@@ -3,13 +3,13 @@ import SwiftUI
 
 struct DesignTabView: View {
 
-    @EnvironmentObject var designComparisonService: DesignComparisonService
+    @EnvironmentObject var designOverlayService: DesignOverlayService
     @State private var isDesignExpanded = true
 
     var body: some View {
         ScrollView {
             CollapsibleSection(title: "Design Comparison", icon: "paintbrush", isExpanded: $isDesignExpanded) {
-                DesignComparisonView(service: designComparisonService)
+                DesignComparisonView(service: designOverlayService)
             }
         }
     }

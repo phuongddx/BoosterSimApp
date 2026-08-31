@@ -52,7 +52,7 @@ final class SideWindowController: ObservableObject {
         connectService: ConnectService,
         networkConditionService: NetworkConditionService,
         deepLinkService: DeepLinkService,
-        designComparisonService: DesignComparisonService,
+        designOverlayService: DesignOverlayService,
         captureService: CaptureService,
         appActionService: AppActionService,
         userDefaultsEditorService: UserDefaultsEditorService
@@ -72,7 +72,7 @@ final class SideWindowController: ObservableObject {
             connectService: connectService,
             networkConditionService: networkConditionService,
             deepLinkService: deepLinkService,
-            designComparisonService: designComparisonService,
+            designOverlayService: designOverlayService,
             captureService: captureService,
             appActionService: appActionService,
             userDefaultsEditorService: userDefaultsEditorService
@@ -208,7 +208,7 @@ final class SideWindowController: ObservableObject {
         connectService: ConnectService,
         networkConditionService: NetworkConditionService,
         deepLinkService: DeepLinkService,
-        designComparisonService: DesignComparisonService,
+        designOverlayService: DesignOverlayService,
         captureService: CaptureService,
         appActionService: AppActionService,
         userDefaultsEditorService: UserDefaultsEditorService
@@ -233,7 +233,7 @@ final class SideWindowController: ObservableObject {
             .environmentObject(networkConditionService)
             .environmentObject(connectService)
             .environmentObject(deepLinkService)
-            .environmentObject(designComparisonService)
+            .environmentObject(designOverlayService)
             .environmentObject(captureService)
             .environmentObject(appActionService)
             .environmentObject(userDefaultsEditorService)
