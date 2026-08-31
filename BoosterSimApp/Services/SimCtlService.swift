@@ -37,6 +37,14 @@ protocol SimCtlRunning: AnyObject {
     func run(_ args: [String], stdin: Data?) -> AnyPublisher<String, SimCtlError>
 }
 
+/// Default arguments don't cross a protocol witness, so plain `run(args)` on an
+/// `any SimCtlRunning` routes through this extension instead.
+extension SimCtlRunning {
+    func run(_ args: [String]) -> AnyPublisher<String, SimCtlError> {
+        run(args, stdin: nil)
+    }
+}
+
 extension SimCtlService: SimCtlRunning {}
 
 /// Runs its body exactly once across racing call sites (a drain timeout vs. a late reader

@@ -146,6 +146,54 @@ struct AppActionServiceTests {
         #expect(AppActionService.isDestructiveUDID("5DD825B4-1111-2222-3333-444455556666"))
     }
 
+    // MARK: - Reset Chain Regression (CR-01 — not-running terminate must not abort the reset)
+
+    /// simctl terminate exits nonzero for a not-running app; the reset chain must continue to
+    /// the listapps presence check (uninstall included) instead of dying in `.resetting` on a
+    /// bogus timeout.
+    @MainActor
+    @Test func resetReachesTheUninstallLegWhenTerminateFailsForANotRunningApp() async {
+        let simCtl = ScriptedSimCtlDouble()
+        simCtl.when("terminate", returns: .failure(.commandFailed("found nothing to terminate")))
+        simCtl.when("listapps", returns: .success(listAppsXML))            // target app present
+        simCtl.when("uninstall", returns: .success("com.example.app uninstalled"))
+        let service = AppActionService(
+            simCtl: simCtl,
+            certificateService: KeychainResetDouble(),
+            keychainEvents: CurrentValueSubject<CertificateOperation, Never>(.idle).eraseToAnyPublisher()
+        )
+
+        service.resetApp(udid: "CONCRETE-UDID", bundleID: "com.example.app")
+        await pumpMainQueue()   // the chain lands via .receive(on: main) even with a synchronous double
+
+        #expect(simCtl.requestedVerbs == ["terminate", "listapps", "uninstall"])   // chain continued
+        #expect(simCtl.requested.contains(
+            AppActionService.uninstallCommand(udid: "CONCRETE-UDID", bundleID: "com.example.app")))
+        #expect(service.operation == .idle)
+        #expect(service.statusCaption?.isEmpty == false)
+    }
+
+    /// Same failed terminate, but the app is not installed — the honest `.absent` outcome,
+    /// never an uninstall of something absent and never a timeout error.
+    @MainActor
+    @Test func resetReportsAbsentWithoutUninstallWhenTerminateFailsAndAppIsMissing() async {
+        let simCtl = ScriptedSimCtlDouble()
+        simCtl.when("terminate", returns: .failure(.commandFailed("found nothing to terminate")))
+        simCtl.when("listapps", returns: .success(listAppsXML))            // target NOT in the plist
+        let service = AppActionService(
+            simCtl: simCtl,
+            certificateService: KeychainResetDouble(),
+            keychainEvents: CurrentValueSubject<CertificateOperation, Never>(.idle).eraseToAnyPublisher()
+        )
+
+        service.resetApp(udid: "CONCRETE-UDID", bundleID: "com.other.app")
+        await pumpMainQueue()   // the chain lands via .receive(on: main) even with a synchronous double
+
+        #expect(simCtl.requestedVerbs == ["terminate", "listapps"])        // no uninstall of the absent app
+        #expect(service.operation == .idle)
+        #expect(service.statusCaption?.contains("was not installed") == true)
+    }
+
     // MARK: - Keychain Clear (D-02)
 
     @Test func clearKeychainOperationTransitionsAreLegal() {
@@ -229,6 +277,13 @@ struct AppActionServiceTests {
         #expect(double.calls == ["reset", "reconcile"])    // reconcile still runs; no install attempt
         #expect(service.operation == .idle)
         #expect(service.statusCaption?.contains("failed") == true)
+    }
+
+    /// Yields the main actor so `.receive(on: DispatchQueue.main)` deliveries land before
+    /// assertions (Combine hops enqueue async main-queue jobs even with a synchronous double).
+    @MainActor
+    private func pumpMainQueue() async {
+        for _ in 0 ..< 50 { await Task.yield() }
     }
 
     @MainActor

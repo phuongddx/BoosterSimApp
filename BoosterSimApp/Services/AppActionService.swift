@@ -27,7 +27,7 @@ final class AppActionService: ObservableObject {
 
     // MARK: - Private
 
-    private let simCtl: SimCtlService
+    private let simCtl: any SimCtlRunning
     private let certificateService: any AppKeychainResetting
     private let keychainEvents: AnyPublisher<CertificateOperation, Never>
     private var cancellables = Set<AnyCancellable>()
@@ -41,7 +41,7 @@ final class AppActionService: ObservableObject {
                   keychainEvents: certificateService.$operation.eraseToAnyPublisher())
     }
 
-    init(simCtl: SimCtlService,
+    init(simCtl: any SimCtlRunning,
          certificateService: any AppKeychainResetting,
          keychainEvents: AnyPublisher<CertificateOperation, Never>) {
         self.simCtl = simCtl
@@ -90,7 +90,10 @@ final class AppActionService: ObservableObject {
         guard begin(.resetting) else { return }
         statusCaption = nil
         simCtl.run(Self.terminateCommand(udid: udid, bundleID: bundleID))
-            .catch { _ in Empty<String, SimCtlError>().eraseToAnyPublisher() }  // not-running terminate fails; harmless
+            // A not-running app fails terminate (exit 3) — emit a dummy value so the chain
+            // CONTINUES to the listapps presence check, which owns the absent/apparent
+            // decision. `Empty` here aborted the whole reset and faked a 30s timeout (CR-01).
+            .catch { _ in Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher() }
             .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
                 guard let self else { return Empty().eraseToAnyPublisher() }
                 return self.simCtl.run(Self.listAppsCommand(udid: udid))
