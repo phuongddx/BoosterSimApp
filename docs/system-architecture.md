@@ -57,6 +57,14 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── TouchIndicatorController — ShowSingleTouches   │
 │  └── CaptureCompositor — ASC-preset geometry (pure) │
 ├─────────────────────────────────────────────────────┤
+│  Design Overlay (Phase 4)                           │
+│  ├── DesignOverlayService — tool state + presets    │
+│  ├── SafeAreaCatalog — device inset constants       │
+│  ├── OverlayGeometry — pure coordinate mapper       │
+│  ├── PixelSamplerService — cached-capture sampling  │
+│  ├── DesignOverlayPanel — click-through NSPanel     │
+│  └── DesignOverlayController — tracker/input sync   │
+├─────────────────────────────────────────────────────┤
 │  iOS Framework Source                               │
 │  └── BoosterSimConnect — PulseProxy activation,     │
 │       command client + URLProtocol conditions       │
@@ -229,6 +237,20 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Panel height driven by SwiftUI content intrinsic size (min floor: 400pt)
 - Vertically centers panel on simulator for left/right/dynamic positions
 
+**`DesignOverlayPanel`** (`Windows/DesignOverlayPanel.swift`)
+- Persistent borderless `.nonactivatingPanel` exactly covering the tracked Simulator frame; click-through by default (`ignoresMouseEvents = true`)
+- `hidesOnDeactivate = false` + `[.canJoinAllSpaces, .fullScreenAuxiliary]` — overlays survive BoosterSimApp focus loss (roadmap criterion 4)
+- Never becomes key: shown via `orderFront` only, so arming a tool never steals focus from the Simulator
+- `install(_:at: OverlayLayer)` locks D-04 z-order as subview order: comparison < interactive < safeArea < grid (bottom → top) — deterministic regardless of install/toggle sequence
+- `setCaptureMode(_:)` flips `ignoresMouseEvents`/`acceptsMouseMovedEvents` for interactive tools; the container's `hitTest` routes events to the interactive band only
+
+**`DesignOverlayController`** (`Windows/DesignOverlayController.swift` + `+InputMode.swift`)
+- `@MainActor final class ObservableObject`, Combine-only (zero coroutine keywords)
+- Sink 1: `tracker.$activeSimulator` → `panel.setFrame(sim.frame)` + geometry push + visibility refresh; nil Simulator → `orderOut`
+- Sink 2: `service.objectWillChange` (main-queue hop) → `refreshVisibility()` reading post-mutation state
+- Resolves device geometry every tracker emission: calibrated content rect → orientation → logical size (`SafeAreaCatalog`) → scale (`OverlayGeometry`) → resolved insets pushed into the service
+- Owns the capture-mode input machine (`OverlayInputMode`): arming installs Esc + hover monitors, every disarm path funnels through one `exitToClickThrough`, `deinit` removes all monitors
+
 ### Models
 
 **`SimulatorWindow`** (`Models/SimulatorWindow.swift`)
@@ -286,7 +308,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Accessibility: tooltip, accessibilityLabel, isSelected trait
 
 - `CaptureTabView` — Capture tab: screenshot framing options (ASC preset, bezel, background, destination pills), `RecordingSectionView` (record/stop, touch-indicator toggle, staged-recording reveal), `ExportSectionView` (format/GIF pills, progress + cancel) — see § Capture Tools
-- `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
+- `DesignTabView` — Design tab mount: `DesignComparisonView` (grid controls + import row) with typed image drag-and-drop — see § Design Tools
 - `ActionsTabView` — Catalog-driven searchable Actions tab: 9 sections in fixed `AppActionCatalog` order, section visibility routed through the pure filter (see § App Actions)
 
 **Side Panel Components**
@@ -316,6 +338,10 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `ClipboardSectionView` — Exactly two manual pbsync buttons (Mac ↔ Simulator); direction-status captions only
 - `UserDefaultsEditorView` — Searchable typed key list, inline edit/add/delete, type-only value capsules
 - `ActionSearchBar` — Collapsible quick search over `AppActionCatalog`; clearing on collapse
+- `DesignComparisonView` — Design tab root: import row (Open…/Paste/Clear + rejection caption + drop hint) and grid color/opacity controls; mounts the three design sections
+- `DesignSafeAreaSection` — Safe-area toggle, resolved-device caption, four manual inset fields, Use Manual Insets, Reset to Device Values, x/y bezel-calibration fields
+- `DesignPresetsSection` — Comparison preset save/load/delete (versioned `DesignOverlayPresets` store)
+- `DesignToolsSection` — Ruler arm/disarm CTA with device-point distance readout + Color Picker arm/disarm with magnification stepper, live swatch, hex/RGB strings, and Copy
 
 **Shared Components**
 - `FeatureSectionView` — Collapsible section container
@@ -540,12 +566,72 @@ Phase 3 turns the Actions tab into the real tool: **14 searchable actions across
 
 **Known logging gap (pre-existing, tracked).** `SimCtlService` prints `xcrun simctl <argv>` before every invocation (a Phase-1 diagnostic). Phase 3 verbs carry full openurl URLs and defaults VALUES in argv, so that echo brushes the never-log-values/URLs prohibitions at the seam. All Phase-3 `AppLogger.actions` lines are verb/size/outcome-only; redacting the seam echo is a tracked review item (03-02 deviation 6, 03-04 deviation 7).
 
+## Design Tools
+
+Phase 4 turns the Design tab from a dead scaffold into real overlay tooling: a dual 8pt/4pt grid, orientation-aware safe-area guides with manual override, a drag-measure ruler with device-point readout, a magnifier loupe with click-to-commit color picking, and artboard comparison import — all composited over the live Simulator window through **one persistent transparent panel**, all Apple frameworks (no new dependencies; `Package.resolved` unchanged).
+
+The scaffold's fake core was cut over (04-01): `DesignComparisonService` (empty-bitmap `pickColor`, single-spacing grid state no window consumed) is **deleted**; its persistence shape and hex/RGB helpers carried into `DesignOverlayService`. Zero `DesignComparisonService` tokens remain in the repo.
+
+**Architecture — one panel, ordered subviews (locked decision D-04).** All five tools ride a single `DesignOverlayPanel` exactly covering the tracked Simulator frame. Paint order is **subview order, never window order**: `install(_:at: OverlayLayer)` maps the four layer roles to deterministic indices via `addSubview(_:positioned:.below, relativeTo:)` (AppKit has no `insertSubview(at:)`), so toggling tools in any sequence can never put the artboard above the guides.
+
+| Layer (bottom → top) | View | Role |
+|---|---|---|
+| `.comparison` | `ComparisonImageView` | Aspect-fit artboard with opacity/split — the see-through mechanism; guides always render above it |
+| `.interactive` | `RulerOverlayView`, `MagnifierView` | Capture-mode input band — the only layer that receives mouse events |
+| `.safeArea` | `SafeAreaOverlayView` | Xcode-guide-style translucent bands (fixed `systemBlue` fill 0.15 / stroke 0.6, hairline ÷ `backingScaleFactor`) |
+| `.grid` | `GridOverlayView` | Dual grid, topmost: 8pt majors at full alpha (1.5/backing) over 4pt minors at half alpha (1.0/backing), drawn in device points, adaptive-blue default with tunable color/opacity |
+
+**Service split.**
+
+| Unit | Role |
+|---|---|
+| `DesignOverlayService` (`Services/DesignOverlayService.swift` + `+Presets.swift` + `+Import.swift`) | `@MainActor ObservableObject` — per-tool toggles (write-through `didSet` persistence), comparison image/mode/split, safe-area state, tool arming, picked color, magnification. Presets and import live in same-type extension files to hold the <200 LOC standard |
+| `SafeAreaCatalog` (`Services/SafeAreaCatalog.swift`) | Pure constants — 34 name-keyed device rows + 15 logical-size fallback rows + `manualDefaults` (59/34). Name-keying first because sizes collide (`375×812` = both iPhone X-class 44 and mini-class 50); `landscape(from:)` derives the verified landscape shape (home-indicator rows → top 0, bottom 21, sides = portrait top; classic 20/0 rows → all-zero). Provenance is split honestly: 13/15/16-series rows verified, legacy and iPad rows ASSUMED (header comment) |
+| `OverlayGeometry` (`Services/OverlayGeometry.swift`) | The single pure mapper — content rect (frame − 28pt title bar), orientation-from-aspect, window↔device-point round trip, `gridSpacings` (8×/4× scale), `imagePixel` (AppKit bottom-origin ↔ CGImage top-origin Y-flip × backing scale), `distance`. Scale is always a parameter, never a literal; no call site re-derives the flip |
+| `PixelSamplerService` (`Services/PixelSamplerService.swift`) | Cached-capture sampling — see below |
+| `DesignOverlayController` (`Windows/`) | Tracker/service sinks, geometry push, capture-mode input machine — see Windows section |
+
+**Cached-capture sampling (magnifier + picker).** `PixelSamplerService` is the second sanctioned async site, copying the `CaptureService` shape exactly (sync public API → one private `Task` bridge → async `ScreenshotService.capture`). `arm()` preflights `CGPreflightScreenCaptureAccess()` and the tracker, then issues **one** ScreenCaptureKit capture of the tracked window (`desktopIndependentWindow` filter — never self-capture); every cursor read afterwards is a local `NSBitmapImageRep` pixel read (µs, no TCC traffic). An arming-generation token discards late capture results after disarm by construction; the cache is memory-only (cleared on every disarm — never written to disk, never logged as pixel data). `refreshIfFrameChanged` re-captures on resize/orientation change only; pure window translation never does (content pixels are translation-invariant — no per-move captures during Simulator drags).
+
+**Capture-mode input.** Interactive tools temporarily flip the panel: `setCaptureMode(true)` clears `ignoresMouseEvents` and enables `acceptsMouseMovedEvents`. Because render layers sit above the interactive slot by design, the panel container's `hitTest` routes events to the first visible interactive-band view only — the grid stays visually on top without swallowing ruler/picker events. Hover tracking pairs an observe-only **global** `mouseMoved` monitor (cursor over the Simulator — never an event tap) with a **panel-local** monitor (global monitors never fire for own-app events); Esc-cancel rides a local `keyDown` monitor (keyCode 53) since the panel never becomes key. Monitor lifetime == armed lifetime: installed on arm, removed on every disarm path and in `deinit` — no ambient tracking survives. Exactly one capture-mode tool may be armed at a time (the service disarms the other on arming). Per-move loupe state is pushed directly to `MagnifierView`; `service.liveHex` publishes only at pick, so a cursor move never redraws the render tools.
+
+**Permission degradation — honest captions, never crashes.** Denied Screen Recording or no tracked Simulator refuses the arm with the reason mirrored into the Design tab (`samplerError`); the panel auto-reverts to click-through without installing monitors. Imported images over 16384 px on either pixel edge are rejected before caching with a caption (decompression-bomb guard); pasteboard reads accept typed image payloads only. Window tracking itself keeps working via the polling enumerator.
+
+**Persistence (UserDefaults; user-facing keys — renaming strands stored state).** `DesignOverlayPresets` (JSON `[DesignPreset]`), per-tool toggles `DesignOverlayShowGrid` / `DesignOverlayShowRuler` / `DesignOverlayShowSafeArea`, safe-area overrides `DesignOverlayUseManualInsets` + `DesignOverlayManual{Top,Bottom,Leading,Trailing}`, bezel calibration `DesignOverlayCalibration{X,Y}`, and `DesignOverlayMagnification` (default 8, range 2…16 via `OverlayMetrics`). The scaffold's `DesignComparisonPresets` payloads import **once** behind the `DesignOverlayLegacyImported` flag using a tolerant all-optional decode shape — re-running imports nothing, importing replaces rather than appends, and corrupted data degrades to an empty list.
+
+**Safe-area resolution + bezel calibration.** The controller resolves insets on every tracker emission: device name → `SafeAreaCatalog` row → orientation transform, pushed into `resolvedInsets`/`resolvedDeviceName` (the service stays tracker-free). Manual fields win while `useManualInsets` is set; `resetInsetsToDevice()` restores auto-resolution. The content rect assumes bezels OFF (frame − 28pt title bar); persisted x/y calibration offsets — applied by the controller before all geometry math — are the escape hatch for bezel-on windows.
+
+**Data flow — Design tab to overlay pixels.**
+
+```
+Design tab (SwiftUI: DesignComparisonView + SafeArea/Presets/Tools sections)
+        ↓ toggles / arm-disarm / open-paste-drop import
+DesignOverlayService (@MainActor state; write-through versioned persistence)
+        ↓ objectWillChange → main-queue hop
+DesignOverlayController ←── tracker.$activeSimulator (frame authority)
+   ├─ refreshVisibility — tool views hidden/visible; orderFront iff anyToolOn ∧ Simulator tracked
+   ├─ pushGeometry — calibrated contentRect → orientation → logicalSize → scale → resolvedInsets
+   ├─ armed-flag sinks → OverlayInputMode (capture mode + Esc/hover monitors)
+   └─ pixelSampler.$samplerError → service caption (honest degradation)
+DesignOverlayPanel (click-through NSPanel; D-04 subview order)
+   ├─ .comparison  ComparisonImageView      (artboard bottom — guides always above)
+   ├─ .interactive RulerOverlayView / MagnifierView (the only event-receiving band)
+   ├─ .safeArea    SafeAreaOverlayView      (systemBlue bands)
+   └─ .grid        GridOverlayView          (dual 8/4, topmost)
+PixelSamplerService (arm → single Task bridge → ScreenshotService SCK capture → memory cache)
+   └─ sampleColor / sampleRegion ← OverlayGeometry.imagePixel (Y-flip × backing scale)
+```
+
+**Import funnel.** All three artboard entry points — `NSOpenPanel` open, typed pasteboard paste, `UTType.image` drag-and-drop on the Design tab — funnel through the single `accept(image:)` gate (dimension cap + single-slot replace + caption). Re-importing replaces; nothing accumulates. No network client exists anywhere in the design-overlay path (Figma API rejected for v1 — file/drag/paste only).
+
+**Overlay chrome tokens.** `OverlayMetrics` (`Utilities/DesignTokens.swift`): marker radius 3, readout inset `Spacing.sm`, loupe diameter 96, magnification default 8 (range 2…16). Overlay content renders system blue — the amber accent stays reserved for side-panel active controls (D-03).
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
 - Combine sinks and Timer callbacks run on `.main` queue
 - AXObserver callbacks fire on CFRunLoopGetMain (main thread by design)
-- No async/await in general code — Combine `@Published` + Timer for all async patterns; the sole exception is the capture services' ScreenCaptureKit internals (documented CONVENTIONS exception) hidden behind `CaptureService`'s sync facade
+- No async/await in general code — Combine `@Published` + Timer for all async patterns. The sanctioned exception is the **ScreenCaptureKit bridge pattern** (sync public API → single private `Task {}` bridge → TCC preflight), instantiated by exactly two services: `CaptureService` (Phase 2) and `PixelSamplerService` (Phase 4); views and controllers stay synchronous
 
 ## Key Design Decisions
 
@@ -564,3 +650,5 @@ Phase 3 turns the Actions tab into the real tool: **14 searchable actions across
 | Serialized, concurrently-drained simctl seam with optional stdin (Phase 3) | One simctl pipeline machine-wide (never interleaved); >64 KB outputs — `listapps` ≈33 KB — can never deadlock; push payloads stream over stdin with no temp file |
 | Apple frameworks only; Pulse/PulseProxy SPM exception via BoosterSimConnect | Sole dependency exception (user-resolved 2026-08-29); powers Connect network inspection |
 | Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and Simulator control via simctl |
+| One persistent click-through overlay NSPanel with locked subview-order layers (Phase 4, D-04) | Subview order makes guide-above-artboard z-order deterministic; per-tool windows would make it orderFront-call-order dependent |
+| Cached-capture sampling — one ScreenCaptureKit capture per arming (Phase 4) | Per-move captures are ~10–30 ms async and hammer a TCC-gated API; cached local pixel reads are µs and need no permission traffic |

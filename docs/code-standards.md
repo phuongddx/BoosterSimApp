@@ -5,7 +5,7 @@
 - **Swift 6** with strict concurrency enabled (no `@unchecked Sendable` shortcuts)
 - **Minimum deployment:** macOS 15 Sequoia
 - **Xcode 16.3+** required
-- No async/await — use Combine `@Published` + Timer for async patterns
+- No async/await in general code — use Combine `@Published` + Timer for async patterns. The one sanctioned exception is the **ScreenCaptureKit bridge pattern** (sync public API → single private `Task {}` bridge → TCC preflight), instantiated by exactly two services: `CaptureService` (Phase 2) and `PixelSamplerService` (Phase 4) — views and controllers stay synchronous
 
 ## File Naming
 
@@ -48,6 +48,7 @@ Every file uses MARK sections in this order:
 - **Services:** Combine `@Published` for observable state (`SimulatorWindowTracker`, `SideWindowController`)
 - **Persistence:** `@AppStorage` for all user-facing settings (no raw `UserDefaults` in views)
 - **View state:** `@ObservedObject` / `@EnvironmentObject` — no `@StateObject` in non-owning views
+- **Schema changes to persisted keys:** version the key (new name) and import the old payload once behind a flag using a tolerant all-optional decode shape — importing replaces, never appends, and re-running imports nothing (`DesignOverlayService`'s `DesignOverlayPresets` + `DesignOverlayLegacyImported` import from the scaffold's `DesignComparisonPresets` is the reference)
 - **No `@State` for shared state** — lift state to ObservableObject services
 
 ## Design Tokens

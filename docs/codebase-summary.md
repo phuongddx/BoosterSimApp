@@ -4,7 +4,7 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, Network
-- **Files:** 139 Swift source files (~18,270 LOC total across app, iOS framework source, CLI, and tests)
+- **Files:** 173 Swift source files (~21,005 LOC total across app, iOS framework source, CLI, and tests)
 - **Targets:** BoosterSimApp (macOS), BoosterSimConnect (iOS framework), test targets
 - **External dependencies:** Pulse/PulseProxy SPM (BoosterSimConnect framework only)
 - **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
@@ -17,7 +17,7 @@ BoosterSimApp/
 ├── BoosterSimApp/                        # Main target
 │   ├── BoosterSimAppApp.swift            # @main entry point (23 LOC)
 │   ├── App/
-│   │   └── AppDelegate.swift             # NSApplicationDelegate (119 LOC)
+│   │   └── AppDelegate.swift             # NSApplicationDelegate (144 LOC)
 │   ├── Models/
 │   │   ├── SimulatorWindow.swift         # Window data model (25 LOC)
 │   │   ├── AppSettings.swift             # @AppStorage settings (52 LOC)
@@ -55,22 +55,31 @@ BoosterSimApp/
 │   │   ├── PulseClientConnection.swift   # Per-client protocol handler (183 LOC)
 │   │   ├── PulsePacketDecoder.swift      # Binary protocol parser (174 LOC)
 │   │   ├── CommandServer.swift           # _booster-cmd._tcp. snapshot server (176 LOC)
-│   │   └── NetworkConditionService.swift # Condition state hub + persistence (186 LOC)
+│   │   ├── NetworkConditionService.swift # Condition state hub + persistence (186 LOC)
+│   │   ├── DesignOverlayService.swift    # Design tool state + versioned persistence (178 LOC)
+│   │   ├── DesignOverlayService+Presets.swift # Preset CRUD + one-shot legacy import (89 LOC)
+│   │   ├── DesignOverlayService+Import.swift  # Open/paste entry + 16384-px accept gate (62 LOC)
+│   │   ├── PixelSamplerService.swift     # Cached-capture pixel sampling — 2nd async site (150 LOC)
+│   │   ├── SafeAreaCatalog.swift         # Name-keyed inset constants + landscape transform (116 LOC)
+│   │   └── OverlayGeometry.swift         # Pure coordinate mapper — flip/scale/spacing/distance (76 LOC)
 │   ├── Windows/
 │   │   ├── SideWindowPanel.swift         # NSPanel subclass (37 LOC)
-│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (256 LOC)
+│   │   ├── SideWindowController.swift    # Panel lifecycle, spring tracking (264 LOC)
 │   │   ├── PositionCalculator.swift      # Pure frame math, content height + centering (90 LOC)
+│   │   ├── DesignOverlayPanel.swift      # Click-through overlay panel + D-04 layer install (81 LOC)
+│   │   ├── DesignOverlayController.swift # Tracker/service sinks, geometry push (167 LOC)
+│   │   ├── DesignOverlayController+InputMode.swift # Capture-mode input machine (179 LOC)
 │   │   └── AXHighlightPanel.swift        # Floating orange border overlay (68 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
 │   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
 │   │   ├── SideWindow/
-│   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (122 LOC)
+│   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (127 LOC)
 │   │   │   ├── SideTab.swift             # Tab enum for side window navigation (27 LOC)
 │   │   │   ├── TabBarView.swift          # Icon tab bar with amber underline (71 LOC)
 │   │   │   ├── tabs/
-│   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (23 LOC)
-│   │   │   │   ├── DesignTabView.swift   # Design tab: grid, safe area, ruler, picker (23 LOC)
+│   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (201 LOC)
+│   │   │   │   ├── DesignTabView.swift   # Design tab mount + typed image drag-and-drop (46 LOC)
 │   │   │   │   ├── ActionsTabView.swift  # Actions tab: catalog-driven searchable 9-section surface (122 LOC)
 │   │   │   │   └── NetworkTabView.swift  # Network tab: traffic + conditions + rules + certs (70 LOC)
 │   │   │   ├── network/
@@ -105,7 +114,17 @@ BoosterSimApp/
 │   │   │   ├── BuildStatsSectionView.swift # Build history section (92 LOC)
 │   │   │   ├── BuildChartView.swift      # Canvas bar chart (42 LOC)
 │   │   │   ├── AXTreeView.swift          # Accessibility tree list (141 LOC)
-│   │   │   └── CameraView.swift          # Camera toggle UI (99 LOC)
+│   │   │   ├── CameraView.swift          # Camera toggle UI (99 LOC)
+│   │   │   ├── DesignComparisonView.swift # Design tab root: import row + grid controls (136 LOC)
+│   │   │   ├── DesignSafeAreaSection.swift # Safe-area controls: manual fields + reset + calibration (98 LOC)
+│   │   │   ├── DesignPresetsSection.swift # Comparison preset save/load/delete (78 LOC)
+│   │   │   └── DesignToolsSection.swift  # Ruler + color-picker sections: arm/disarm, stepper, copy (98 LOC)
+│   │   ├── Overlay/                      # Phase 4 AppKit overlay renderers (draw-based, no SwiftUI)
+│   │   │   ├── GridOverlayView.swift     # D-01 dual 8pt/4pt grid in device points (65 LOC)
+│   │   │   ├── SafeAreaOverlayView.swift # Xcode-guide systemBlue bands (60 LOC)
+│   │   │   ├── RulerOverlayView.swift    # Capture-mode drag-measure + device-point readout (136 LOC)
+│   │   │   ├── MagnifierView.swift       # Hover-follow loupe + hex pill + click-to-commit (122 LOC)
+│   │   │   └── ComparisonImageView.swift # Aspect-fit artboard, opacity/split, bottom layer (63 LOC)
 │   │   ├── Preferences/
 │   │   │   ├── PreferencesView.swift     # Tab container (~30 LOC)
 │   │   │   ├── GeneralTab.swift          # Position + launch at login (~45 LOC)
@@ -117,10 +136,10 @@ BoosterSimApp/
 │   │   └── Shared/
 │   │       ├── AccentButton.swift        # Amber CTA button (~25 LOC)
 │   │       ├── StatusBadge.swift         # Colored dot + label (44 LOC)
-│   │       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
+│       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
 │   └── Utilities/
-│       ├── AppLogger.swift               # Centralized os.Logger instances (15 LOC)
-│       ├── DesignTokens.swift            # Layout/spacing constants (51 LOC)
+│       ├── AppLogger.swift               # Centralized os.Logger instances (18 LOC)
+│       ├── DesignTokens.swift            # Layout/spacing constants + OverlayMetrics (60 LOC)
 │       └── SpringAnimator.swift          # CADisplayLink spring physics (112 LOC)
 ├── BoosterSimAppTests/                   # Unit test target
 │   ├── BoosterSimAppTests.swift          # Basic test scaffold (17 LOC)
@@ -137,7 +156,12 @@ BoosterSimApp/
 │   ├── PushPayloadTests.swift            # Typed parse + 4096-byte boundary gate (156 LOC)
 │   ├── LocaleCommandTests.swift          # Locale/timezone/location/clipboard builders + parsers (244 LOC)
 │   ├── UserDefaultsEditorServiceTests.swift # Plist parse + typed write/delete argv (180 LOC)
-│   └── AppActionCatalogTests.swift       # Catalog search/filter contracts (124 LOC)
+│   ├── AppActionCatalogTests.swift       # Catalog search/filter contracts (124 LOC)
+│   ├── SafeAreaCatalogTests.swift        # Catalog rows: name/size/manual + landscape + iPad (119 LOC)
+│   ├── GridGeometryTests.swift           # Dual 8/4 spacing + scale math (62 LOC)
+│   ├── RulerMathTests.swift              # Device-point round trip + Y-flip pixel mapping + distance (38 LOC)
+│   ├── OverlayPersistenceTests.swift     # Toggles/presets/legacy import/safe-area/arming (289 LOC)
+│   └── PixelSamplerTests.swift           # Cached-capture sampling: mapping, generation guard, preflight (155 LOC)
 ├── BoosterSimAppUITests/                 # UI test target
 │   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
 │   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
@@ -201,6 +225,13 @@ BoosterSimApp/
 | Action catalog + quick search | `Models/AppAction.swift` |
 | App-action state machine + argv builders | `Models/AppActionModels.swift` |
 | simctl seam (serialized, stdin-capable) | `Services/SimCtlService.swift` |
+| Design overlay state + persistence | `Services/DesignOverlayService.swift` (+`+Presets`, `+Import`) |
+| Device safe-area constants (D-02) | `Services/SafeAreaCatalog.swift` |
+| Overlay coordinate mapper (pure) | `Services/OverlayGeometry.swift` |
+| Cached-capture pixel sampling | `Services/PixelSamplerService.swift` |
+| Overlay panel + D-04 layer install | `Windows/DesignOverlayPanel.swift` |
+| Overlay controller + input machine | `Windows/DesignOverlayController.swift` (+`+InputMode`) |
+| Overlay renderers (grid/safe-area/ruler/loupe/artboard) | `Views/Overlay/*.swift` |
 
 ## Largest Files (by LOC)
 
@@ -221,7 +252,7 @@ BoosterSimApp/
 | Tab | Section | Features | Status |
 |---|---|---|---|
 | Capture | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Complete (Phase 2) |
-| Design | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
+| Design | Design Tools | Dual 8pt/4pt Grid, Safe-Area Guide (auto + manual + calibration), Ruler, Magnifier + Color Picker, Artboard Comparison (open/paste/drag) | Complete (Phase 4) |
 | Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text, Smart Invert, Reduce Transparency, Grayscale, On/Off Labels, Button Shapes, Differentiate Without Color | Complete |
 | Actions | App Picker + Reset | DerivedData ∩ installed picker w/ running badge; Reset App Data, Uninstall, Clear Keychain (D-02, CA auto-reconcile) | Complete (Phase 3) |
 | Actions | Deep Links | openurl with history/favorites (DeepLinkService, on the seam) | Complete |
@@ -283,3 +314,27 @@ Modified mount points (plans 01–03): `NetworkTabView` (sections mounted), `App
 Wave 0 suites (8 files): `AppActionServiceTests`, `DerivedDataAppScannerTests`, `DeepLinkServiceTests`, `PrivacyPermissionTests`, `PushPayloadTests`, `LocaleCommandTests`, `UserDefaultsEditorServiceTests`, `AppActionCatalogTests`.
 
 Modified mount points (plans 01–04): `ActionsTabView` (catalog-driven section table + search), `AppDelegate`/`SideWindowController`/`SideWindowView` (service ownership + environment injection), `AppLogger` (new `actions` category), `.planning/codebase/CONVENTIONS.md` (async-exemption list shrinks to `CaptureService` alone). See `docs/system-architecture.md` § App Actions for the service split, seam hardening, active-app reconcile, effect-latency caption contract, defaults data path, and both platform limits (D-01/D-02).
+
+### Design Tools (Phase 4) — primary types
+
+| File | Primary types |
+|---|---|
+| `BoosterSimApp/Services/DesignOverlayService+Presets.swift` | `DesignPreset`, persistence under the versioned `DesignOverlayPresets` key, `importLegacyPresets()` (flag-guarded one-shot from `DesignComparisonPresets`), `savePreset`/`loadPreset`/`deletePreset` |
+| `BoosterSimApp/Services/DesignOverlayService+Import.swift` | `loadImage()` (NSOpenPanel), `importImage(from:)` (typed pasteboard), `accept(image:)` single gate + `validateImported` 16384-px cap (`maxImportedEdge`), `clearOverlay()` |
+| `BoosterSimApp/Services/SafeAreaCatalog.swift` | `SafeAreaCatalog.insets(forDeviceName:logicalSize:orientation:)`, `logicalSize(forDeviceName:)`, `landscape(from:)`, `manualDefaults` |
+| `BoosterSimApp/Services/OverlayGeometry.swift` | `OverlayGeometry` — `contentRect`, `Orientation` + `orientation(contentRect:)`, `scale`, `gridSpacings`, `devicePoint`/`windowPoint`, `imagePixel` (Y-flip), `distance` |
+| `BoosterSimApp/Services/PixelSamplerService.swift` | `PixelSamplerService` — `arm()`/`disarm()`, `refreshIfFrameChanged`, `sampleColor`, `sampleRegion`, `imagePixel`; test seams `injectCache`/`handleCaptureResult`/`preflightPermission` |
+| `BoosterSimApp/Windows/DesignOverlayPanel.swift` | `DesignOverlayPanel` + `OverlayLayer` (comparison/interactive/safeArea/grid) + `install(_:at:)`, `setCaptureMode(_:)`; `OverlayContainerView` hit-test routing |
+| `BoosterSimApp/Windows/DesignOverlayController.swift` | `DesignOverlayController` — `attach(to:service:pixelSampler:)`, `refreshVisibility()`, `pushGeometry(for:)`, `calibratedContentRect(for:)` |
+| `BoosterSimApp/Windows/DesignOverlayController+InputMode.swift` | `OverlayInputMode` (clickThrough/ruler/magnifier), `setRulerMode`/`setMagnifierMode`, `commitRuler`, `pickColor`, `enterCaptureMode`/`exitToClickThrough`, Esc + mouse-moved monitor lifecycle |
+| `BoosterSimApp/Views/Overlay/GridOverlayView.swift` | `GridOverlayView` — dual 8pt majors / 4pt minors in device points, `update(contentRect:scale:)`, `updateStyle(color:opacity:)` |
+| `BoosterSimApp/Views/Overlay/SafeAreaOverlayView.swift` | `SafeAreaOverlayView` — systemBlue 0.15/0.6 bands, `updateInsets(_:)` |
+| `BoosterSimApp/Views/Overlay/RulerOverlayView.swift` | `RulerOverlayView` — capture-mode drag-measure, endpoint markers, device-point readout pill, `onCommit` |
+| `BoosterSimApp/Views/Overlay/MagnifierView.swift` | `MagnifierView` — hover-follow loupe, crosshair, hex pill, `onPick` |
+| `BoosterSimApp/Views/Overlay/ComparisonImageView.swift` | `ComparisonImageView` — aspect-fit artboard, opacity/split, geometry-injected draw |
+| `BoosterSimApp/Views/SideWindow/DesignComparisonView.swift` + `DesignSafeAreaSection`/`DesignPresetsSection`/`DesignToolsSection` | Design tab surface: import row, grid controls, safe-area controls, presets, ruler/picker CTAs |
+| `BoosterSimApp/Utilities/DesignTokens.swift` | `OverlayMetrics` — markerRadius, readoutInset, loupeDiameter, loupeMagnificationDefault/Range (modified, Phase 4) |
+
+Wave 0 suites (5 files): `SafeAreaCatalogTests` (12), `GridGeometryTests` (4), `RulerMathTests` (5), `OverlayPersistenceTests` (13), `PixelSamplerTests` (6) — 40 design-tool unit tests, all Swift Testing.
+
+Modified mount points (plans 04-01…03): `AppDelegate` (lazy `designOverlayService`/`pixelSamplerService`/`designOverlayPanel`/`designOverlayController` + extended attach), `DesignTabView` (typed image drag-and-drop), `SideWindowController`/`SideWindowView` (environment injection rename), `AppLogger` (new `design` category), `DesignTokens` (OverlayMetrics). Deleted: `Services/DesignComparisonService.swift` (the fake pickColor scaffold — 04-01 cut-over; zero tokens remain). See `docs/system-architecture.md` § Design Tools for the D-04 layer contract, service split, cached-capture sampling, capture-mode input, permission degradation, and persistence keys.
