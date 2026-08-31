@@ -22,6 +22,7 @@ struct ActionsTabView: View {
                 CollapsibleSection(title: "Deep Link Testing", icon: "link", isExpanded: $isDeepLinkExpanded) {
                     DeepLinkSectionView(deepLinkService: deepLinkService, udid: udid)
                 }
+                PushNotificationSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
                 PrivacySectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
 
                 AppResetSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })

@@ -15,6 +15,8 @@ final class AppActionService: ObservableObject {
     @Published private(set) var installedBundleIDs: Set<String> = []
     @Published var activeBundleID: String?
     @Published private(set) var privacyCaption: String?
+    @Published private(set) var pushResult: PushActionResult?
+    @Published private(set) var isSendingPush = false
 
     // MARK: - Private
 
@@ -257,6 +259,57 @@ final class AppActionService: ObservableObject {
                 AppLogger.actions.info("opened device settings")
             }
         }
+    }
+
+    // MARK: - Push (stdin seam, SC2)
+
+    /// Parses, validates, and sends a push payload to the selected app via the stdin seam.
+    /// The gate runs BEFORE any subprocess (T-03-12): empty text, malformed JSON, non-object
+    /// roots, missing aps, and over-cap sizes all fail with typed captions. Logging carries
+    /// verb + encoded byte size + outcome only — payload bodies never reach AppLogger (T-03-05).
+    func sendPush(udid: String, bundleID: String?, payloadText: String) {
+        guard !udid.isEmpty else {
+            pushResult = .failed("No active Simulator — push needs a running device.")
+            return
+        }
+        let payload: PushPayload
+        switch PushPayload.parse(payloadText) {
+        case .failure(let error):
+            pushResult = .failed(error.message)
+            return
+        case .success(let parsed):
+            payload = parsed
+        }
+        guard let encoded = try? JSONEncoder().encode(payload) else {
+            pushResult = .failed("The payload could not be encoded.")
+            return
+        }
+        if let error = payload.validate(encodedByteCount: encoded.count) {
+            pushResult = .failed(error.message)
+            return
+        }
+
+        let size = encoded.count
+        isSendingPush = true
+        // Explicit bundle arg overrides the payload's embedded target (research: arg beats key).
+        runVerb(["push", udid, bundleID ?? "-", "-"], stdin: encoded) { [weak self] result in
+            guard let self else { return }
+            self.isSendingPush = false
+            switch result {
+            case .success(let output):
+                AppLogger.actions.info("push sent (\(size) bytes)")
+                self.pushResult = .sent(Self.pushCaption(from: output))
+            case .failure(let error):
+                AppLogger.actions.error("push failed (\(size) bytes)")
+                self.pushResult = .failed(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Maps simctl's confirmation line ("Notification sent to '<bundle>'") to the success caption.
+    private nonisolated static func pushCaption(from output: String) -> String {
+        let line = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return line.isEmpty ? "Notification sent." : line
     }
 
     // MARK: - Single-Hop Verb Runner

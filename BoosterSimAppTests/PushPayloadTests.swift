@@ -61,46 +61,46 @@ struct PushPayloadTests {
     // MARK: - Parse Gate (typed errors, never a crash)
 
     @Test func parseRejectsEmptyInput() {
-        if case .failure(.emptyInput)? = PushPayload.parse("") {} else {
+        if case .failure(.emptyInput) = PushPayload.parse("") {} else {
             Issue.record("expected .emptyInput for empty text")
         }
-        if case .failure(.emptyInput)? = PushPayload.parse("   \n  ") {} else {
+        if case .failure(.emptyInput) = PushPayload.parse("   \n  ") {} else {
             Issue.record("expected .emptyInput for whitespace-only text")
         }
     }
 
     @Test func parseRejectsNonObjectRoots() {
-        if case .failure(.notObject)? = PushPayload.parse("[1,2,3]") {} else {
+        if case .failure(.notObject) = PushPayload.parse("[1,2,3]") {} else {
             Issue.record("expected .notObject for an array root")
         }
-        if case .failure(.notObject)? = PushPayload.parse("\"just a string\"") {} else {
+        if case .failure(.notObject) = PushPayload.parse("\"just a string\"") {} else {
             Issue.record("expected .notObject for a string root")
         }
-        if case .failure(.notObject)? = PushPayload.parse("42") {} else {
+        if case .failure(.notObject) = PushPayload.parse("42") {} else {
             Issue.record("expected .notObject for a number root")
         }
     }
 
     @Test func parseRejectsPayloadsMissingTheAPSKey() {
-        if case .failure(.missingAPS)? = PushPayload.parse(#"{"Simulator Target Bundle":"com.x"}"#) {} else {
+        if case .failure(.missingAPS) = PushPayload.parse(#"{"Simulator Target Bundle":"com.x"}"#) {} else {
             Issue.record("expected .missingAPS when the aps key is absent")
         }
     }
 
     @Test func parseRejectsMalformedJSONWithTheTypedError() {
-        if case .failure(.invalidJSON)? = PushPayload.parse("{oops") {} else {
+        if case .failure(.invalidJSON) = PushPayload.parse("{oops") {} else {
             Issue.record("expected .invalidJSON for malformed text (never a crash)")
         }
     }
 
     @Test func parseRejectsWrongShapedValues() {
-        if case .failure(.invalidShape)? = PushPayload.parse(#"{"aps":"text"}"#) {} else {
+        if case .failure(.invalidShape) = PushPayload.parse(#"{"aps":"text"}"#) {} else {
             Issue.record("expected .invalidShape when aps is not an object")
         }
     }
 
     @Test func parseAcceptsAWellFormedPayload() {
-        if case .success(let payload)? = PushPayload.parse(#"{"aps":{"alert":"Hi","badge":1}}"#) {
+        if case .success(let payload) = PushPayload.parse(#"{"aps":{"alert":"Hi","badge":1}}"#) {
             #expect(payload.aps.alert == "Hi")
             #expect(payload.aps.badge == 1)
         } else {
@@ -122,7 +122,7 @@ struct PushPayloadTests {
             #expect(encoded.count <= PushPayload.maxEncodedBytes)
             #expect(template.validate(encodedByteCount: encoded.count) == nil)
             // The template text re-parses cleanly — what the preset pill inserts stays valid.
-            if case .success(let reparsed)? = PushPayload.parse(String(data: encoded, encoding: .utf8) ?? "") {
+            if case .success(let reparsed) = PushPayload.parse(String(data: encoded, encoding: .utf8) ?? "") {
                 #expect(reparsed == template)
             } else {
                 Issue.record("template text must re-parse to the same payload")
