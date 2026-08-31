@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: 03-01 halted at Task 3 blocking-human smoke (2/3 tasks done, 107/107 unit green) — resume by approving the 7-step live checklist
-last_updated: "2026-08-31T03:47:36.819Z"
-last_activity: 2026-08-31
-last_activity_desc: Phase 3 execution started
-state_head: daefdc359a9c9935e93f4cd5583ea036011c8749
+stopped_at: 03-01 complete — Task 3 blocking-human smoke user-approved 2026-08-30 (3/3 tasks, 107/107 unit green); Phase 3 Wave 2 (03-02) ready to dispatch
+last_updated: "2026-08-31T03:57:02.000Z"
+last_activity: 2026-08-30
+last_activity_desc: 03-01 tracer smoke user-approved — reset spine complete (plan 1/5)
+state_head: 21bb5676aa976ee2b9aea0296371fa2e34137b4e
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 13
-  completed_plans: 9
-  percent: 29
+  completed_plans: 10
+  percent: 77
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 3 (App Actions) — EXECUTING
-Plan: 1 of 5
+Plan: 1 of 5 complete (03-01 smoke approved 2026-08-30) — next: 03-02 (Wave 2)
 Status: Executing Phase 3
-Last activity: 2026-08-31 — Phase 3 execution started
+Last activity: 2026-08-30 — 03-01 tracer smoke user-approved; reset spine complete (1/5 Phase-3 plans)
 
 Progress: [████████░░░░░░░░░░] 4 of 7 phases complete (1, 2, 5, 6) — next: Phase 3 App Actions
 
@@ -38,7 +38,7 @@ Progress: [████████░░░░░░░░░░] 4 of 7 phases
 
 **Velocity:**
 
-- Total plans completed: 8 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
+- Total plans completed: 9 (GSD-tracked; Phases 1/6 and the Phase 5 core predate .planning)
 - Average duration: 18min
 - Total execution time: 72min
 
@@ -57,6 +57,7 @@ Progress: [████████░░░░░░░░░░] 4 of 7 phases
 | Phase 05 P03 | 11min | 2 tasks | 5 files |
 | Phase 05 P04 | 9min | 3 tasks | 2 files |
 | Phase 02-03 P03 | 10min | 2 tasks | 8 files |
+| Phase 03 P01 | 15min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -102,7 +103,6 @@ None yet.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
 - [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
-- [03-01] Halted at Task 3 blocking-human smoke — live Simulator + DerivedData-built app + installed local CA required; D-02 keychain wipe is never auto-run. Approve the 7-step checklist to unblock wave 2 (plan 02).
 
 ## Deferred Items
 
@@ -115,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T03:47:36.525Z
-Stopped at: 03-01 halted at Task 3 blocking-human smoke (2/3 tasks done, 107/107 unit green) — resume by approving the 7-step live checklist
-Resume file: .planning/phases/03-app-actions/03-01-reset-app-tracer-SUMMARY.md
+Last session: 2026-08-31T03:57:02.000Z
+Stopped at: 03-01 complete — Task 3 blocking-human smoke user-approved 2026-08-30 (3/3 tasks); Wave 2 (03-02 push-deep-link-privacy) ready to dispatch
+Resume file: .planning/phases/03-app-actions/03-02-push-deeplink-privacy-PLAN.md

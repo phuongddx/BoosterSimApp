@@ -22,7 +22,7 @@ affects: [03-02 push/deep-links/privacy, 03-03 locale/location/clipboard, 03-04 
 
 actuals:
   tokens: 16880   # chars/4 over the realized diff (67,521 chars)
-  tasks: 2        # of 3 — Task 3 is the blocking-human smoke, pending
+  tasks: 3        # all 3 complete — Task 3 blocking-human smoke user-approved 2026-08-30
   commits: 4      # TDD pairs, excluding the docs commit
 
 tech-stack:
@@ -61,7 +61,7 @@ patterns-established:
   - "Extend-the-seam recipe for every Phase 3 verb: pure argv builder (nonisolated static) → [weak self] flatMap chain with 30s timeout → begin/finish/fail quartet"
   - "Honest-outcome captions as enum terminals (ResetOutcome) — a failed reinstall is a distinct state, never a success string"
 
-requirements-completed: []   # REQ-roadmap-phase3-app-actions + REQ-fr-13 stay open until the Task 3 smoke is approved
+requirements-completed: [REQ-fr-13]   # Actions-tab wiring leg closed by the approved smoke (REQ-fr-13 itself already Complete in REQUIREMENTS.md from Phase 1); REQ-roadmap-phase3-app-actions stays open until the 03-05 phase gate (shared-ID pattern)
 
 coverage:
   - id: D1
@@ -82,7 +82,10 @@ coverage:
     human_judgment: false
   - id: D3
     description: "Reset-app end-to-end on a live Simulator — picker lists installed DerivedData apps with running badge; reset yields a fresh app; uninstall removes; repeated reset is idempotent; A6 reinstall-degrade caption is honest"
-    verification: []
+    verification:
+      - kind: manual
+        ref: "Task 3 smoke steps 1-4, user-approved 2026-08-30"
+        status: pass
     human_judgment: true
     rationale: "Live device-state lifecycle (terminate/uninstall/install against a booted Simulator with real persisted state) — impossible to exercise headless"
   - id: D4
@@ -92,30 +95,36 @@ coverage:
       - kind: unit
         ref: BoosterSimAppTests/AppActionServiceTests#clearKeychainDelegatesThenReconcilesExactlyOnce + 3 siblings (delegate order pinned on a scripted double)
         status: pass
+      - kind: manual
+        ref: "Task 3 smoke steps 5-6 (D-02 blast-radius dialog + automatic CA re-trust), user-approved 2026-08-30"
+        status: pass
     human_judgment: true
     rationale: "The unit run pins delegate order on a double; the destructive wipe against the real device keychain and the visual blast-radius gate need the human smoke (steps 5-6)"
   - id: D5
     description: "Seam survival of large outputs (33 KB listapps) + no-Simulator degraded state without crashes"
-    verification: []
+    verification:
+      - kind: manual
+        ref: "Task 3 smoke step 7 (shutdown degraded state, no crash; re-boot restores), user-approved 2026-08-30"
+        status: pass
     human_judgment: true
     rationale: "Requires a booted Simulator producing a real listapps payload and a device shutdown/reboot cycle"
 
 # Metrics
 duration: 15min
 completed: 2026-08-31
-status: halted
+status: complete
 ---
 
 # Phase 3 Plan 01: Reset-App Tracer Summary
 
-**App Actions spine proven in code — hardened simctl seam (deadlock fix, stdin, serialization), DerivedData scanner, AppActionService facade, app picker + reset section, D-02 keychain clear delegating to CertificateService — halted at the blocking-human live smoke (Task 3).**
+**App Actions spine proven end-to-end — hardened simctl seam (deadlock fix, stdin, serialization), DerivedData scanner, AppActionService facade, app picker + reset section, D-02 keychain clear delegating to CertificateService; Task 3 blocking-human live smoke user-approved 2026-08-30 (7/7 steps).**
 
 ## Performance
 
 - **Duration:** 15 min (03:30–03:46 UTC)
 - **Started:** 2026-08-31T03:30:50Z
 - **Completed:** 2026-08-31T03:46:13Z (automation portion)
-- **Tasks:** 2 of 3 (Task 3 = blocking-human checkpoint, pending user)
+- **Tasks:** 3 of 3 (Task 3 blocking-human smoke user-approved 2026-08-30)
 - **Files modified:** 13 (7 created, 6 modified)
 
 ## Accomplishments
@@ -136,9 +145,23 @@ Each task was committed atomically (TDD pairs):
 
 **Tracer feedback gate:** re-ran the tracer `<verify>` post-commit (targeted suites 19/19 + Debug build) — passed; continued to expansion per end-of-phase mode.
 
-**Task 3:** `checkpoint:human-verify gate="blocking-human"` — STOPPED; awaiting the live Simulator smoke (never auto-run: D-02 wipes a real device keychain).
+**Task 3:** `checkpoint:human-verify gate="blocking-human"` — STOPPED at the live Simulator smoke (never auto-run: D-02 wipes a real device keychain); **APPROVED 2026-08-30** — see Checkpoint Resolution.
 
 **Plan metadata:** see docs commit below.
+
+## Checkpoint Resolution
+
+- **Task:** 3 — blocking-human live Simulator smoke (`checkpoint:human-verify`, `gate="blocking-human"`)
+- **Gate:** human-verify · **Result:** approved (user-verified) · **Date:** 2026-08-30
+- **Steps verified — 7/7 pass:**
+  1. Picker listed only the installed DerivedData-built app, with a running badge and explicit selection
+  2. Reset App Data produced a fresh reinstall — prior persisted state gone
+  3. Uninstall removed the app and the picker updated
+  4. Reset-on-uninstalled showed the honest idempotent caption — the reinstall leg worked, no false success (A6)
+  5. Clear Keychain dialog named the full blast radius (every app's keychains + the local CA) before the red-confirm (D-02)
+  6. The CA re-reconciled automatically right after — trust restored, zero manual steps
+  7. Simulator shutdown showed the clean disabled/degraded state with no crash; re-boot restored function
+- **Effect:** plan closed as complete; ROADMAP 03-01 checked; Phase 3 Wave 2 (03-02) unblocked
 
 ## Files Created/Modified
 - `BoosterSimApp/Services/SimCtlService.swift` — concurrent drains + stdin + serialized invocations (signature-compatible)
@@ -203,7 +226,7 @@ Each task was committed atomically (TDD pairs):
 - Task 1's acceptance criterion (≤200) held at its commit (196 lines). Task 2's keychain cluster grew the file; a cross-file split would force de-privatizing the facade's state (extensions can't touch private members). House precedent: CaptureService 312. Noted for the code review gate.
 
 **7. [Process] Windows ledger not appended**
-- `.planning/WINDOWS.md` is user-dirty and was marked untouched by the orchestrator; the pending smoke is instead tracked here (status: halted) + STATE blocker + ROADMAP 03-01 unchecked.
+- `.planning/WINDOWS.md` is user-dirty and was marked untouched by the orchestrator; the pending smoke is instead tracked here (status: halted) + STATE blocker + ROADMAP 03-01 unchecked. Resolved 2026-08-30: smoke user-approved — status complete, STATE blocker cleared, ROADMAP checked (this closeout docs commit).
 
 ---
 
@@ -222,8 +245,8 @@ Each task was committed atomically (TDD pairs):
 
 ## Next Phase Readiness
 - Plans 02-04 ride the proven seam additively (push needs the already-shipped stdin parameter; privacy/locale/location/clipboard/defaults need only new argv builders + sections)
-- **Blocker:** Task 3 blocking-human smoke pending — approve via the 7-step checklist (picker accuracy, reset freshness, idempotent repeat, A6 degrade honesty, D-02 blast-radius dialog + automatic CA re-trust, degraded no-simulator state) before wave 2 dispatches
-- On approval: re-summarize as complete + roadmap 03-01 checked; on failure of the reinstall leg (A6), keep the degrade path and file the note
+- **Blocker:** none — Task 3 smoke approved 2026-08-30 (7/7 steps); Wave 2 (03-02 push/deep-links/privacy) unblocked
+- The A6 reinstall leg passed live, so the honest-degrade path ships as designed
 
 ## Self-Check: PASSED
 - All 7 created files exist on disk; all 6 modified files changed as listed (git show --stat per commit)
@@ -232,4 +255,4 @@ Each task was committed atomically (TDD pairs):
 
 ---
 *Phase: 03-app-actions — Plan: 01 (reset-app tracer)*
-*Status: halted at blocking-human smoke — 2026-08-31*
+*Status: complete — smoke approved 2026-08-30*
