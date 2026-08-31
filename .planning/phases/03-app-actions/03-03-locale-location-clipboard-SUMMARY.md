@@ -20,7 +20,7 @@ affects: [03-04 defaults editor + action search, 03-05 docs + phase gate]
 
 actuals:
   tokens: 16518   # chars/4 over the realized diff (66,074 chars) — vs. 38,000 estimate (confidence was low)
-  tasks: 2        # of 3 — Task 3 is the blocking-human smoke, halted pending user verification
+  tasks: 3        # of 3 — Task 3 blocking-human smoke user-approved 2026-08-31
   commits: 4      # TDD pairs, excluding the docs commit
 
 tech-stack:
@@ -50,7 +50,7 @@ key-decisions:
 patterns-established:
   - "Validated-input section anatomy: TextField row + computed pure-validator Result + inline typed error + disabled action — rejection before any verb, reused verbatim between view and service gate"
 
-requirements-completed: []   # REQ-roadmap-phase3-app-actions / REQ-fr-14 close only after the Task-3 blocking smoke passes (halted now); REQ-fr-13 already Complete in REQUIREMENTS.md from Phase 1
+requirements-completed: []   # REQ-roadmap-phase3-app-actions stays OPEN until the 03-05 phase gate (shared-ID pattern — criteria 1-4 share the ID; smoke approved 2026-08-31); REQ-fr-13 already Complete in REQUIREMENTS.md from Phase 1
 
 coverage:
   - id: D1
@@ -71,27 +71,29 @@ coverage:
     human_judgment: false
   - id: D3
     description: "Live criterion-3 proof + plan-02 re-verification — guided grant (D-01), push banner tap-through, payload gate live, privacy + deep link, locale relaunch + localization (A1), Maps movement (A2), clipboard round-trip, dark/Dynamic Type reuse regression, idempotency + degraded states"
-    requirement: REQ-roadmap-phase3-app-actions
-    verification: []
+    verification:
+      - kind: manual
+        ref: "Task-3 blocking-human smoke — 9/9 steps user-approved 2026-08-31 (see Checkpoint Resolution)"
+        status: pass
     human_judgment: true
     rationale: "Device-state behaviors (banner delivery, TCC, CoreLocation consumers, pasteboards, relaunch localization) are impossible to exercise headless; Task 3 is the plan's blocking-human smoke"
 
 # Metrics
 duration: 38min
 completed: 2026-08-31
-status: halted
+status: complete
 ---
 
 # Phase 3 Plan 03: Locale / Location / Clipboard Summary
 
-**Criterion 3's action surface shipped and unit-pinned — locale/timezone writes on the single `.GlobalPreferences` domain with one relaunch hop, validated location simulation with tz-syncing city presets and a state-driven Stop, and manual bidirectional pbsync — halted at the Task-3 blocking-human smoke (9 steps) pending user verification.**
+**Criterion 3's action surface shipped and unit-pinned — locale/timezone writes on the single `.GlobalPreferences` domain with one relaunch hop, validated location simulation with tz-syncing city presets and a state-driven Stop, and manual bidirectional pbsync — complete: the Task-3 blocking-human smoke passed 9/9 (user-approved 2026-08-31).**
 
 ## Performance
 
 - **Duration:** 38 min (04:28–05:06 UTC, automation portion)
 - **Started:** 2026-08-31T04:28:06Z
-- **Completed:** automation complete 2026-08-31T05:06Z; **Task 3 smoke PENDING**
-- **Tasks:** 2 of 3 complete (Task 3 = `checkpoint:human-verify gate="blocking-human"`)
+- **Completed:** 2026-08-31 (automation 05:06 UTC; Task-3 smoke approved same day)
+- **Tasks:** 3 of 3 complete (Task 3 = `checkpoint:human-verify gate="blocking-human"` — user-approved)
 - **Files modified:** 6 (4 created, 2 modified)
 
 ## Accomplishments
@@ -109,7 +111,7 @@ Each task was committed atomically (TDD pairs; RED commits fail compilation agai
 3. **Task 2 RED:** `f2a5904` — test(03-03): location + clipboard builder tests
 4. **Task 2 GREEN:** `0559fef` — feat(03-03): location simulation with paired stop + bidirectional clipboard sync
 
-**Task 3:** `checkpoint:human-verify gate="blocking-human"` — HALTED (never auto-approved; AUTO_MODE=false). See Checkpoint below.
+**Task 3:** `checkpoint:human-verify gate="blocking-human"` — APPROVED by the user 2026-08-31 (halted at execution, never auto-approved; AUTO_MODE=false). See Checkpoint Resolution below.
 
 **Plan metadata:** see docs commit below.
 
@@ -173,28 +175,28 @@ Each task was committed atomically (TDD pairs; RED commits fail compilation agai
 1. One booted iOS Simulator with an app that (a) can receive push notifications with permission granted (e.g. the Xcode-built app after a manual Settings grant, or Apple Calendar if notification permission was ever granted), (b) localizes visibly when the language changes, and (c) reads location (Apple Maps works)
 2. BoosterSimApp running with the side panel on the Actions tab against that Simulator
 
-## Checkpoint (Task 3 — blocking-human smoke, PENDING)
+## Checkpoint Resolution (Task 3 — blocking-human smoke, APPROVED)
 
-**Type:** human-verify · **Gate:** blocking-human · **Status:** awaiting user verification
+**Type:** human-verify · **Gate:** blocking-human · **Result:** approved · **Date:** 2026-08-31 · **Verified by:** user (ran all nine steps and reported each passing)
 
-Nine steps to observe and record pass/fail (per-step record lands in this summary on resume):
+Per-step outcomes as reported by the user:
 
-1. **D-01 GUIDED GRANT** — Push section with permission DENIED: the control shows the honest cannot-set caption; click Open Settings → device Settings opens; navigate Notifications → \<app\> → Allow
-2. Send Test Push (alert template) — the banner arrives and taps through to the app
-3. Paste a >4096-byte payload — rejected inline with the size error, no send; a template payload sends again fine
-4. PRIVACY + DEEP LINK — grant then revoke a service (e.g. photos) for the active app; terminate-warning caption visible; a preset deep link still opens in the Simulator
-5. LOCALE — apply the Japanese preset on a localizable app → the app relaunches (A1) and localizes; apply the Tokyo city preset → timezone changes with it; restore the original locale preset afterward
-6. LOCATION — set Tokyo coordinates manually → Maps/Weather reflect them (A2); Clear restores; the Clear control is visible the whole time a simulation is active
-7. CLIPBOARD — copy text on the Mac → Mac → Simulator → paste into a device text field shows it; copy different text on the device → Simulator → Mac → paste on the Mac shows it
-8. REUSE REGRESSION — toggle Dark Mode and change Dynamic Type in the existing Environment section — both apply instantly, no relaunch
-9. IDEMPOTENCY + EMPTY INPUTS — re-apply the same locale preset (stable, no error); clear the lat/lon fields and click Set (typed inline error, nothing sent); with the Simulator shut down, all sections show degraded/disabled states, no crash
+1. **D-01 GUIDED GRANT — PASS:** with permission denied the control showed the honest cannot-set caption; Open Settings opened device Settings; the manual grant (Notifications → \<app\> → Allow) then succeeded
+2. **PUSH BANNER — PASS:** Send Test Push (alert template) delivered the banner and it tapped through to the app
+3. **PAYLOAD GATE — PASS:** the >4096-byte payload was rejected inline with the size error (no send) while the template payload sent fine
+4. **PRIVACY + DEEP LINK — PASS:** grant then revoke showed the terminate-warning caption; the preset deep link still opened in the Simulator
+5. **LOCALE — PASS:** the Japanese preset relaunch-localized the app (A1 ✓); the Tokyo preset moved the timezone with it; the original locale was restored afterward
+6. **LOCATION — PASS:** Tokyo coordinates moved Maps/Weather (A2 ✓); Clear restored them and was visible the whole time a simulation was active
+7. **CLIPBOARD — PASS:** round-tripped both directions — Mac → Simulator pasted into a device text field, Simulator → Mac pasted on the Mac
+8. **REUSE REGRESSION — PASS:** Dark Mode and Dynamic Type applied instantly via the existing Environment section, no relaunch
+9. **IDEMPOTENCY + EMPTY INPUTS — PASS:** re-applying the same locale preset was stable; empty lat/lon + Set gave the typed inline error (nothing sent); with the Simulator shut down all sections showed the clean degraded state, no crash
 
-**Resume signal:** reply "approved" to unblock Wave 4 (plan 04), or describe the failing step. A failed relaunch requires switching to the unit-tested two-step fallback inside this plan; a fake-looking permission toggle or a missing Stop is a prohibition violation and blocks approval.
+**Outcome:** 9/9 PASS — Wave 4 (plan 03-04) unblocked per the phase's wave gate; flagged assumptions A1 (one-call relaunch) and A2 (Maps movement) closed. The unit-tested two-step relaunch fallback was not needed.
 
 ## Next Phase Readiness
 - Plans 04-05 ride the seam additively; the defaults editor reuses the Task-1 spawn-defaults builders and the readKeyArgs/parser pattern
-- **Blocker:** Task 3 blocking-human smoke pending (9 steps above) — Wave 4 dispatch waits on its approval per the phase's wave gate
-- Flagged assumptions A1 (one-call relaunch) and A2 (Maps movement) close at smoke steps 5-6
+- **Blocker cleared:** Task 3 blocking-human smoke approved (9/9, 2026-08-31) — Wave 4 dispatch unblocked per the phase's wave gate
+- Flagged assumptions A1 (one-call relaunch) and A2 (Maps movement) closed at smoke steps 5-6
 
 ## Self-Check: PASSED
 - All 4 created files exist on disk; both modified files changed as listed (git show --stat per commit)
@@ -203,4 +205,4 @@ Nine steps to observe and record pass/fail (per-step record lands in this summar
 
 ---
 *Phase: 03-app-actions — Plan: 03 (locale / location / clipboard)*
-*Status: halted — Task 3 blocking-human smoke pending*
+*Status: complete — Task 3 blocking-human smoke approved 2026-08-31 (9/9)*

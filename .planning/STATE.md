@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 3
 current_phase_name: App Actions
 status: executing
-stopped_at: Halted at 03-03 Task 3 blocking-human smoke (pending user verification)
-last_updated: "2026-08-31T04:40:33.624Z"
+stopped_at: 03-03 smoke approved — locale/location/clipboard complete (plan 3/5 of Phase 3); next: 03-04 (Wave 4)
+last_updated: "2026-08-31T04:47:12.000Z"
 last_activity: 2026-08-31
-last_activity_desc: 03-02 push/deep-link/privacy complete — plan 2/5 of Phase 3
+last_activity_desc: 03-03 locale/location/clipboard complete (smoke approved) — plan 3/5 of Phase 3
 state_head: 0559fef8127314e52308dc5529956a08bb22e3ed
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
   percent: 29
 ---
 
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 3 (App Actions) — EXECUTING
-Plan: 2 of 5 complete (03-01 smoke approved 2026-08-30; 03-02 push/deep-link/privacy 2026-08-31) — next: 03-03 (Wave 3)
+Plan: 3 of 5 complete (03-01, 03-02, 03-03 — smoke approved 2026-08-31) — next: 03-04 (Wave 4)
 Status: Executing Phase 3
-Last activity: 2026-08-31 — 03-02 complete: push on the stdin seam, D-01 guided-grant control, 12-service privacy, DeepLinkService migrated onto SimCtlService (138/138 unit green)
+Last activity: 2026-08-31 — 03-03 complete: locale/timezone one-relaunch switching, validated location + tz-syncing presets, bidirectional clipboard pbsync; Task-3 blocking smoke 9/9 approved
 
 Progress: [███░░░░░░░] 29%
 
@@ -111,7 +111,6 @@ None yet.
 - [infra]: Package.resolved is untracked in git, so the REQ-nfr-03 pin assertion is vacuous at the git level — content stability proven by sha256 across Phases 5+2; track the file so future pin checks are real.
 - [infra][pre-existing]: parallel-testing xcodebuild runs intermittently hang (runner instance multiplication) — use -parallel-testing-enabled NO for targeted suites (02-REVIEW-FIX.md).
 - [Phase 5][pre-existing]: xcodebuild test exits 65 via post-test app relaunch "Early unexpected exit" flake — reproduced on pristine HEAD (also by orchestrator for ScreenshotTests 4/4); unit suites green. See deferred-items.md.
-- [Phase 3][03-03] Task 3 blocking-human smoke (9 steps) pending — criterion 3 live proof + plan-02 re-verification + A1/A2 close; Wave 4 waits on approval (resume: reply approved)
 
 ## Deferred Items
 
@@ -125,5 +124,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-08-31T04:40:33.385Z
-Stopped at: Halted at 03-03 Task 3 blocking-human smoke (pending user verification)
-Resume file: .planning/phases/03-app-actions/03-03-locale-location-clipboard-PLAN.md
+Stopped at: 03-03 smoke approved — locale/location/clipboard complete (plan 3/5); Wave 4 next
+Resume file: .planning/phases/03-app-actions/03-04-defaults-editor-search-PLAN.md
