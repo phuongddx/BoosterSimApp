@@ -1,5 +1,6 @@
-// DesignComparisonView.swift — Side-panel UI for design overlay tools (grid, ruler, color readout, presets)
+// DesignComparisonView.swift — Side-panel UI for design overlay tools (import, safe area, grid, ruler, color, presets)
 import SwiftUI
+import AppKit
 
 struct DesignComparisonView: View {
 
@@ -17,9 +18,12 @@ struct DesignComparisonView: View {
             }
             .pickerStyle(.segmented)
 
-            // MARK: - Image Controls
-            HStack(spacing: 8) {
-                Button("Load Image") { service.loadImage() }
+            // MARK: - Import (file / paste / drag-and-drop)
+            HStack(spacing: Spacing.xs) {
+                Button("Open…") { service.loadImage() }
+                    .buttonStyle(.bordered)
+
+                Button("Paste") { service.importImage(from: NSPasteboard.general) }
                     .buttonStyle(.bordered)
 
                 if service.overlayImage != nil {
@@ -36,6 +40,16 @@ struct DesignComparisonView: View {
                         .foregroundColor(.secondary)
                 }
             }
+
+            if let importError = service.importError {
+                Text(importError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+
+            Text("Drop an image onto this tab to import")
+                .font(.caption2)
+                .foregroundColor(.secondary)
 
             // MARK: - Opacity Slider
             if service.overlayImage != nil && service.comparisonMode == .overlay {

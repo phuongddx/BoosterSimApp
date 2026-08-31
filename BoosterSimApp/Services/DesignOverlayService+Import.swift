@@ -18,7 +18,8 @@ extension DesignOverlayService {
         panel.canChooseDirectories = false
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        overlayImage = NSImage(contentsOf: url)
+        guard let image = NSImage(contentsOf: url) else { return }
+        accept(image: image)
     }
 
     func clearOverlay() {

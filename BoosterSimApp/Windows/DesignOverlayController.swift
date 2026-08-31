@@ -11,6 +11,7 @@ final class DesignOverlayController: ObservableObject {
     // MARK: - Private
 
     private let panel: DesignOverlayPanel
+    private let comparisonImageView = ComparisonImageView()
     private let safeAreaOverlayView = SafeAreaOverlayView()
     private let gridOverlayView = GridOverlayView()
     private var service: DesignOverlayService?
@@ -22,9 +23,11 @@ final class DesignOverlayController: ObservableObject {
 
     init(panel: DesignOverlayPanel) {
         self.panel = panel
+        comparisonImageView.isHidden = true
         safeAreaOverlayView.isHidden = true
         gridOverlayView.isHidden = true
-        panel.install(safeAreaOverlayView, at: .safeArea)   // grid stays above; comparison image below (D-04)
+        panel.install(comparisonImageView, at: .comparison)   // bottom slot — guides always above (D-04)
+        panel.install(safeAreaOverlayView, at: .safeArea)
         panel.install(gridOverlayView, at: .grid)
     }
 
@@ -63,7 +66,15 @@ final class DesignOverlayController: ObservableObject {
         gridOverlayView.updateStyle(color: NSColor(service.gridColor), opacity: service.gridOpacity)
         safeAreaOverlayView.isHidden = !service.showSafeArea
         safeAreaOverlayView.updateInsets(service.effectiveInsets)
-        let anyToolOn = service.showGrid || service.showRuler || service.showSafeArea
+        comparisonImageView.isHidden = (service.overlayImage == nil)
+        comparisonImageView.update(
+            image: service.overlayImage,
+            opacity: CGFloat(service.overlayOpacity),
+            mode: service.comparisonMode,
+            splitPosition: CGFloat(service.splitPosition),
+            contentRect: currentContentRect
+        )
+        let anyToolOn = service.showGrid || service.showRuler || service.showSafeArea || service.overlayImage != nil
         if anyToolOn, currentSimulator != nil {
             panel.orderFront(nil)
         } else {
