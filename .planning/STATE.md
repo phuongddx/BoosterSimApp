@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 4
 current_phase_name: Design Tools
 status: executing
-stopped_at: Completed 04-02-PLAN.md (safearea-comparison-import)
-last_updated: "2026-08-31T13:56:20.013Z"
+stopped_at: Completed 04-03-PLAN.md (ruler-magnifier)
+last_updated: "2026-08-31T14:35:53.249Z"
 last_activity: 2026-08-31
 last_activity_desc: Phase 4 execution started
-state_head: f5af4cd13bd5edef3a6c0d31060e6c5b6534c3ac
+state_head: c30819de4d73423221a3cee4b0d39a1c4d49b939
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 43
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 4 (Design Tools) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-31 — Phase 4 execution started
 
@@ -64,6 +64,7 @@ Progress: [████░░░░░░] 43%
 | Phase 03 P04 | 22min | 2 tasks | 11 files |
 | Phase 04 P01 | 13min | 2 tasks | 16 files |
 | Phase 4 P02 | 19min | 3 tasks | 14 files |
+| Phase 04 P03 | 30min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 4]: [Phase 4][04-02] Controller swaps catalog portrait logical size (w,h)→(h,w) for landscape scale — OverlayGeometry's 04-01 signatures stay frozen; safe-area bands render fixed systemBlue (Xcode-guide look) while grid keeps tunable gridColor
 - [Phase 4]: [Phase 4][04-02] Single accept(image:) gate: open/paste/drop all funnel through the 16384-px dimension cap with importError caption; typed UTType pasteboard reads only; Task { @MainActor in } hop for NSItemProvider callbacks (CommandServer precedent)
 - [Phase 4]: [Phase 4][04-02] Service split into +Presets/+Import extensions and DesignComparisonView into DesignSafeAreaSection/DesignPresetsSection — <200 LOC code standard takes precedence over plan file lists; all plan-named symbols stay on DesignOverlayService
+- [Phase 4]: [Phase 4][04-03] PixelSamplerService is the second sanctioned async site (CaptureService Task-bridge shape): one cached capture per arming, generation-guarded late-result discard, mapping exclusively via OverlayGeometry.imagePixel — CONVENTIONS exemption wording updated at 04-04
+- [Phase 4]: [Phase 4][04-03] Capture-mode input routes through the panel container's hitTest (interactive band only) — render layers above the .interactive slot would otherwise swallow ruler/picker events while visible; D-04 z-order untouched
+- [Phase 4]: [Phase 4][04-03] A5 freshness = resize/orientation re-captures, pure translation does not (content pixels are translation-invariant) — no per-move captures during Simulator drags; loupe state pushes directly to the view (no per-move @Published churn)
 
 ### Pending Todos
 
@@ -137,6 +141,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-31T13:56:19.617Z
-Stopped at: Completed 04-02-PLAN.md (safearea-comparison-import)
+Last session: 2026-08-31T14:35:52.873Z
+Stopped at: Completed 04-03-PLAN.md (ruler-magnifier)
 Resume file: None

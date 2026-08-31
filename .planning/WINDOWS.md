@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 3
 waived_count: 0
-fixed_count: 0
-total_count: 2
-last_updated: 2026-08-29T17:10:33.233Z
+fixed_count: 1
+total_count: 4
+last_updated: 2026-08-31T14:33:21.453Z
 ---
 
 # Broken Windows Ledger
@@ -17,6 +17,8 @@ last_updated: 2026-08-29T17:10:33.233Z
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 5 | unrun-verify | .planning/phases/05-network-tools/05-01-command-channel-tracer-PLAN.md |  | 05-01 Task 3: live-Simulator airplane smoke (7 steps) pending human verification | open |  | 2026-08-29T16:16:41.615Z |  |
 | 2 | 5 | unrun-verify | .planning/phases/05-network-tools/05-04-phase-gate-closure-SUMMARY.md |  | Task-3 six-group phase-gate manual smoke pending human approval (airplane/throttle/block/reconcile/certs/clean-state) — closes phase 5 on approval | open |  | 2026-08-29T17:10:33.233Z |  |
+| 3 | 2 | unrun-verify | .planning/phases/02-capture-tools/02-01-screenshot-tracer-PLAN.md |  | 02-01 Task 3 blocking-human live smoke (8 steps) pending — needs booted Simulator + TCC cycle; tracked as checkpoint, not silently skipped | open |  | 2026-08-30T12:16:19.153Z |  |
+| 4 | 04 | stub | BoosterSimApp/Services/DesignOverlayService.swift | 26 | pickedColor has no producer until 04-03 PixelSamplerService (fake pickColor deleted by plan; Color Picker readout intentionally inert) | fixed |  | 2026-08-31T13:31:37.013Z | 2026-08-31T14:33:21.453Z |
 
 ````json
 [
@@ -43,6 +45,30 @@ last_updated: 2026-08-29T17:10:33.233Z
     "reason": "",
     "recorded_at": "2026-08-29T17:10:33.233Z",
     "resolved_at": null
+  },
+  {
+    "id": 3,
+    "kind": "unrun-verify",
+    "phase": "2",
+    "file": ".planning/phases/02-capture-tools/02-01-screenshot-tracer-PLAN.md",
+    "line": null,
+    "description": "02-01 Task 3 blocking-human live smoke (8 steps) pending — needs booted Simulator + TCC cycle; tracked as checkpoint, not silently skipped",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-30T12:16:19.153Z",
+    "resolved_at": null
+  },
+  {
+    "id": 4,
+    "kind": "stub",
+    "phase": "04",
+    "file": "BoosterSimApp/Services/DesignOverlayService.swift",
+    "line": 26,
+    "description": "pickedColor has no producer until 04-03 PixelSamplerService (fake pickColor deleted by plan; Color Picker readout intentionally inert)",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-08-31T13:31:37.013Z",
+    "resolved_at": "2026-08-31T14:33:21.453Z"
   }
 ]
 ````
