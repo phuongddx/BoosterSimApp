@@ -4,7 +4,7 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, Network
-- **Files:** 95 Swift source files (~10,030 LOC total across app, iOS framework source, and tests)
+- **Files:** 139 Swift source files (~18,270 LOC total across app, iOS framework source, CLI, and tests)
 - **Targets:** BoosterSimApp (macOS), BoosterSimConnect (iOS framework), test targets
 - **External dependencies:** Pulse/PulseProxy SPM (BoosterSimConnect framework only)
 - **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
@@ -25,14 +25,23 @@ BoosterSimApp/
 │   │   ├── AXNode.swift                  # Accessibility tree node (18 LOC)
 │   │   ├── BoosterCommand.swift          # Condition snapshot + framing + verdict (127 LOC)
 │   │   ├── BlockRule.swift               # Domain/path block rule + matcher (43 LOC)
-│   │   └── NetworkConditionProfile.swift # Throttle presets + pacing math (83 LOC)
+│   │   ├── NetworkConditionProfile.swift # Throttle presets + pacing math (83 LOC)
+│   │   ├── AppActionModels.swift        # App-action operation, reset outcomes, argv builders/parsers (148 LOC)
+│   │   ├── PrivacyPermission.swift      # 12 verbatim simctl TCC services + argv builders (71 LOC)
+│   │   ├── PushPayload.swift            # Push payload model + typed parse + 4096-byte gate (125 LOC)
+│   │   ├── DefaultsEntry.swift          # Typed defaults entry + value kinds (49 LOC)
+│   │   └── AppAction.swift              # AppAction/EffectLatency/AppActionCatalog — pure searchable catalog (122 LOC)
 │   ├── Services/
 │   │   ├── SimulatorWindowTracker.swift  # Core detection service (199 LOC)
 │   │   ├── WindowEnumerator.swift        # CGWindowList scan (65 LOC)
 │   │   ├── WindowObserver.swift          # AXObserver wrapper (158 LOC)
 │   │   ├── PermissionManager.swift       # Permission checks/requests (143 LOC)
+│   │   ├── AppActionService.swift     # App-action facade: reset/keychain/push/privacy/locale/location/clipboard verbs (906 LOC)
+│   │   ├── DerivedDataAppScanner.swift # Pure DerivedData iOS .app scanner (101 LOC)
+│   │   ├── UserDefaultsEditorService.swift # Typed defaults editor: plist read + validated spawn writes (213 LOC)
 │   │   ├── XcodeDetector.swift           # Xcode path detection (39 LOC)
-│   │   ├── SimCtlService.swift           # xcrun simctl executor (78 LOC)
+│   │   ├── SimCtlService.swift           # xcrun simctl executor — serialized seam, concurrent drains, stdin (130 LOC)
+│   │   ├── DeepLinkService.swift         # openurl deep links + history/favorites, on the seam (196 LOC)
 │   │   ├── StatusBarService.swift        # Status bar config (110 LOC)
 │   │   ├── EnvironmentOverrideService.swift # Appearance/accessibility (279 LOC)
 │   │   ├── BuildStatsService.swift       # Build history polling (97 LOC)
@@ -62,7 +71,7 @@ BoosterSimApp/
 │   │   │   ├── tabs/
 │   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (23 LOC)
 │   │   │   │   ├── DesignTabView.swift   # Design tab: grid, safe area, ruler, picker (23 LOC)
-│   │   │   │   ├── ActionsTabView.swift  # Actions tab: env overrides + quick actions (25 LOC)
+│   │   │   │   ├── ActionsTabView.swift  # Actions tab: catalog-driven searchable 9-section surface (122 LOC)
 │   │   │   │   └── NetworkTabView.swift  # Network tab: traffic + conditions + rules + certs (70 LOC)
 │   │   │   ├── network/
 │   │   │   │   ├── NetworkEventModel.swift # NetworkEvent, HTTPMethod, TrafficFilter, ConnectionState (208 LOC)
@@ -75,6 +84,16 @@ BoosterSimApp/
 │   │   │   │   ├── CurlExporter.swift        # NetworkEvent → cURL command (49 LOC)
 │   │   │   │   ├── NetworkConditionsSectionView.swift # Airplane toggle + profile pills (144 LOC)
 │   │   │   │   └── BlockRulesView.swift      # Block-rule editor section (153 LOC)
+│   │   │   ├── actions/                   # Phase 3 app-action section views (9 files)
+│   │   │   │   ├── AppPickerBar.swift     # Candidate pills + running badge + explicit selection (77 LOC)
+│   │   │   │   ├── AppResetSectionView.swift # Reset/uninstall + D-02 keychain dialog (165 LOC)
+│   │   │   │   ├── PushNotificationSectionView.swift # Payload editor + D-01 guided grant (263 LOC)
+│   │   │   │   ├── PrivacySectionView.swift # 12 TCC grant/revoke rows + reset-all confirm (155 LOC)
+│   │   │   │   ├── LocaleSectionView.swift # Locale presets + manual rows, relaunch captions (262 LOC)
+│   │   │   │   ├── LocationSectionView.swift # Validated coordinates + city presets + Stop (245 LOC)
+│   │   │   │   ├── ClipboardSectionView.swift # Two manual pbsync buttons (128 LOC)
+│   │   │   │   ├── UserDefaultsEditorView.swift # Typed key list + edit/add/delete (505 LOC)
+│   │   │   │   └── ActionSearchBar.swift  # Collapsible quick search, clear-on-collapse (73 LOC)
 │   │   │   ├── DeviceHeaderView.swift    # Active device info (90 LOC)
 │   │   │   ├── CollapsedStripView.swift  # 28pt collapsed state (35 LOC)
 │   │   │   ├── SideWindowFooter.swift    # Version/status footer (36 LOC)
@@ -110,7 +129,15 @@ BoosterSimApp/
 │   ├── ConditionVerdictTests.swift       # Verdict precedence: guard/airplane/rules/throttle (119 LOC)
 │   ├── NetworkConditionServiceTests.swift # State machine + persistence + snapshots (151 LOC)
 │   ├── NetworkConditionProfileTests.swift # Presets + ThrottleSchedule pacing math (103 LOC)
-│   └── BlockRuleTests.swift              # Block-rule matcher edge cases (90 LOC)
+│   ├── BlockRuleTests.swift              # Block-rule matcher edge cases (90 LOC)
+│   ├── DerivedDataAppScannerTests.swift  # Scanner: dedupe/mtime/symlink/filter contracts (122 LOC)
+│   ├── AppActionServiceTests.swift       # Facade: argv builders, parsers, reconcile, keychain delegate (256 LOC)
+│   ├── DeepLinkServiceTests.swift        # Seam-migrated deep links: parse/history/favorites (154 LOC)
+│   ├── PrivacyPermissionTests.swift      # 12 verbatim TCC strings; notifications-absent (D-01) (71 LOC)
+│   ├── PushPayloadTests.swift            # Typed parse + 4096-byte boundary gate (156 LOC)
+│   ├── LocaleCommandTests.swift          # Locale/timezone/location/clipboard builders + parsers (244 LOC)
+│   ├── UserDefaultsEditorServiceTests.swift # Plist parse + typed write/delete argv (180 LOC)
+│   └── AppActionCatalogTests.swift       # Catalog search/filter contracts (124 LOC)
 ├── BoosterSimAppUITests/                 # UI test target
 │   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
 │   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
@@ -164,37 +191,52 @@ BoosterSimApp/
 | Camera automation | `Services/CameraService.swift` |
 | Environment overrides | `Services/EnvironmentOverrideService.swift` |
 | Status bar config | `Services/StatusBarService.swift` |
+| App-action facade (reset/keychain/push/privacy/locale/location/clipboard) | `Services/AppActionService.swift` |
+| DerivedData app discovery | `Services/DerivedDataAppScanner.swift` |
+| UserDefaults editor (active app) | `Services/UserDefaultsEditorService.swift` |
+| Deep links (openurl, on the seam) | `Services/DeepLinkService.swift` |
+| Push payload + 4096-byte gate | `Models/PushPayload.swift` |
+| Privacy TCC service contract (D-01) | `Models/PrivacyPermission.swift` |
+| Typed defaults entries | `Models/DefaultsEntry.swift` |
+| Action catalog + quick search | `Models/AppAction.swift` |
+| App-action state machine + argv builders | `Models/AppActionModels.swift` |
+| simctl seam (serialized, stdin-capable) | `Services/SimCtlService.swift` |
 
 ## Largest Files (by LOC)
 
 | Rank | File | LOC | Notes |
 |---|---|---|---|
-| 1 | `TrafficDetailView.swift` | 295 | Network detail sheet (4 tabs) — candidate for split |
-| 2 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
-| 3 | `SideWindowController.swift` | 234 | Monitor growth |
-| 4 | `NetworkEventModel.swift` | 208 | Network event + filter models |
-| 5 | `SimulatorWindowTracker.swift` | 199 | — |
-| 6 | `CertificateService.swift` | 195 | CA trust management |
-| 7 | `PulseClientConnection.swift` | 183 | Per-client protocol handler |
-| 8 | `CertificateSectionView.swift` | 177 | Side panel trust UI |
-| 9 | `PulsePacketDecoder.swift` | 174 | Binary protocol parser |
+| 1 | `Services/AppActionService.swift` | 906 | App-action facade + preset models/builders co-located (plan file-list constraint) — flagged for split (03-03 deviation 4) |
+| 2 | `actions/UserDefaultsEditorView.swift` | 505 | Whole editor surface in one view (plan file-list constraint) — flagged (03-04 deviation 6) |
+| 3 | `TrafficDetailView.swift` | 295 | Network detail sheet (4 tabs) — candidate for split |
+| 4 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
+| 5 | `actions/PushNotificationSectionView.swift` | 263 | Payload editor + D-01 guided-grant block |
+| 6 | `actions/LocaleSectionView.swift` | 262 | Presets + manual rows + captions |
+| 7 | `SideWindowController.swift` | 234 | Monitor growth |
+| 8 | `NetworkEventModel.swift` | 208 | Network event + filter models |
+| 9 | `SimulatorWindowTracker.swift` | 199 | — |
 
 ## Feature Sections (Side Panel — Tab-Based UI)
 
 | Tab | Section | Features | Status |
 |---|---|---|---|
-| Capture | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Placeholder |
+| Capture | Captures | Screenshot, Record Screen, GIF Recording, Video Export | Complete (Phase 2) |
 | Design | Design Tools | Grid Overlay, Safe Area Overlay, Ruler, Color Picker | Placeholder |
 | Actions | Environment | Dark/Light Mode, Increase Contrast, Dynamic Type, Reduce Motion, Bold Text, Smart Invert, Reduce Transparency, Grayscale, On/Off Labels, Button Shapes, Differentiate Without Color | Complete |
-| Actions | Quick Actions | Reset App, Clear Keychain, Push Notification, Deep Link | Placeholder |
-| Network | Connect | Pulse TCP server (NWListener + Bonjour), binary protocol decode, connection state banner, setup instructions | Complete |
-| Network | Traffic Viewer | Filter by method/status, traffic list, detail sheet (headers/body/metrics), cURL export | Complete |
-| Network | Certificates | CA Generation, Simulator Keychain Install, Rotate, Reset, Trust-State Messaging | Complete |
+| Actions | App Picker + Reset | DerivedData ∩ installed picker w/ running badge; Reset App Data, Uninstall, Clear Keychain (D-02, CA auto-reconcile) | Complete (Phase 3) |
+| Actions | Deep Links | openurl with history/favorites (DeepLinkService, on the seam) | Complete |
+| Actions | Push | Payload editor + templates + 4096-byte gate + D-01 guided grant | Complete (Phase 3) |
+| Actions | Privacy | 12 TCC services grant/revoke (active-app scoped) + device-wide reset | Complete (Phase 3) |
+| Actions | Locale | Language/locale/timezone presets + manual rows, relaunch-captioned | Complete (Phase 3) |
+| Actions | Location | Validated coordinates + 6 city presets (tz-syncing) + visible Stop | Complete (Phase 3) |
+| Actions | Clipboard | Two manual pbsync buttons, Mac ↔ Simulator | Complete (Phase 3) |
+| Actions | Defaults | Typed UserDefaults editor (view/edit/add/delete) for the active app | Complete (Phase 3) |
+| Actions | Quick Search | AppActionCatalog-driven section filter over all 9 sections | Complete (Phase 3) |
 | Network | Network Conditions | Airplane Mode, Throttle Profiles (Off/EDGE/3G/LTE/Wi-Fi), effective-condition status, URLSession-scope caption | Complete |
 | Network | Block Rules | Domain/path rule editor (add/toggle/delete, 50-rule cap), snapshot push | Complete |
 
 **Wired sections** (exist in tabs, fully functional):
-- Actions tab: `EnvironmentOverridesView` (11 a11y toggles)
+- Actions tab: `EnvironmentOverridesView` (11 a11y toggles) + the Phase 3 app-action surface — `AppPickerBar`, `AppResetSectionView`, `DeepLinkSectionView`/`DeepLinkService`, `PushNotificationSectionView`, `PrivacySectionView`, `LocaleSectionView`, `LocationSectionView`, `ClipboardSectionView`, `UserDefaultsEditorView` — behind `ActionSearchBar` quick search (`ActionsTabView`, catalog-driven)
 - Network tab: `ConnectService` + `PulseServer` + `TrafficList`/`TrafficDetailView` + `CertificateSectionView`
 - Network tab: `NetworkConditionService` + `CommandServer` pushing snapshots over `_booster-cmd._tcp.` (`NetworkConditionsSectionView`, `BlockRulesView`)
 
@@ -221,3 +263,23 @@ BoosterSimApp/
 | `BoosterSimConnect/ThrottlePacing.swift` | `ThrottlePacing` (+ `Plan`, `plan(spec:chunkBytes:totalBytes:)`) |
 
 Modified mount points (plans 01–03): `NetworkTabView` (sections mounted), `AppDelegate`/`SideWindowController`/`SideWindowView` (service ownership + environment injection), `BoosterSimConnect.swift` (`activate()` enables `BoosterNetworkProtocol` + `BoosterCommandClient`), `AppLogger` (new `network` category). See `docs/system-architecture.md` § Network Manipulation for the command flow, verdict order, scope limitations, pacing fidelity note, and persistence keys.
+
+### App Actions (Phase 3) — primary types
+
+| File | Primary types |
+|---|---|
+| `BoosterSimApp/Services/AppActionService.swift` | `AppActionService` (facade: refreshApps/resetApp/uninstallApp/clearKeychain, setPrivacy/resetAllPrivacy/openDeviceSettings, sendPush, applyLocale/setTimezone/readLocaleState, setLocation/clearLocation/applyLocationPreset, syncClipboard), `LocalePreset`, `CityPreset`, `ClipboardDirection`, `CoordinateError`, pure argv builders/parsers |
+| `BoosterSimApp/Services/DerivedDataAppScanner.swift` | `DerivedDataAppScanner` (`scan(root:)`), `DiscoveredApp` (with `alternativePaths`) |
+| `BoosterSimApp/Services/UserDefaultsEditorService.swift` | `UserDefaultsEditorService`, `UserDefaultsEditorOperation`, `DefaultsEditorError` |
+| `BoosterSimApp/Services/SimCtlService.swift` | `SimCtlService.run(_:stdin:)` — serialized seam, concurrent pipe drains (modified, Phase 3) |
+| `BoosterSimApp/Services/DeepLinkService.swift` | `DeepLinkService` — migrated onto the seam; `init(simCtl:defaults:)` (modified, Phase 3) |
+| `BoosterSimApp/Models/AppActionModels.swift` | `AppActionOperation`, `ResetOutcome`, `AppKeychainResetting`, listapps/launchctl parsers, destructive-UDID guard |
+| `BoosterSimApp/Models/PrivacyPermission.swift` | `PrivacyPermission` (12 verbatim TCC services), `PrivacyAction` |
+| `BoosterSimApp/Models/PushPayload.swift` | `PushPayload` (+ `Aps`), `PushPayloadError`, `PushActionResult` |
+| `BoosterSimApp/Models/DefaultsEntry.swift` | `DefaultsEntry`, `DefaultsEntryValue` (+ `simctlTypeArg`) |
+| `BoosterSimApp/Models/AppAction.swift` | `AppAction`, `AppActionSection`, `EffectLatency`, `AppActionCatalog.filter(query:)` |
+| `BoosterSimApp/Views/SideWindow/actions/*.swift` | `AppPickerBar`, `AppResetSectionView`, `PushNotificationSectionView`, `PrivacySectionView`, `LocaleSectionView`, `LocationSectionView`, `ClipboardSectionView`, `UserDefaultsEditorView`, `ActionSearchBar` |
+
+Wave 0 suites (8 files): `AppActionServiceTests`, `DerivedDataAppScannerTests`, `DeepLinkServiceTests`, `PrivacyPermissionTests`, `PushPayloadTests`, `LocaleCommandTests`, `UserDefaultsEditorServiceTests`, `AppActionCatalogTests`.
+
+Modified mount points (plans 01–04): `ActionsTabView` (catalog-driven section table + search), `AppDelegate`/`SideWindowController`/`SideWindowView` (service ownership + environment injection), `AppLogger` (new `actions` category), `.planning/codebase/CONVENTIONS.md` (async-exemption list shrinks to `CaptureService` alone). See `docs/system-architecture.md` § App Actions for the service split, seam hardening, active-app reconcile, effect-latency caption contract, defaults data path, and both platform limits (D-01/D-02).

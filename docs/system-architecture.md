@@ -43,6 +43,10 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── CameraService — camera routing automation      │
 │  ├── CertificateService — CA generation/trust mgmt  │
 │  ├── SimCtlService — xcrun simctl executor          │
+│  ├── AppActionService — app-action facade (Ph. 3)   │
+│  ├── DerivedDataAppScanner — DerivedData .app scan  │
+│  ├── UserDefaultsEditorService — defaults editor    │
+│  ├── DeepLinkService — openurl deep links on seam   │
 │  └── XcodeDetector — filesystem path detection     │
 ├─────────────────────────────────────────────────────┤
 │  Capture Services (Phase 2)                         │
@@ -187,8 +191,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - Owns the `CommandServer`; every mutation persists to UserDefaults and broadcasts a fresh `BoosterCommand`
 
 **`SimCtlService`** (`Services/SimCtlService.swift`)
-- Centralized executor for `xcrun simctl` commands
-- Parses boot arguments, environment overrides, status bar config
+- Centralized executor for `xcrun simctl` commands — StatusBarService, EnvironmentOverrideService, CertificateService, DeepLinkService, and AppActionService all ride it
+- Seam-hardened (Phase 3): stdout and stderr drain concurrently with process exit (outputs past the 64 KB pipe buffer — `listapps` is already ~33 KB — would deadlock the child against `waitUntilExit`), optional `stdin: Data?` (serves `push <udid> -`), and a machine-wide serial invocation queue (one simctl pipeline at a time, never interleaved)
 - Error handling with logged diagnostics
 
 ### Windows
@@ -283,8 +287,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 
 - `CaptureTabView` — Capture tab: screenshot framing options (ASC preset, bezel, background, destination pills), `RecordingSectionView` (record/stop, touch-indicator toggle, staged-recording reveal), `ExportSectionView` (format/GIF pills, progress + cancel) — see § Capture Tools
 - `DesignTabView` — Grid, safe area, ruler, color picker (placeholders)
-- `ActionsTabView` — Environment overrides + quick actions container
-- `NetworkTabView` — Live traffic viewer + network conditions + block rules + certificates; receives `ConnectService` as `@ObservedObject`; shows ConnectStatusBanner, ConnectSetupView, TrafficFilterBar, TrafficList, NetworkConditionsSectionView, BlockRulesView, CertificateSectionView; opens TrafficDetailView as sheet
+- `ActionsTabView` — Catalog-driven searchable Actions tab: 9 sections in fixed `AppActionCatalog` order, section visibility routed through the pure filter (see § App Actions)
 
 **Side Panel Components**
 - `ConnectStatusBanner` — Slim banner showing connection state (dot + label + setup/searching indicator); pulse animation on .searching
@@ -305,6 +308,14 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 - `BuildStatsSectionView` / `BuildChartView` — Build history + Canvas bar chart
 - `AXTreeView` — Accessibility tree browser with lazy loading + element highlight
 - `CameraView` — Mac camera input toggle
+- `AppPickerBar` — Active-app candidate pills (DerivedData ∩ installed, running badge, explicit selection; alternatives in tooltip)
+- `AppResetSectionView` — Reset App Data / Uninstall / Clear Keychain; the D-02 wipe sits only inside a blast-radius destructive dialog
+- `PushNotificationSectionView` — Payload editor + template pills + live byte counter + D-01 guided-grant block (caption, Open Settings, Send-as-probe)
+- `PrivacySectionView` — 12 TCC service grant/revoke rows scoped to the active app + device-wide reset behind a confirm
+- `LocaleSectionView` / `LocationSectionView` — Relaunch-captioned locale presets and manual rows; validated coordinates + tz-syncing city presets with a state-driven Stop
+- `ClipboardSectionView` — Exactly two manual pbsync buttons (Mac ↔ Simulator); direction-status captions only
+- `UserDefaultsEditorView` — Searchable typed key list, inline edit/add/delete, type-only value capsules
+- `ActionSearchBar` — Collapsible quick search over `AppActionCatalog`; clearing on collapse
 
 **Shared Components**
 - `FeatureSectionView` — Collapsible section container
@@ -484,6 +495,51 @@ CaptureService (@MainActor facade, Combine @Published state)
 
 **Frame rate, stated honestly.** 120 is the configured ceiling (`minimumFrameInterval = CMTime(1, 120)`); delivered frames are bounded by the host display's refresh rate — the Recording section captions it "Up to 120 fps". True 120 delivery needs a ProMotion-class display.
 
+## App Actions
+
+Phase 3 turns the Actions tab into the real tool: **14 searchable actions across 9 sections** — app picker + reset/uninstall/keychain (D-02), deep links, push (D-01), privacy (12 TCC services), locale/timezone, location, clipboard, and a UserDefaults editor — all over one hardened `xcrun simctl` seam, all Apple frameworks (zero new packages; `Package.resolved` unchanged from Phase 5).
+
+**Service split.** One `@MainActor` Combine facade over small single-concern units, mirroring the Capture split:
+
+| Unit | Role |
+|---|---|
+| `AppActionService` (`Services/AppActionService.swift`) | The facade: `refreshApps` reconcile, `resetApp`/`uninstallApp`, `clearKeychain` (D-02 delegate), `setPrivacy`/`resetAllPrivacy`/`openDeviceSettings`, `sendPush`, locale/timezone/location/clipboard verbs. Every argv lives in pure `nonisolated static` builders (unit-tested without spawning a subprocess); multi-verb chains ride the `AppActionOperation` state machine, single-hop verbs publish dedicated captions |
+| `DerivedDataAppScanner` (`Services/DerivedDataAppScanner.swift`) | Pure filesystem scan of `~/Library/Developer/Xcode/DerivedData/*/Build/Products/*-iphonesimulator/*.app` — Info.plist read (skipping corrupt/missing), symlink resolution before dedupe, newest-wins per bundle ID with losers retained as visible `alternativePaths` |
+| `UserDefaultsEditorService` (`Services/UserDefaultsEditorService.swift`) | Typed defaults editor for the active app — on-disk plist read + validated `spawn defaults` writes (data path below) |
+| `DeepLinkService` (`Services/DeepLinkService.swift`) | The pre-existing openurl service with history/favorites, migrated onto the seam in Phase 3 — the app's last out-of-seam `Process` spawn is gone; the async-exemption list is now `CaptureService` alone |
+| Models | `AppActionModels.swift` (`AppActionOperation`, `ResetOutcome` incl. the honest `reinstallFailed` degrade, argv builders + listapps/launchctl parsers, `AppKeychainResetting` protocol), `PrivacyPermission` (12 verbatim TCC service strings — no notifications case, D-01), `PushPayload` (typed parse + 4096-byte gate), `DefaultsEntry` (`DefaultsEntryValue` typed plist kinds), `AppAction`/`AppActionCatalog` (pure searchable catalog) |
+
+**Seam hardening — why each property exists.** `SimCtlService.run(_:stdin:)` (signature-compatible with Phase 1) gained three properties:
+- **Concurrent pipe drains** — stdout and stderr drain concurrently with process exit (lock-guarded accumulators + DispatchGroup; the promise resolves only after exit AND both EOFs). Without this, output past the 64 KB pipe buffer deadlocks the child against `waitUntilExit` — `listapps` already emits ~33 KB on a near-stock device.
+- **Optional `stdin: Data?`** — written to the child's standard input and closed after; serves `simctl push <udid> <bundle> -` without a temp file.
+- **Machine-wide serialization** — one static serial queue; one simctl pipeline at a time, queued and never interleaved. An interrupted verb leaves the seam idle-recoverable; plist writes land as single `spawn defaults` verbs the OS keeps cfprefsd-coherent (never half-written).
+
+**Active-app reconcile — no frontmost verb exists.** `simctl` cannot report the frontmost app, and a DerivedData scan alone lists apps that may not be installed on the booted device. The picker reconciles three sources — **DerivedData scan ∩ `listapps` installed ∩ `launchctl` running badge** — and requires explicit selection (`AppPickerBar`); a bundle ID built in several build trees resolves to exactly one candidate (the newest) with the older paths visible as alternatives.
+
+**Effect-latency caption contract.** Relaunch-domain writes are never presented as instant; captions follow this (research-verified, UI-matched) table:
+
+| Action | Effect timing | Scope | Relaunch? |
+|---|---|---|---|
+| Reset / uninstall | immediate | per-app | user relaunches (reinstall from DerivedData when a build exists; a failed reinstall degrades honestly) |
+| Keychain clear (D-02) | immediate | **whole device** — wipes every app's keychains incl. the Phase 5 local CA | — |
+| Privacy grant/revoke | immediate | per-service, scoped to the active app (`reset all` = device) | may terminate the running app (Apple help verbatim) |
+| Push send / deep link | immediate | per-app / device | — |
+| Appearance / Dynamic Type | immediate (existing Environment section) | device | no |
+| Locale / timezone | **next app launch** | device — global defaults domain | **yes** → `launch --terminate-running-process` in the same chain |
+| Location set/clear | immediate | device | no (Clear stays visible while a simulation is active) |
+| Clipboard `pbsync` | immediate | host ↔ device | no |
+| Defaults write/delete | immediate via cfprefsd; launch-time keys need relaunch | per-domain | only launch-time keys |
+
+**UserDefaults editor data path.** Reads come from the on-disk plist — `<data container>/Library/Preferences/<bundle>.plist`, the container resolved via `get_app_container data` — because `defaults export` **silently does nothing in the simulator**. Writes/deletes build validated `spawn defaults` argv (allowlist `[A-Za-z0-9._-]` on domain AND key; typed error and NO argv on violation) and every write reloads the domain. Value privacy holds end to end: rows show the value KIND (type capsule), captions and `AppLogger.actions` lines carry domain + key names only — values never reach logs or captions. JSON-capsule entries are read-only in the UI (binary-plist capsules corrupt under text editing).
+
+**Platform limits — stated honestly, not hidden (user decisions D-01/D-02, 03-CONTEXT.md):**
+- **D-01 — notification permission is managed by iOS.** `simctl privacy` has no `notifications` service (research-proven against positive controls; TCC.db has no UserNotifications row), so no control anywhere claims to grant or revoke push authorization. The Push section ships a guided-grant block instead: the caption *"Notification permission is managed by iOS — it cannot be set from here."*, an Open Settings verb (`launch com.apple.Preferences`), the inline manual-grant steps, and the Send button doubling as the delivery probe. The Privacy section carries the matching pointer caption.
+- **D-02 — keychain clear is device-wide only.** Per-app keychain clear does not exist on Simulator. Clear Keychain sits behind a red destructive dialog naming the full blast radius — *"Erases EVERY app's keychain … and removes the BoosterSimApp local CA. The CA is re-installed automatically afterward … No undo."* — and the wipe composes the existing `CertificateService` verbs (`resetKeychain → reconcileStatus → install` when a CA exists) so certificate trust is restored automatically with zero manual steps.
+
+**Quick search.** `AppActionCatalog` — 14 actions, 9 sections, fixed mount order — owns BOTH the tab's section order and search visibility (`AppActionCatalog.filter(query:)`, the TrafficFilter discipline: one pure matching point, zero per-view `contains` chains). Empty query renders every section through the same table; a query narrows to matching sections in catalog order with a matched-actions disclosure; no match renders an honest empty state; collapsing `ActionSearchBar` clears the query so a hidden filter can never silently narrow the tab.
+
+**Known logging gap (pre-existing, tracked).** `SimCtlService` prints `xcrun simctl <argv>` before every invocation (a Phase-1 diagnostic). Phase 3 verbs carry full openurl URLs and defaults VALUES in argv, so that echo brushes the never-log-values/URLs prohibitions at the seam. All Phase-3 `AppLogger.actions` lines are verb/size/outcome-only; redacting the seam echo is a tracked review item (03-02 deviation 6, 03-04 deviation 7).
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
@@ -505,5 +561,6 @@ CaptureService (@MainActor facade, Combine @Published state)
 | Second Bonjour channel (`_booster-cmd._tcp.`, loopback-bound) for condition snapshots | Full-state idempotent snapshots self-heal on reconnect; loopback bind keeps the LAN out while Simulator apps still reach the host |
 | Chained URLSession init exchange (Pulse + Booster) | Both protocol prepends compose; guard marker prevents self-interception |
 | BoosterSimConnect as loadable framework | Loaded into Simulator app via `Bundle.load()` in DEBUG builds only |
+| Serialized, concurrently-drained simctl seam with optional stdin (Phase 3) | One simctl pipeline machine-wide (never interleaved); >64 KB outputs — `listapps` ≈33 KB — can never deadlock; push payloads stream over stdin with no temp file |
 | Apple frameworks only; Pulse/PulseProxy SPM exception via BoosterSimConnect | Sole dependency exception (user-resolved 2026-08-29); powers Connect network inspection |
 | Non-sandboxed | Required for Accessibility API, CGWindowList enumeration, and Simulator control via simctl |
