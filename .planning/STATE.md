@@ -20,10 +20,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-30)
+See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** Common simulator tasks (env toggles, cert trust, traffic inspection) complete in ≤2 clicks from the side panel.
-**Current focus:** Phase 3 — App Actions
+**Current focus:** Phase 4 — Design Tools (Phases 2 Capture, 3 App Actions, 5 Network complete + verified)
 
 ## Current Position
 
@@ -32,7 +32,7 @@ Plan: Not started
 Status: Ready to plan
 Last activity: 2026-08-31 — Phase 3 complete, transitioned to Phase 4
 
-Progress: [███░░░░░░░] 29%
+Progress: [██████████░░░░░░░░░░] 5 of 7 phases complete (1, 2, 3, 5, 6) — next: Phase 4 Design Tools
 
 ## Performance Metrics
 
@@ -124,9 +124,10 @@ None yet.
 | Enhancement | Pulse Code 8, real PulseMetrics, includePeerToPeer, e2e Connect test | v2 candidates (NET-01…04) | 2026-08-29 | v1 (ingest) |
 | Enhancement | Throttle pacing ÷1000 kilo-factor rescale (physical-network fidelity) | Candidate | 2026-08-30 | v2 |
 | Enhancement | Photoreal device-bezel asset frames (license decision pending) | v2 candidate (license-clean modes shipped) | 2026-08-30 | v2 |
+| Enhancement | SimulatorWindowTracker list-devices spawn → SimCtlService migration | Follow-up (verifier disposition 2026-08-31, accepted pre-existing) | 2026-08-31 | v1.x |
 
 ## Session Continuity
 
-Last session: 2026-08-31T06:43:08Z
-Stopped at: Phase 3 complete, ready to plan Phase 4
-Resume file: None (await /gsd-verify-work)
+Last session: 2026-08-31
+Stopped at: Phase 3 complete + verified (31/32, 1 resolved by decision); advanced to Phase 4 (Design Tools) — ready to plan
+Resume file: None

@@ -26,12 +26,12 @@ from the side panel.
 - ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — delivered pre-.planning (Phase 5 scope)
 - ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
 - ✓ Capture tools — SCScreenshotManager window screenshots with 7 exact ASC presets + bezel modes + solid/gradient backgrounds, floating thumbnail, Desktop/clipboard/custom saves, SCRecordingOutput recordings at the 120 fps ceiling with Simulator-native touch indicators, GIF (centisecond-quantized) / MP4 / MOV export — Phase 2 (verified 4/4)
+- ✓ App actions — hardened SimCtlService seam (stdin, concurrent pipes, serialized), DerivedData∩installed∩running app detection with picker, reset/uninstall + destructive keychain clear w/ CA auto-reconcile (D-02), push w/ 4096 gate + guided permission grant (D-01), deep links on-seam, 12-service privacy, locale/timezone relaunch, location presets + tz sync, pbsync clipboard, typed UserDefaults editor + whole-tab quick search — Phase 3 (verified 31/32)
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] Phase 3 — App actions: reset app, keychain clear, push simulation, deep links, locale/appearance/Dynamic Type/location controls, UserDefaults editor
 - [ ] Phase 4 — Design tools: grid/safe-area overlays, ruler, magnifier/color picker, Figma/Sketch comparison
 - [ ] Phase 7 — Polish & distribution: signing/notarization, auto-update, tests, privacy manifest, icon
 
@@ -56,10 +56,12 @@ from the side panel.
   + Bonjour `_booster-cmd._tcp.`) → BoosterCommandClient (length-prefixed v1 frames,
   CommandFrameAssembler reassembly, backoff restart) → NetworkConditionController →
   BoosterNetworkProtocol verdict enforcement (guard > airplane > rules > throttle).
-- Codebase: ~97 Swift files. Design tab and the Actions tab are placeholders; Network tab
-  ships full inspection + manipulation; Capture tab ships screenshots (7 ASC presets),
-  recordings (120 fps ceiling, touch indicators), and GIF/MP4/MOV export; Phase 6 views
-  (StatusBar, BuildStats, AXTree, Camera) are complete but not yet wired into tabs.
+- Codebase: ~115 Swift files. Design tab is the last placeholder; Actions tab ships the
+  full action catalog (reset/keychain/push/deeplink/privacy/locale/location/clipboard/
+  defaults + quick search); Network tab ships full inspection + manipulation; Capture
+  tab ships screenshots (7 ASC presets), recordings (120 fps ceiling, touch
+  indicators), and GIF/MP4/MOV export; Phase 6 views (StatusBar, BuildStats, AXTree,
+  Camera) are complete but not yet wired into tabs.
 - Institutional knowledge from the docs ingest (2026-08-29): `.planning/intel/`
   (SYNTHESIS.md, requirements/constraints/context/decisions, INGEST-CONFLICTS.md) and
   `.planning/codebase/` (7 codebase-map docs).
@@ -101,6 +103,11 @@ from the side panel.
 | Touch indicators via Simulator's own ShowSingleTouches pref (CFPreferences snapshot/restore, single scoped key) | Simulator renders the dots — capture includes them for free; no subprocess | ✓ Good |
 | GIF export = AVAssetReader→ImageIO integer-centisecond delays, loop 0; MP4/MOV via AVAssetExportSession passthrough (HighestQuality re-encode fallback wired) | Apple-frameworks-only; deterministic timing | ✓ Good |
 | Bezel modes none/simulatorNative/drawn (photoreal asset frames deferred pending license) | License-clean resolution recorded in 02-RESEARCH Open Questions | ✓ Good (v2 asset decision open) |
+| SimCtlService as the sole simctl seam: concurrent pipe drains (deadlock-free >64KB), stdin support (≤64KB typed bound), machine-wide serialized invocations | Phase 3 spine; every destructive verb UDID-scoped, empty/booted refused | ✓ Good |
+| D-01: push permission = guided manual grant (APNS probe + Open Settings, honest caption) | simctl privacy has NO notifications service — research-proven via positive controls | ✓ Good (platform limit documented) |
+| D-02: keychain clear = device-wide destructive w/ red-typed blast-radius confirm + CertificateService resetKeychain → reconcile → CA reinstall | Per-app keychain clear does not exist on Simulator; reconcileStatus alone is status-only (would never restore trust) | ✓ Good |
+| Active app = DerivedData scan ∩ listapps installed ∩ launchctl running badge + explicit picker | No frontmost verb exists; honest explicit selection over guessing | ✓ Good |
+| UserDefaults editor reads the container plist file; writes via allowlist-validated spawn defaults (export verb silently unsupported) | Typed, testable, avoids the silent-empty-output trap | ✓ Good |
 
 ---
-*Last updated: 2026-08-30 after Phase 2 (Capture Tools) completion*
+*Last updated: 2026-08-31 after Phase 3 (App Actions) completion*
