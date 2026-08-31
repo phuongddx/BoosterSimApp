@@ -564,10 +564,19 @@ final class AppActionService: ObservableObject {
                 },
                 receiveValue: { [weak self] _ in
                     guard let self else { return }
-                    AppLogger.actions.info("location preset completed — app relaunched")
                     self.hasSimulatedLocation = true
-                    self.locationCaption = "\(preset.name) set — location applies immediately; "
-                        + "timezone takes effect on the next app launch (app relaunched automatically)."
+                    // Caption honesty (03-REVIEW WR-01): the relaunch hop runs only when an
+                    // app is active — with none selected nothing relaunches, so neither the
+                    // log nor the caption may claim it (mirrors applyLocale's branch).
+                    if bundleID != nil {
+                        AppLogger.actions.info("location preset completed — app relaunched")
+                        self.locationCaption = "\(preset.name) set — location applies immediately; "
+                            + "timezone takes effect on the next app launch (app relaunched automatically)."
+                    } else {
+                        AppLogger.actions.info("location preset completed")
+                        self.locationCaption = "\(preset.name) set — location applies immediately; "
+                            + "timezone takes effect on every app's next launch."
+                    }
                 }
             )
             .store(in: &cancellables)

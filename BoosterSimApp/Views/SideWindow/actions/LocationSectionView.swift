@@ -163,13 +163,18 @@ struct LocationSectionView: View {
 
     // MARK: - Honest Captions
 
-    /// The timezone half of a city preset is a relaunch-domain write (Pitfall 6).
+    /// The timezone half of a city preset is a relaunch-domain write (Pitfall 6) — but the
+    /// relaunch only happens when an app is active; with none selected, the write takes
+    /// effect on every app's next launch (03-REVIEW WR-01).
     private var relaunchCaption: some View {
         HStack(alignment: .top, spacing: Spacing.xs) {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .foregroundStyle(.secondary).font(.caption2)
-            Text("City presets also switch the timezone — that half takes effect on next "
-                + "app launch; the app is relaunched automatically.")
+            Text(activeApp != nil
+                ? "City presets also switch the timezone — that half takes effect on next "
+                    + "app launch; the app is relaunched automatically."
+                : "City presets also switch the timezone — that half takes effect on every "
+                    + "app's next launch.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             Spacer()
