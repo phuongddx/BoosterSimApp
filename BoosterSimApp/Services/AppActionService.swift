@@ -401,41 +401,26 @@ final class AppActionService: ObservableObject {
         }
         let trimmedTimezone = timezone?.trimmingCharacters(in: .whitespacesAndNewlines)
         localeCaption = nil
-        simCtl.run(Self.languageArgs(languages: trimmedLanguages, udid: udid))
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
-                guard let self else { return Empty().eraseToAnyPublisher() }
-                return self.simCtl.run(Self.localeArgs(locale: trimmedLocale, udid: udid))
-            }
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
-                guard let self, let trimmedTimezone else {
-                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
-                }
-                return self.simCtl.run(Self.timezoneArgs(timezone: trimmedTimezone, udid: udid))
-            }
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
-                guard let self, let bundleID else {
-                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
-                }
-                return self.simCtl.run(Self.relaunchArgs(udid: udid, bundleID: bundleID))
-            }
-            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    guard let self, case .failure(let error) = completion else { return }
-                    AppLogger.actions.error("locale apply failed")   // verb + outcome only
-                    self.localeCaption = "Locale change failed: \(error.localizedDescription)"
-                },
-                receiveValue: { [weak self] _ in
-                    guard let self else { return }
+        // 03-REVIEW WR-07: the argv comes from the same builder the chain tests pin — the
+        // inline duplicate that could drift from the tests is gone (single source of truth).
+        runChain(Self.localeWriteChain(languages: trimmedLanguages, locale: trimmedLocale,
+                                       timezone: trimmedTimezone, udid: udid, bundleID: bundleID)) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .failure(let error):
+                AppLogger.actions.error("locale apply failed")   // verb + outcome only
+                self.localeCaption = "Locale change failed: \(error.localizedDescription)"
+            case .success:
+                if bundleID != nil {
                     AppLogger.actions.info("locale apply completed — app relaunched")
-                    self.localeCaption = bundleID == nil
-                        ? "Locale written — takes effect on the next app launch."
-                        : "Locale applied and the app relaunched — effective on this launch."
-                    self.readLocaleState(udid: udid)
+                    self.localeCaption = "Locale applied and the app relaunched — effective on this launch."
+                } else {
+                    AppLogger.actions.info("locale apply completed")
+                    self.localeCaption = "Locale written — takes effect on the next app launch."
                 }
-            )
-            .store(in: &cancellables)
+                self.readLocaleState(udid: udid)
+            }
+        }
     }
 
     /// Writes AppleTimeZone on the global domain, then relaunches — same relaunch-required
@@ -534,52 +519,37 @@ final class AppActionService: ObservableObject {
             locationCaption = "No active Simulator — location presets need a running device."
             return
         }
-        let setArgs: [String]
-        switch Self.locationSetCommand(udid: udid, lat: preset.lat, lon: preset.lon) {
-        case .success(let args):
-            setArgs = args                       // preset coordinates are test-pinned valid
-        case .failure(let error):
-            locationCaption = error.message      // defensive: typed refusal, never bad argv
+        // Typed refusal before any argv (defensive; preset coordinates are pinned valid by
+        // cityPresetCoordinatesPassValidation).
+        if case .failure(let error) = Self.locationSetCommand(udid: udid, lat: preset.lat, lon: preset.lon) {
+            locationCaption = error.message
             return
         }
         locationCaption = nil
-        simCtl.run(setArgs)
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
-                guard let self else { return Empty().eraseToAnyPublisher() }
-                return self.simCtl.run(Self.timezoneArgs(timezone: preset.timezone, udid: udid))
-            }
-            .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
-                guard let self, let bundleID else {
-                    return Just("").setFailureType(to: SimCtlError.self).eraseToAnyPublisher()
+        // 03-REVIEW WR-07: production runs the same argv the tests pin — the cityPresetChain
+        // builder itself (no inline duplicate).
+        runChain(Self.cityPresetChain(preset: preset, udid: udid, bundleID: bundleID)) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .failure(let error):
+                AppLogger.actions.error("location preset failed")
+                self.locationCaption = "Location preset failed: \(error.localizedDescription)"
+            case .success:
+                self.hasSimulatedLocation = true
+                // Caption honesty (03-REVIEW WR-01): the relaunch hop runs only when an
+                // app is active — with none selected nothing relaunches, so neither the
+                // log nor the caption may claim it (mirrors applyLocale's branch).
+                if bundleID != nil {
+                    AppLogger.actions.info("location preset completed — app relaunched")
+                    self.locationCaption = "\(preset.name) set — location applies immediately; "
+                        + "timezone takes effect on the next app launch (app relaunched automatically)."
+                } else {
+                    AppLogger.actions.info("location preset completed")
+                    self.locationCaption = "\(preset.name) set — location applies immediately; "
+                        + "timezone takes effect on every app's next launch."
                 }
-                return self.simCtl.run(Self.relaunchArgs(udid: udid, bundleID: bundleID))
             }
-            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    guard let self, case .failure(let error) = completion else { return }
-                    AppLogger.actions.error("location preset failed")
-                    self.locationCaption = "Location preset failed: \(error.localizedDescription)"
-                },
-                receiveValue: { [weak self] _ in
-                    guard let self else { return }
-                    self.hasSimulatedLocation = true
-                    // Caption honesty (03-REVIEW WR-01): the relaunch hop runs only when an
-                    // app is active — with none selected nothing relaunches, so neither the
-                    // log nor the caption may claim it (mirrors applyLocale's branch).
-                    if bundleID != nil {
-                        AppLogger.actions.info("location preset completed — app relaunched")
-                        self.locationCaption = "\(preset.name) set — location applies immediately; "
-                            + "timezone takes effect on the next app launch (app relaunched automatically)."
-                    } else {
-                        AppLogger.actions.info("location preset completed")
-                        self.locationCaption = "\(preset.name) set — location applies immediately; "
-                            + "timezone takes effect on every app's next launch."
-                    }
-                }
-            )
-            .store(in: &cancellables)
+        }
     }
 
     // MARK: - Clipboard Sync (SC3 — manual pbsync, both directions)
@@ -616,6 +586,34 @@ final class AppActionService: ObservableObject {
         onResult: @escaping (Result<String, SimCtlError>) -> Void
     ) {
         simCtl.run(args, stdin: stdin)
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { completion in
+                    if case .failure(let error) = completion { onResult(.failure(error)) }
+                },
+                receiveValue: { onResult(.success($0)) }
+            )
+            .store(in: &cancellables)
+    }
+
+    /// Thin shared runner for MULTI-HOP chains (locale/city presets — 03-REVIEW WR-07): runs
+    /// the verbs strictly in order (write-then-relaunch invariant), one 30s timeout + main
+    /// delivery for the whole chain. Only the final hop's value reaches onResult, exactly once.
+    private func runChain(
+        _ chain: [[String]],
+        onResult: @escaping (Result<String, SimCtlError>) -> Void
+    ) {
+        var publisher = simCtl.run(chain[0])
+        for args in chain.dropFirst() {
+            publisher = publisher
+                .flatMap { [weak self] _ -> AnyPublisher<String, SimCtlError> in
+                    guard let self else { return Empty().eraseToAnyPublisher() }
+                    return self.simCtl.run(args)
+                }
+                .eraseToAnyPublisher()
+        }
+        publisher
             .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
             .receive(on: DispatchQueue.main)
             .sink(
@@ -769,21 +767,30 @@ extension AppActionService {
         ["launch", udid, bundleID, "--terminate-running-process"]
     }
 
-    /// Two-step fallback if the one-call form misbehaves at the smoke: terminate, then launch.
-    nonisolated static func fallbackRelaunchArgs(udid: String, bundleID: String) -> [[String]] {
-        [["terminate", udid, bundleID], ["launch", udid, bundleID]]
-    }
-
-    /// The exact verb sequence a preset application runs — writes first, relaunch hop LAST
-    /// (the chain invariant applyLocale executes; idempotent on re-apply by construction).
-    nonisolated static func localePresetChain(preset: LocalePreset, udid: String, bundleID: String) -> [[String]] {
-        var chain = [languageArgs(languages: preset.languages, udid: udid),
-                     localeArgs(locale: preset.locale, udid: udid)]
-        if let timezone = preset.timezone {
+    /// The exact argv sequence for a global-domain locale application — writes first, relaunch
+    /// hop LAST when a bundle is given (the chain invariant applyLocale executes; idempotent on
+    /// re-apply by construction). Single source of truth for production AND the chain tests
+    /// (03-REVIEW WR-07).
+    nonisolated static func localeWriteChain(
+        languages: [String], locale: String, timezone: String?,
+        udid: String, bundleID: String?
+    ) -> [[String]] {
+        var chain = [languageArgs(languages: languages, udid: udid),
+                     localeArgs(locale: locale, udid: udid)]
+        if let timezone {
             chain.append(timezoneArgs(timezone: timezone, udid: udid))
         }
-        chain.append(relaunchArgs(udid: udid, bundleID: bundleID))
+        if let bundleID {
+            chain.append(relaunchArgs(udid: udid, bundleID: bundleID))
+        }
         return chain
+    }
+
+    /// A preset's locale application — the same chain applyLocale runs, expressed over the
+    /// shared builder (a preset is just the pinned languages/locale/timezone triple).
+    nonisolated static func localePresetChain(preset: LocalePreset, udid: String, bundleID: String) -> [[String]] {
+        localeWriteChain(languages: preset.languages, locale: preset.locale,
+                         timezone: preset.timezone, udid: udid, bundleID: bundleID)
     }
 
     /// Parses `defaults read` array output (old-style `("en-US", "vi-VN")`) into elements.

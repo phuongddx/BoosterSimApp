@@ -49,11 +49,6 @@ struct LocaleCommandTests {
                 == ["launch", udid, bundle, "--terminate-running-process"])
     }
 
-    /// Flagged assumption A1 fallback: terminate-then-launch two-step for the same bundle.
-    @Test func fallbackRelaunchComposesTerminateThenLaunch() {
-        #expect(AppActionService.fallbackRelaunchArgs(udid: udid, bundleID: bundle)
-                == [["terminate", udid, bundle], ["launch", udid, bundle]])
-    }
 
     // MARK: - Locale Presets
 
