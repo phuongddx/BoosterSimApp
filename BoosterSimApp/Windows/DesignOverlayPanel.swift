@@ -20,7 +20,7 @@ final class DesignOverlayPanel: NSPanel {
 
     // MARK: - Properties
 
-    private let container = NSView()
+    private let container = OverlayContainerView()
 
     // MARK: - Init
 
@@ -46,6 +46,10 @@ final class DesignOverlayPanel: NSPanel {
     /// Inserts a view at its layer's deterministic position; reinstalling a view repositions it, never duplicates it.
     func install(_ view: NSView, at layer: OverlayLayer) {
         view.removeFromSuperview()
+        if layer == .interactive {
+            container.interactiveViews.removeAll { $0 == view }
+            container.interactiveViews.append(view)
+        }
         let index = min(layer.index, container.subviews.count)
         if index == container.subviews.count {
             container.addSubview(view)
@@ -62,5 +66,16 @@ final class DesignOverlayPanel: NSPanel {
     func setCaptureMode(_ active: Bool) {
         ignoresMouseEvents = !active
         acceptsMouseMovedEvents = active
+    }
+}
+
+/// Capture-mode event routing: render-only layers (comparison/safe-area/grid) sit ABOVE the interactive
+/// slot in z-order (D-04) but must never swallow the mouse events the ruler/magnifier need — hit-testing
+/// consults the interactive band only. Outside capture mode the panel ignores mouse events entirely.
+private final class OverlayContainerView: NSView {
+    var interactiveViews: [NSView] = []
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        interactiveViews.first { !$0.isHidden && $0.frame.contains(point) }?.hitTest(point)
     }
 }

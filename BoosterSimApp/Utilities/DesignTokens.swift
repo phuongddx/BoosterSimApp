@@ -49,3 +49,12 @@ enum PreferencesMetrics {
     static let height: CGFloat = 380
     static let rowHeight: CGFloat = 36
 }
+
+// MARK: - Overlay Tool Metrics (04-03)
+enum OverlayMetrics {
+    static let markerRadius: CGFloat = 3
+    static let readoutInset: CGFloat = Spacing.sm
+    static let loupeDiameter: CGFloat = 96
+    static let loupeMagnificationDefault: Double = 8
+    static let loupeMagnificationRange: ClosedRange<Double> = 2...16
+}

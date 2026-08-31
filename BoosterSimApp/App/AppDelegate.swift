@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var appActionService    = AppActionService(simCtl: simCtlService, certificateService: certificateService)
     lazy var userDefaultsEditorService = UserDefaultsEditorService(simCtl: simCtlService)
     lazy var designOverlayService = DesignOverlayService()
+    lazy var pixelSamplerService = PixelSamplerService(screenshotService: ScreenshotService(), tracker: tracker)
     lazy var captureService         = CaptureService(
         screenshotService: ScreenshotService(),
         thumbnailPanel: captureThumbnailPanel,
@@ -80,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         sideWindowController.attach(to: tracker)
 
         // Design overlays track the Simulator frame through the same tracker
-        designOverlayController.attach(to: tracker, service: designOverlayService)
+        designOverlayController.attach(to: tracker, service: designOverlayService, pixelSampler: pixelSamplerService)
 
         // Start simulator detection + build monitoring
         tracker.startTracking()

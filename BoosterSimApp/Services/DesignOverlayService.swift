@@ -40,6 +40,13 @@ final class DesignOverlayService: ObservableObject {
     @Published var calibrationY: CGFloat = 0 { didSet { defaults.set(calibrationY, forKey: Keys.calibrationY) } }
     @Published var importError: String?
 
+    // Interactive tool arming (04-03): exactly one capture-mode tool at a time — arming one disarms the other,
+    // so the overlay input mode is singular by construction.
+    @Published private(set) var isRulerArmed = false
+    @Published private(set) var isMagnifierArmed = false
+    @Published var rulerDistance: String?
+    @Published var samplerError: String?   // mirrored from PixelSamplerService by the overlay controller
+
     // MARK: - Types
 
     enum ComparisonMode: String, CaseIterable, Codable {
@@ -66,6 +73,29 @@ final class DesignOverlayService: ObservableObject {
 
     func resetInsetsToDevice() {
         useManualInsets = false
+    }
+
+    // MARK: - Tool Arming (04-03)
+
+    /// Ruler: a fresh measurement clears the previous readout; the magnifier cannot own the panel simultaneously.
+    func armRuler() {
+        isMagnifierArmed = false
+        rulerDistance = nil
+        isRulerArmed = true
+    }
+
+    func disarmRuler() {
+        isRulerArmed = false
+    }
+
+    func armMagnifier() {
+        isRulerArmed = false
+        samplerError = nil
+        isMagnifierArmed = true
+    }
+
+    func disarmMagnifier() {
+        isMagnifierArmed = false
     }
 
     // MARK: - Private
