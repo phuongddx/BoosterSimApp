@@ -326,26 +326,39 @@ final class AppActionService: ObservableObject {
 
     /// Reads the device's current global locale state (three typed spawn-defaults reads,
     /// EnvironmentOverrideService pattern). Fields update as each read lands; a key that is
-    /// unset on the device stays nil.
+    /// unset on the device stays nil. Every read carries the house 30s timeout + failure
+    /// caption (03-REVIEW WR-05) — a hung read on the serialized seam must never starve silently.
     func readLocaleState(udid: String) {
         guard !udid.isEmpty else { return }
         currentLanguages = []
         currentLocaleID = nil
         currentTimezone = nil
-        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.languagesKey))
-            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
-                self?.currentLanguages = Self.parseLanguagesArray(from: output)
-            })
-            .store(in: &cancellables)
-        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.localeKey))
-            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
-                self?.currentLocaleID = Self.parseScalarValue(from: output)
-            })
-            .store(in: &cancellables)
-        simCtl.run(Self.readKeyArgs(udid: udid, key: Self.timezoneKey))
-            .sink(receiveCompletion: { _ in }, receiveValue: { [weak self] output in
-                self?.currentTimezone = Self.parseScalarValue(from: output)
-            })
+        readLocaleKey(Self.languagesKey, udid: udid) { [weak self] output in
+            self?.currentLanguages = Self.parseLanguagesArray(from: output)
+        }
+        readLocaleKey(Self.localeKey, udid: udid) { [weak self] output in
+            self?.currentLocaleID = Self.parseScalarValue(from: output)
+        }
+        readLocaleKey(Self.timezoneKey, udid: udid) { [weak self] output in
+            self?.currentTimezone = Self.parseScalarValue(from: output)
+        }
+    }
+
+    /// One global-domain read with the same timeout + failure-caption discipline as runVerb.
+    private func readLocaleKey(
+        _ key: String, udid: String,
+        apply: @escaping (String) -> Void
+    ) {
+        simCtl.run(Self.readKeyArgs(udid: udid, key: key))
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { .timeout })
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    guard let self, case .failure(let error) = completion else { return }
+                    self.localeCaption = "Could not read the current locale state: \(error.localizedDescription)"
+                },
+                receiveValue: { output in apply(output) }
+            )
             .store(in: &cancellables)
     }
 

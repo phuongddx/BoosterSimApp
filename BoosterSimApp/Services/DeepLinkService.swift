@@ -55,6 +55,8 @@ final class DeepLinkService: ObservableObject {
 
     /// Opens the current URL on the Simulator through the shared simctl seam (Combine — the
     /// direct subprocess spawn that used to live here was the convention violation Phase 3 deletes).
+    /// Carries the house 30s timeout (03-REVIEW WR-05) so a hung openurl surfaces in lastResult
+    /// instead of starving silently on the serialized seam.
     func openInSimulator(udid: String?) {
         let urlString = currentURL.trimmingCharacters(in: .whitespacesAndNewlines)
         if let message = Self.validationMessage(for: urlString) {
@@ -63,6 +65,7 @@ final class DeepLinkService: ObservableObject {
         }
 
         simCtl.run(Self.openURLCommand(udid: udid, urlString: urlString))
+            .timeout(.seconds(30), scheduler: DispatchQueue.main, customError: { SimCtlError.timeout })
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in
