@@ -88,7 +88,29 @@ Plans:
   3. User can switch locale (with relaunch), toggle dark/light mode, change Dynamic Type size, simulate location (GPS coordinates + timezone sync), and sync the clipboard bidirectionally Mac ↔ Simulator
   4. User can view/edit/add UserDefaults keys for the active app (bundle ID detected from DerivedData) and filter long action lists via quick search
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+
+**Wave 1**
+
+- [ ] 03-01-reset-app-tracer-PLAN.md — Tracer: seam-hardened SimCtlService + DerivedDataAppScanner + AppPickerBar → reset-app end-to-end; D-02 destructive keychain w/ CA reconcile (criterion 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 03-02-push-deeplink-privacy-PLAN.md — DeepLinkService seam migration + 12-service privacy section + PushPayload/stdin push sender with D-01 guided grant (criterion 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-03-locale-location-clipboard-PLAN.md — Locale/timezone w/ relaunch, location + tz-syncing presets, clipboard pbsync both directions + push/location/clipboard blocking smoke (criterion 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 03-04-defaults-editor-search-PLAN.md — UserDefaults editor (typed plist read + validated spawn writes) + AppActionCatalog quick search (criterion 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 03-05-phase-gate-closure-PLAN.md — Docs update, full suite + dependency-pin gate, phase-gate manual smoke
+
 **UI hint**: yes
 
 ### Phase 4: Design Tools
