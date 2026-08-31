@@ -67,7 +67,7 @@ struct SideWindowView: View {
         case .design:
             DesignTabView()
         case .actions:
-            ActionsTabView(udid: activeUDID)
+            ActionsTabView(udid: activeUDID, deviceName: activeSim?.displayName ?? "Simulator")
         case .network:
             NetworkTabView(
                 udidProvider: { activeSim?.udid },
@@ -93,8 +93,9 @@ struct SideWindowView: View {
     let connectService      = ConnectService()
     let networkConditionService = NetworkConditionService(commandServer: NoopCommandBroadcast())
     let deepLinkService = DeepLinkService()
-    let designComparisonService = DesignComparisonService()
+    let appActionService = AppActionService(simCtl: simCtl, certificateService: certificateService)
     let captureService = CaptureService()
+    let designComparisonService = DesignComparisonService()
     let controller       = SideWindowController(
         settings: settings, tracker: tracker,
         statusBarService: statusBarService, envOverrideService: envService,
@@ -105,7 +106,8 @@ struct SideWindowView: View {
         networkConditionService: networkConditionService,
         deepLinkService: deepLinkService,
         designComparisonService: designComparisonService,
-        captureService: captureService
+        captureService: captureService,
+        appActionService: appActionService
     )
     SideWindowView(tracker: tracker, controller: controller)
         .environmentObject(statusBarService)
@@ -118,5 +120,5 @@ struct SideWindowView: View {
         .environmentObject(deepLinkService)
         .environmentObject(designComparisonService)
         .environmentObject(captureService)
-        .frame(width: SideWindowMetrics.expandedWidth, height: 600)
+        .environmentObject(appActionService)
 }
