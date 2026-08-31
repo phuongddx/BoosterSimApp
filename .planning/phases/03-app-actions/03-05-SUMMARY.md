@@ -213,6 +213,16 @@ The user ran all six gate groups from 03-VALIDATION.md on one booted Simulator a
 
 **Resolution applied:** this summary flipped to complete; ROADMAP 03-05 checked; STATE blocker cleared; REQ-roadmap-phase3-app-actions + REQ-fr-13 close on this plan (shared-ID gate — plans 01-04 kept them open deliberately). Next: /gsd-verify-work.
 
+## Post-Review CR-01 Re-verification (2026-08-31)
+
+CR-01 review finding exposed an untested path: resetApp aborted when terminate failed —
+which is exactly the app-installed-but-not-running case (simctl terminate exits 3). The
+original smoke's resets always ran against a running app, so the path was never covered.
+Fixed in 6d52d27 (chain continues via Just("") catch into the presence check; 2 scripted-
+double regressions). User re-verified live: app terminated via Xcode stop → Reset App Data
+completed promptly via presence/reinstall with an honest caption. Tracer-verb evidence
+closed for the not-running branch.
+
 ## Next Phase Readiness
 - Docs are the single source of truth again; every automated phase-gate check is green
 - **Blocker resolved:** Task 3 blocking-human smoke user-approved 2026-08-31 — phase 3 closed by design
