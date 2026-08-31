@@ -1,5 +1,7 @@
 // PixelSamplerTests.swift — Cached-capture sampling: point→pixel mapping, late-result discard, degraded preflight
 // Headless: synthetic CGImages injected through internal seams — no SCK, no windows (CaptureFramingTests style).
+// NOTE: this host rasterizes CG fills into Display P3, so expected colors are read back from an identically-built
+// rep rather than hardcoding sRGB primaries — the suite proves WHICH pixel a window point selects, not colorimetry.
 import Foundation
 import CoreGraphics
 import AppKit
@@ -52,22 +54,34 @@ struct PixelSamplerTests {
         return ctx.makeImage()!
     }
 
-    private func expectColor(_ color: NSColor, red: CGFloat, green: CGFloat, blue: CGFloat) {
-        #expect(abs(color.redComponent - red) < 0.01)
-        #expect(abs(color.greenComponent - green) < 0.01)
-        #expect(abs(color.blueComponent - blue) < 0.01)
+    /// Expected component triple read from the fixture itself — conversion-proof on any host display profile.
+    private func expectedComponents(of image: CGImage, x: Int, y: Int) -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
+        let rep = NSBitmapImageRep(cgImage: image)
+        let color = rep.colorAt(x: x, y: y)! // fixture guarantees solid blocks
+        return (color.redComponent, color.greenComponent, color.blueComponent)
+    }
+
+    private func expectColor(_ color: NSColor, _ expected: (red: CGFloat, green: CGFloat, blue: CGFloat)) {
+        #expect(abs(color.redComponent - expected.red) < 0.01)
+        #expect(abs(color.greenComponent - expected.green) < 0.01)
+        #expect(abs(color.blueComponent - expected.blue) < 0.01)
     }
 
     // MARK: - Synthetic Sampling (injected cache → exact color)
 
     @Test func sampledPixelIsTheExactInjectedColor() throws {
+        let image = makeQuadrantImage()
         let sampler = makeSampler()
-        sampler.injectCache(makeQuadrantImage(), frameHeight: 2, scale: 2)
+        sampler.injectCache(image, frameHeight: 2, scale: 2)
 
-        // Window (0.5, 1.5) → pixel (1, 1) → top-left quadrant → red.
-        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 0.5, y: 1.5))), red: 1, green: 0, blue: 0)
-        // Window (1.5, 0.5) → pixel (3, 3) → bottom-right quadrant → yellow.
-        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 1.5, y: 0.5))), red: 1, green: 1, blue: 0)
+        // Window (0.5, 1.5) → pixel (1, 1) → top-left quadrant.
+        let topLeft = expectedComponents(of: image, x: 1, y: 1)
+        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 0.5, y: 1.5))), topLeft)
+        // Window (1.5, 0.5) → pixel (3, 3) → bottom-right quadrant.
+        let bottomRight = expectedComponents(of: image, x: 3, y: 3)
+        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 1.5, y: 0.5))), bottomRight)
+        // The two quadrants are genuinely different colors — the mapping picked deliberately.
+        #expect(abs(topLeft.red - bottomRight.red) > 0.3 || abs(topLeft.green - bottomRight.green) > 0.3)
     }
 
     @Test func pointOutsideImageReturnsNilWithoutTrapping() {
@@ -81,30 +95,34 @@ struct PixelSamplerTests {
     // MARK: - Y-Flip Mapping (frameHeight 200, scale 2)
 
     @Test func topEdgeSamplesRowZeroAndBottomEdgeSamplesLastRow() throws {
+        let image = makeGradedImage(width: 4, height: 400)
         let sampler = makeSampler()
-        sampler.injectCache(makeGradedImage(width: 4, height: 400), frameHeight: 200, scale: 2)
+        sampler.injectCache(image, frameHeight: 200, scale: 2)
 
-        // TOP edge (window y 200) → pixel y 0 → image row 0 → (0, 0.2, 1).
+        // TOP edge (window y 200) → pixel y 0 → image row 0.
+        let rowZero = expectedComponents(of: image, x: 1, y: 0)
         let top = try #require(sampler.sampleColor(at: CGPoint(x: 1, y: 200)))
-        expectColor(top, red: 0, green: 0.2, blue: 1)
+        expectColor(top, rowZero)
 
-        // BOTTOM edge (window y 0.25 → pixel y 399) → last row → (1, 0.2, 0).
+        // BOTTOM edge (window y 0.25 → pixel y 399) → last row.
+        let lastRow = expectedComponents(of: image, x: 1, y: 399)
         let bottom = try #require(sampler.sampleColor(at: CGPoint(x: 1, y: 0.25)))
-        expectColor(bottom, red: 1, green: 0.2, blue: 0)
+        expectColor(bottom, lastRow)
 
-        // The flip is proven: same column, opposite ends, different rows.
+        // The flip is proven: same column, opposite ends, different rows (row 0 is blue-dominant, last is red).
         #expect(abs(top.blueComponent - bottom.blueComponent) > 0.9)
     }
 
     // MARK: - 1x Displays (Pitfall 7)
 
     @Test func oneXScaleMappingStaysCorrect() throws {
+        let image = makeQuadrantImage()
         let sampler = makeSampler()
-        sampler.injectCache(makeQuadrantImage(), frameHeight: 4, scale: 1)
+        sampler.injectCache(image, frameHeight: 4, scale: 1)
 
-        // Window (1, 3) → pixel (1, 1) → top-left red — no doubled offsets at scale 1.
-        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 1, y: 3))), red: 1, green: 0, blue: 0)
-        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 3, y: 1))), red: 1, green: 1, blue: 0)
+        // Window (1, 3) → pixel (1, 1) → top-left; window (3, 1) → pixel (3, 3) → bottom-right — no doubled offsets.
+        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 1, y: 3))), expectedComponents(of: image, x: 1, y: 1))
+        expectColor(try #require(sampler.sampleColor(at: CGPoint(x: 3, y: 1))), expectedComponents(of: image, x: 3, y: 3))
     }
 
     // MARK: - Late-Result Discard
