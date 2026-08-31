@@ -1,171 +1,100 @@
 # External Integrations
 
-**Analysis Date:** 2026-08-29
+**Analysis Date:** 2026-08-31
 
-## Command-Line Tools
+## APIs & External Services
 
-**xcrun simctl:**
-- Primary interface to iOS Simulator control
-- Service: `BoosterSimApp/Services/SimCtlService.swift` — wraps `Process` calls to `/usr/bin/xcrun simctl`
-- Used by:
-  - `BoosterSimApp/Services/EnvironmentOverrideService.swift` — `simctl ui <udid> appearance|increase_contrast|content_size`; `simctl spawn <udid> defaults read/write com.apple.Accessibility <key>`; `simctl spawn <udid> notifyutil -p <notification>`
-  - `BoosterSimApp/Services/StatusBarService.swift` — `simctl status_bar <udid> override --time/--batteryLevel/--batteryState/--wifiBars/--cellularBars/--dataNetwork/--operatorName`
-  - `BoosterSimApp/Services/CertificateService.swift` — `simctl addrootcert <udid> <cert.pem>` for certificate trust; `simctl keychain <udid> reset` for keychain reset
-  - `BoosterSimApp/Services/DeepLinkService.swift` — `simctl openurl <udid> <url>` for deep link testing
-  - `BoosterSimApp/Services/SimulatorWindowTracker.swift` — `simctl list devices --json` for device type classification and UDID lookup
-- Invoked via `Process()` with `executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")`
-- Errors: `BoosterSimApp/Services/SimCtlService.swift` defines `SimCtlError` enum (`.commandFailed`, `.xcrunNotFound`, `.timeout`)
+**None (cloud).** The app makes no outbound HTTP calls to third-party services — every `https://` literal in sources is preview/sample data (e.g. `BoosterSimApp/Views/SideWindow/network/TrafficDetailView.swift:286`). All "integrations" are with **local system tooling** (simctl, Xcode, Simulator.app) and **loopback TCP** to the iOS Simulator.
 
-**/usr/bin/openssl:**
-- Self-signed CA certificate generation
-- Service: `BoosterSimApp/Services/CertificateStore.swift` — runs `openssl req -x509 -newkey rsa:2048 -keyout <key> -out <cert> -days 90 -nodes -subj "/CN=BoosterSim CA/O=BoosterSim"`
-- Certs stored in `~/Library/Application Support/BoosterSimApp/Certificates/` (excluded from backup, 0o600 permissions)
-- Backup/atomic file swap pattern for safe rotation
+**Xcode Simulator (primary domain):**
+- `xcrun simctl` — invoked as a subprocess for nearly every device action
+  - Seam: `BoosterSimApp/Services/SimCtlService.swift` (executes `/usr/bin/xcrun simctl <args>` via `Process`; machine-wide serial queue; concurrent stdout/stderr drain; 64 KB stdin bound; 30 s per-verb Combine timeouts). Consumers take the `SimCtlRunning` protocol for test doubles (see `BoosterSimAppTests/ScriptedSimCtl.swift`).
+  - Verbs exercised (with files): `list devices --json` (`BoosterSimApp/Services/SimulatorWindowTracker.swift` — separate direct `Process`), `listapps`, `launch` (incl. `--terminate-running-process`), `terminate`, `install`, `uninstall` (`BoosterSimApp/Services/AppActionService.swift`), `openurl` (`BoosterSimApp/Services/DeepLinkService.swift`), `push <udid> <bundle> -` with stdin payload (`BoosterSimApp/Services/AppActionService.swift:324`), `privacy grant|revoke <service>` and `privacy reset all` (`BoosterSimApp/Models/PrivacyPermission.swift`, `AppActionService`), `status_bar override|clear` (`BoosterSimApp/Services/StatusBarService.swift`), `ui appearance|increase_contrast|content_size` (`BoosterSimApp/Services/EnvironmentOverrideService.swift`), `spawn <udid> defaults read|write|delete` + `spawn <udid> notifyutil -p` (`EnvironmentOverrideService`, `BoosterSimApp/Services/UserDefaultsEditorService.swift`, `AppActionService` locale writes), `keychain add-root-cert` / `keychain reset` (`BoosterSimApp/Services/CertificateService.swift`), `location set <lat>,<lon>` / `location clear` (`AppActionService`), `pbsync host|device` clipboard sync (`AppActionService`), `get_app_container ... data` (`BoosterSimApp/Services/UserDefaultsEditorService.swift:172`).
+- Simulator.app UI automation (Accessibility API, see below): camera menu toggling via menu-item paths `Features → Camera → Front/Back Camera → Mac Built-In Camera` (`BoosterSimApp/Services/CameraService.swift`).
+- Simulator.app preferences written in-process via `CFPreferences` in domain `com.apple.iphonesimulator` (key `ShowSingleTouches`) with snapshot/restore — `BoosterSimApp/Services/TouchIndicatorController.swift:85-88`.
+- Xcode / DerivedData filesystem probing: `BoosterSimApp/Services/XcodeDetector.swift` (candidate paths `/Applications/Xcode.app` etc.) and `BoosterSimApp/Services/DerivedDataAppScanner.swift` (scans `~/Library/Developer/Xcode/DerivedData/<tree>/Build/Products/*-iphonesimulator/*.app`, reads each `.app`'s `Info.plist`).
+- `/usr/bin/openssl` — local CA generation (`req -x509 -newkey rsa:2048 -days 90 -subj /CN=BoosterSim CA/O=BoosterSim`) in `BoosterSimApp/Services/CertificateStore.swift`; installed into a simulator via `simctl keychain add-root-cert`.
 
-**notifyutil:**
-- Darwin notification posting for instant accessibility setting application
-- Invoked inside Simulator via `simctl spawn <udid> notifyutil -p <notification-name>`
-- Notifications used: `com.apple.accessibility.reduce-motion`, `com.apple.accessibility.reduce-transparency`, `com.apple.accessibility.grayscale`, `com.apple.accessibility.invert-colors`, `com.apple.accessibility.increase-button-legibility`, `com.apple.accessibility.on-off-switch-labels`, `com.apple.accessibility.differentiate-without-color`, `com.apple.accessibility.prefer-horizontal-text`, `com.apple.accessibility.AccessibilityUIServer`
+**macOS TCC Permissions (host):**
+- Accessibility: `AXIsProcessTrusted()` + settings deep link + 1 s polling — `BoosterSimApp/Services/PermissionManager.swift`
+- Screen Recording: `CGPreflightScreenCaptureAccess()` / `CGRequestScreenCaptureAccess()` + polling — same file
+- DerivedData access: security-scoped bookmark selection — `PermissionManager.checkDerivedData()`/`selectDerivedData()`
 
-## Networking — Pulse Protocol
+## The Connect Pipeline (iOS app ↔ Mac, loopback TCP + Bonjour)
 
-**PulseServer (macOS side):**
-- Service: `BoosterSimApp/Services/PulseServer.swift`
-- Uses `Network.NWListener` (TCP, peer-to-peer enabled) on a dynamic port
-- Bonjour service type: `_pulse._tcp.` with name `"BoosterSimApp"`
-- Accepts connections from iOS Simulator apps
+The flagship integration: an iOS app running inside Simulator streams its `URLSession` traffic to this Mac app and receives network-condition commands.
 
-**PulseClientConnection (macOS side):**
-- Service: `BoosterSimApp/Services/PulseClientConnection.swift`
-- Per-client TCP connection handler using `Network.NWConnection`
-- Implements Pulse binary protocol: client hello handshake (code 0), ping/pong (code 6), network task created (code 8), network task completed (code 10)
-- 10 MB receive buffer safety cap
+1. **Injection** — the developer's iOS app (DEBUG + simulator builds only) loads the framework: `Bundle(path: "/Applications/BoosterSim.app/Contents/Resources/BoosterSimConnect.framework")?.load()` (snippet shown in `BoosterSimApp/Views/SideWindow/network/ConnectSetupView.swift`). The framework is built by the app target's shell build phase (`A1B2C3D4E5F6A7B8C9D0E1F2` in `BoosterSimApp.xcodeproj/project.pbxproj`).
+2. **Activation** — `BoosterSimConnect/BoosterSimConnect.swift` enables `PulseProxy` `URLSession` swizzling (`URLSessionProxyDelegate.enableAutomaticRegistration()`), registers a custom `URLProtocol` (`BoosterNetworkProtocol.enableAutomaticRegistration()`), starts `BoosterCommandClient.shared.start()`, and enables Pulse `RemoteLogger` broadcasting. Sensitive headers (`Authorization`, `Cookie`, tokens) and query items (`password`, `token`, `secret`, `api_key`, `access_token`) are redacted at the `NetworkLogger` configuration.
+3. **Traffic up** (`_pulse._tcp.` Bonjour service) — `BoosterSimApp/Services/PulseServer.swift` (`NWListener`, `includePeerToPeer = true`) accepts connections; `BoosterSimApp/Services/PulseClientConnection.swift` frames them; `BoosterSimApp/Services/PulsePacketDecoder.swift` implements Pulse's binary wire protocol: 5-byte header `[code: UInt8][contentSize: UInt32 BE]`, zlib-decompressed (via `NSData.decompressed(using: .zlib)`) JSON bodies, packet codes 0–10 (clientHello/serverHello/ping/storeEvent*), and a 3×UInt32-BE manifest splitting JSON message + request body + response body for `networkTaskCompleted`.
+4. **Commands down** (`_booster-cmd._tcp.` Bonjour service) — `BoosterSimApp/Services/CommandServer.swift` broadcasts length-prefixed JSON `BoosterCommand` snapshots (airplane mode, block rules, throttle specs; 10 MB frame cap; reconcile-push on client connect). `NetworkConditionService` is the state hub (`BoosterSimApp/Services/NetworkConditionService.swift`), behind the `CommandBroadcasting` seam (tests inject `NoopCommandBroadcast`).
+5. **Client side** — `BoosterSimConnect/BoosterCommandClient.swift` browses via `NWBrowser`, reassembles frames (`BoosterSimConnect/CommandFrameAssembler.swift`), applies snapshots through `BoosterSimConnect/NetworkConditionController.swift`; `BoosterSimConnect/BoosterNetworkProtocol.swift` enforces verdicts on requests (guard marker `X-Booster-Internal`, airplane → `-1009`, block rule → `-1004`, throttle pacing in `BoosterSimConnect/ThrottlePacing.swift`).
+6. **Display** — decoded events become `NetworkEvent` rows in `BoosterSimApp/Services/ConnectService.swift` (ring buffer of 500).
 
-**PulsePacketDecoder (macOS side):**
-- Service: `BoosterSimApp/Services/PulsePacketDecoder.swift`
-- Pure static functions for Pulse binary protocol parsing
-- Decodes: `PulseClientHello`, `PulseDeviceInfo`, `PulseAppInfo`, `PulseNetworkEvent`, `PulseRequest`, `PulseResponse`
-
-**BoosterSimConnect (iOS side):**
-- Framework: `BoosterSimConnect/BoosterSimConnect.swift`
-- Built as iOS Simulator framework (`SDKROOT = iphoneos`, `SUPPORTED_PLATFORMS = iphonesimulator`)
-- Embedded into macOS app bundle at `Resources/BoosterSimConnect.framework` via build phase script
-- Loaded into Simulator apps via `Bundle.load()` / `dlopen` (DEBUG builds only)
-- Activates Pulse's `URLSessionProxyDelegate.enableAutomaticRegistration()` to swizzle all `URLSession` traffic
-- Configures sensitive header redaction (Authorization, Cookie, API keys, tokens)
-- Enables `RemoteLogger` for Bonjour-based discovery and TCP streaming to the macOS app
-
-**ConnectService (orchestration):**
-- Service: `BoosterSimApp/Services/ConnectService.swift`
-- Manages `PulseServer` lifecycle, decodes events, maintains bounded event list (max 500)
-
-**Pulse (third-party SDK):**
-- Package: kean/Pulse ≥ 5.1.0 via SPM
-- Products consumed: `Pulse` (network logger) and `PulseProxy` (URLSession swizzling + remote logger)
-- Used in both macOS app target and iOS BoosterSimConnect framework target
-
-## macOS System APIs
-
-**Accessibility API (AXUIElement):**
-- `BoosterSimApp/Services/AXInspectorService.swift` — Reads accessibility tree from Simulator windows (role, title, description, value, frame, children up to depth 5). Uses raw CFString attribute constants for macOS 26 SDK compatibility.
-- `BoosterSimApp/Services/CameraService.swift` — Automates Simulator's Features → Camera menu via AX path traversal (`axFindMenuItem`) and `AXUIElementPerformAction` (kAXPressAction)
-- `BoosterSimApp/Services/WindowObserver.swift` — Real-time window move/resize via `AXObserverCreateWithRunLoop` + `AXObserverAddNotification`. Registered for lifecycle notifications (kAXApplicationActivated/Deactivated/Hidden) on the app element and positional notifications (kAXWindowMoved/Resized) on individual window elements.
-- Permission: Accessibility (Privacy & Security → Accessibility)
-
-**CoreGraphics Window APIs:**
-- `BoosterSimApp/Services/WindowEnumerator.swift` — `CGWindowListCopyWindowInfo` to enumerate all on-screen Simulator windows. Filters by owner name "Simulator", layer 0, and minimum size (50×50). Converts Quartz coordinates (top-origin) to AppKit coordinates (bottom-origin).
-- `CGPreflightScreenCaptureAccess()` / `CGRequestScreenCaptureAccess()` in `BoosterSimApp/Services/PermissionManager.swift`
-
-**ScreenCaptureKit:**
-- `BoosterSimApp/Services/CaptureService.swift` — `SCShareableContent` for display discovery, `SCStreamConfiguration` + `SCStream` for recording Simulator windows. `SCStreamOutput` receives `CMSampleBuffer` frames. Exports to MP4 via `AVAssetWriter` or GIF via `ImageIO`.
-
-**Security Framework:**
-- `BoosterSimApp/Services/CertificateStore.swift` — `SecCertificateCreateWithData`, `SecCertificateCopySubjectSummary`, `SecCertificateCopyValues` for certificate metadata extraction (common name, expiry, SHA256 fingerprint)
-
-**ServiceManagement:**
-- `BoosterSimApp/Models/AppSettings.swift` — `SMAppService.mainApp.register()`/`unregister()` for launch-at-login toggle
+**Shared-contract rule:** the framework cannot import the Mac target, so `BoosterCommand`/`BlockRule`/`ConditionVerdict` are mirrored by hand in `BoosterSimConnect/NetworkConditionController.swift` and guarded by `BoosterSimAppTests/CommandPayloadTests.swift`.
 
 ## Data Storage
 
-**UserDefaults:**
-- `BoosterSimApp/Models/AppSettings.swift` — `@AppStorage` keys: `sideWindowPosition`, `showSideWindow`, `launchAtLogin`, `xcodePath`
-- `BoosterSimApp/Services/DeepLinkService.swift` — Keys: `DeepLinkHistory`, `DeepLinkFavorites` (JSON-encoded arrays)
-- `BoosterSimApp/Services/DesignComparisonService.swift` — Key: `DesignComparisonPresets` (JSON-encoded array)
-- `BoosterSimApp/Services/CertificateService.swift` — Persisted install status (device name, UDID) to detect reinstall/rotation need
+**Databases:**
+- None. No SQLite, Core Data, or CloudKit.
 
-**Filesystem:**
-- Certificate storage: `~/Library/Application Support/BoosterSimApp/Certificates/ca.pem` and `ca.key` (0o600 permissions, excluded from backup)
-- DerivedData scanning: `~/Library/Developer/Xcode/DerivedData/*/Logs/Build/LogStoreManifest.plist` — read-only polling by `BoosterSimApp/Services/BuildStatsService.swift` (5-second interval, mtime-based cache, limited to 20 most-recently-modified projects, 30 build records)
+**File Storage:**
+- Local filesystem only: captures staged and exported in place (`BoosterSimApp/Services/CaptureSaveRouter.swift` routes to Desktop / clipboard / custom folder / ask-me via `NSSavePanel`); CA files under `~/Library/Application Support/BoosterSimApp/Certificates/` (0700 dir, 0600 files, excluded from backup).
 
-**No databases, no cloud storage, no caching layers.**
+**Caching:**
+- In-memory only: device info cache in `BoosterSimApp/Services/SimulatorWindowTracker.swift`, event ring buffers in `ConnectService`. `UserDefaults` (@AppStorage) persists settings and deep-link history/favorites (`BoosterSimApp/Services/DeepLinkService.swift`).
 
 ## Authentication & Identity
 
-**No authentication provider.** The app is a local developer tool with no user accounts.
-
-**macOS Permissions Required:**
-- Accessibility — Required for AX tree inspection, window observation, camera menu automation
-- Screen Recording — Required for `kCGWindowName` (device name in Simulator window title) and ScreenCaptureKit recording
-- DerivedData access — Security-scoped bookmark for reading Xcode build logs (user grants folder access via NSOpenPanel)
+**Auth Provider:**
+- None. No sign-in, no OAuth, no account system. The only security-adjacent identity is the codesigning team `EQ8B89SPCX` (automatic signing, `BoosterSimApp.xcodeproj/project.pbxproj`).
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None. No third-party error reporting (Sentry, Crashlytics, etc.)
+- None (no Crashlytics/Sentry/etc.)
 
-**Logging:**
-- `BoosterSimApp/Utilities/AppLogger.swift` — Centralized `os.Logger` instances under subsystem `com.nextlabs.BoosterSimApp`
-  - `AppLogger.windowTracking` — window detection/tracking events
-  - `AppLogger.permissions` — permission check/request events
-  - `AppLogger.settings` — settings and SMAppService events
-  - `AppLogger.certificates` — certificate generation/install/rotation events
-- Additional `print()` statements scattered in services for debug-level output (e.g., `[SimCtl]`, `[EnvOverride]`)
+**Logs:**
+- Apple unified logging (OSLog) via `BoosterSimApp/Utilities/AppLogger.swift` — subsystem `com.nextlabs.BoosterSimApp`, categories: `WindowTracking`, `Permissions`, `Settings`, `Certificates`, `Network`, `Capture`, `Actions`, `Design`. Message privacy: dynamic strings interpolated with `privacy: .public` only when safe. A legacy `print("[SimCtl] ...")` trace remains in `BoosterSimApp/Services/SimCtlService.swift:106`.
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Not deployed to any hosting platform. Local macOS application.
+- Local macOS app; CI on GitHub Actions `macos-26` runners (`.github/workflows/ci.yml`).
 
 **CI Pipeline:**
-- GitHub Actions — `BoosterSimApp/.github/workflows/ci.yml`
-- Runner: `macos-26`
-- Jobs:
-  1. `build` — Builds Debug and Release configurations (code signing disabled) with SPM dependency caching
-  2. `ui-tests` — Runs `BoosterSimAppUITests/ScreenshotTests`, extracts and uploads PNG screenshots as artifacts (14-day retention)
-  3. `build-benchmark` — PR-only job that measures build duration and posts to `$GITHUB_STEP_SUMMARY`
-- Uses `xcbeautify` for build output formatting
-- Concurrency group `ci-${{ github.ref }}` with cancel-in-progress
+- Jobs: `build` (Debug+Release matrix, codesigning disabled), `ui-tests` (runs `BoosterSimAppUITests/ScreenshotTests`, exports screenshots via `xcrun xcresulttool`, uploads artifacts), `build-benchmark` (PR-only timing summary). SPM caching keyed on `Package.resolved`. `xcbeautify` for log formatting.
 
 ## Environment Configuration
 
-**Required system tools:**
-- `/usr/bin/xcrun` — Simulator control
-- `/usr/bin/openssl` — Certificate generation
+**Required env vars:**
+- None. Everything is derived from the local system (xcrun path, Xcode path, DerivedData root, Simulator pid).
 
-**Required macOS permissions (user-granted):**
-- Accessibility (Privacy & Security)
-- Screen Recording (Privacy & Security)
-
-**User-configurable paths:**
-- Xcode path (defaults to auto-detection via `BoosterSimApp/Services/XcodeDetector.swift` checking `/Applications/Xcode.app`, `/Applications/Xcode-beta.app`, etc.)
-- DerivedData path (defaults to `~/Library/Developer/Xcode/DerivedData`; user can select manually via NSOpenPanel)
-
-**No `.env` files.** No API keys, tokens, or cloud credentials.
+**Secrets location:**
+- No secrets in the repo. The only secret-like material is the locally generated CA private key at `~/Library/Application Support/BoosterSimApp/Certificates/ca.key` (never committed; paths are redacted from user-facing errors by `CertificateStore.redactPaths`).
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None. The app has no HTTP server or webhook receiver.
+- None (no HTTP server). The TCP listeners (`PulseServer`, `CommandServer`) are loopback/Bonjour peers, not HTTP endpoints.
 
 **Outgoing:**
-- None. The app does not make any outbound HTTP calls.
+- None.
 
-**Bonjour Service Advertisement:**
-- `PulseServer` in `BoosterSimApp/Services/PulseServer.swift` registers Bonjour service `_pulse._tcp.` named `"BoosterSimApp"` for local network discovery by the iOS `BoosterSimConnect` framework's `RemoteLogger`
+## macOS System Integration Points (reference)
 
-**Darwin Notifications (outgoing to Simulator):**
-- Posted via `simctl spawn <udid> notifyutil -p <name>` for instant accessibility toggle application
+| Concern | API | File |
+|---|---|---|
+| Window discovery | `CGWindowList` polling + `NSWorkspace` notifications | `BoosterSimApp/Services/SimulatorWindowTracker.swift` |
+| Window lifecycle events | `AXObserver` (`kAXWindowMovedNotification`, created/destroyed/miniaturized) | `BoosterSimApp/Services/WindowObserver.swift` |
+| AX tree inspection | `AXUIElementCopyAttributeValue` walker (depth 5, 2 s messaging timeout) | `BoosterSimApp/Services/AXInspectorService.swift` |
+| AX highlight overlay | `AXHighlightPanel` | `BoosterSimApp/Windows/AXHighlightPanel.swift` |
+| Window screenshots | ScreenCaptureKit window filter (desktop-independent, avoids recursive self-capture) | `BoosterSimApp/Services/ScreenshotService.swift` |
+| Screen recording | `SCStream` + `SCRecordingOutput` straight to disk | `BoosterSimApp/Services/RecordingService.swift` |
+| Export | `AVAssetExportSession` (MP4/MOV passthrough), ImageIO GIF | `BoosterSimApp/Services/CaptureExporter.swift` |
+| Launch at login | `SMAppService` | `BoosterSimApp/Models/AppSettings.swift` |
+| Clipboard | `NSPasteboard` (capture destination) | `BoosterSimApp/Services/CaptureSaveRouter.swift` |
 
 ---
 
-*Integration audit: 2026-08-29*
+*Integration audit: 2026-08-31*

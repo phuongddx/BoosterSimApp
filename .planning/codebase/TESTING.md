@@ -1,214 +1,192 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-08-29
+**Analysis Date:** 2026-08-31
 
-## Test Frameworks
+## Test Framework
 
-**Unit Tests:**
-- Framework: Swift Testing (`import Testing`)
-- Location: `BoosterSimAppTests/`
-- Assertion macro: `#expect(...)`
-- No mocking framework in use
-- No test config file — uses Xcode default Swift Testing runner
+**Runner:**
+- **Unit tests:** Swift Testing (`import Testing`) — `BoosterSimAppTests/` target. **229 `@Test` functions across 23 files** (largest: `LocaleCommandTests` 20, `CaptureExportConfigTests` 18, `AppActionServiceTests` 18, `UserDefaultsEditorServiceTests` 16, `PushPayloadTests` 15). The 229 suite was built out in Phase 4 of the GSD roadmap.
+- **UI tests:** XCTest — `BoosterSimAppUITests/` target, 7 `func test*` across 3 files (`ScreenshotTests` 4, `BoosterSimAppUITests` 2 template, `BoosterSimAppUITestsLaunchTests` 1).
+- **Third-party test deps:** None. `BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` contains only Pulse 5.2.2 (production dep of the `BoosterSimConnect` target).
 
-**UI Tests:**
-- Framework: XCTest (`import XCTest`)
-- Location: `BoosterSimAppUITests/`
-- Assertion: `XCTAssertTrue`, `XCAssertEqual`, etc.
-- `XCTApplicationLaunchMetric()` for launch performance
+**Assertion Library:**
+- Swift Testing `#expect(...)` and `#require(...)`; `Issue.record("...")` for guard-style failures when destructuring pattern matches (see `BoosterSimAppTests/PushPayloadTests.swift`, `SimCtlServiceTests.swift`).
+- XCTest `XCTAssertTrue` in UI tests only.
 
-## Run Commands
-
+**Run Commands:**
 ```bash
-# Unit tests (Swift Testing)
-xcodebuild test \
-  -project BoosterSimApp.xcodeproj \
-  -scheme BoosterSimApp \
-  -destination 'platform=macOS' \
-  -only-testing:BoosterSimAppTests
+# All tests (Xcode: Cmd-U on scheme BoosterSimApp)
+xcodebuild test -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS'
 
-# UI tests
-xcodebuild test \
-  -project BoosterSimApp.xcodeproj \
-  -scheme BoosterSimApp \
-  -destination 'platform=macOS' \
-  -only-testing:BoosterSimAppUITests
-
-# UI tests with screenshots (as used in CI)
-xcodebuild test \
-  -project BoosterSimApp.xcodeproj \
-  -scheme BoosterSimApp \
-  -destination 'platform=macOS' \
-  -only-testing:BoosterSimAppUITests/ScreenshotTests \
-  -resultBundlePath UITestResults
+# Only UI screenshots (what CI runs — .github/workflows/ci.yml)
+xcodebuild test -project BoosterSimApp.xcodeproj -scheme BoosterSimApp \
+  -destination 'platform=macOS' -configuration Debug \
+  -only-testing:BoosterSimAppUITests/ScreenshotTests
 ```
+
+**Coverage approach:** No coverage targets enforced; no coverage tooling in CI. CI (`.github/workflows/ci.yml`) builds Debug+Release and runs ONLY `-only-testing:BoosterSimAppUITests/ScreenshotTests` — the Swift Testing unit suite runs locally/via Xcode, not in CI.
 
 ## Test File Organization
 
-**Location pattern:** Tests live in separate directories mirroring the Xcode target structure:
+**Location:**
+- Flat directory: `BoosterSimAppTests/` (one file per service/concern, no mirrors of source tree).
+- Shared test doubles live in files WITHOUT the `Tests` suffix: `BoosterSimAppTests/ScriptedSimCtl.swift`.
 
+**Naming:**
+- `SubjectTests.swift` for `struct SubjectTests` (e.g., `NetworkConditionServiceTests.swift` → `NetworkConditionServiceTests`).
+- Shared doubles: descriptive noun (`ScriptedSimCtl.swift` → `ScriptedSimCtlDouble`).
+
+**Structure:**
 ```
 BoosterSimAppTests/
-├── BoosterSimAppTests.swift            # Xcode-generated scaffold (empty @Test)
-└── CertificateServiceTests.swift      # Real unit tests
-
+├── ScriptedSimCtl.swift              # shared seam double (SimCtlRunning)
+├── <Subject>Tests.swift              # one struct per subject, flat
 BoosterSimAppUITests/
-├── BoosterSimAppUITests.swift          # Xcode-generated scaffold (empty test)
-├── BoosterSimAppUITestsLaunchTests.swift  # Launch + performance test
-└── ScreenshotTests.swift               # Screenshot capture for visual regression
+├── ScreenshotTests.swift             # numbered screenshot attachments
+├── BoosterSimAppUITestsLaunchTests.swift
+└── BoosterSimAppUITests.swift        # Xcode template (placeholder)
 ```
-
-**Naming:** `{TargetName}Tests.swift` for unit tests, `{Purpose}Tests.swift` for UI tests. File names are PascalCase.
 
 ## Test Structure
 
-**Unit Tests (Swift Testing):**
+**Suite Organization** (`BoosterSimAppTests/NetworkConditionServiceTests.swift`):
 ```swift
+// NetworkConditionServiceTests.swift — one-line purpose header
+import Foundation
 import Testing
 @testable import BoosterSimApp
 
-struct CertificateServiceTests {
+struct NetworkConditionServiceTests {          // struct, not class
 
-    @Test func certificateOperationAllowsExpectedTransitions() {
-        #expect(CertificateOperation.idle.canTransition(to: .generating))
-        #expect(CertificateOperation.generating.canTransition(to: .error("failed")))
-        #expect(!CertificateOperation.installing.canTransition(to: .generating))
+    private func makeDefaults() throws -> (defaults: UserDefaults, suiteName: String) {
+        let suiteName = "NetworkConditionServiceTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        return (defaults, suiteName)
     }
 
-    @Test func certificateStatusExposesMetadataWhenAvailable() {
-        let expiry = Date(timeIntervalSince1970: 1_234_567)
-        let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
-        #expect(generated.certificateMetadata?.commonName == "BoosterSim CA")
-    }
-}
-```
-
-**Patterns:**
-- `struct` (value type) for test suites — not `class`
-- `@Test` macro on each test function (no `func test...` naming required)
-- `#expect(...)` for assertions
-- `@testable import BoosterSimApp` for access to internal types
-- No `setUp`/`tearDown` — state created inline per test
-
-**UI Tests (XCTest):**
-```swift
-final class ScreenshotTests: XCTestCase {
-    var app: XCUIApplication!
-
-    override func setUpWithError() throws {
-        continueAfterFailure = false
-        app = XCUIApplication()
-    }
+    // MARK: - Airplane Persistence
 
     @MainActor
-    func testLaunchScreen() throws {
-        app.launch()
-        let window = app.windows.firstMatch
-        XCTAssertTrue(window.waitForExistence(timeout: 5))
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "01-launch"
-        screenshot.lifetime = .keepAlways
-        add(screenshot)
+    @Test func airplanePersistsAcrossServiceReInit() throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let first = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
+        first.setAirplane(true)
+        #expect(first.airplane == true)
+
+        // Re-initialize from the same suite: persisted state must re-apply.
+        let second = NetworkConditionService(defaults: defaults, commandServer: NoopCommandBroadcast())
+        #expect(second.airplane == true)
     }
 }
 ```
 
 **Patterns:**
-- `final class` conforming to `XCTestCase`
-- `@MainActor` on test methods that interact with the app
-- `setUpWithError()` for per-test setup; `continueAfterFailure = false`
-- Screenshot capture via `XCTAttachment(screenshot:).lifetime = .keepAlways`
-- Sequential naming: `01-launch`, `02-side-window-default`, `03-side-window-tab-{n}`
+- `struct` suites; `@Test func` methods with full-sentence contract names.
+- `@MainActor` on the whole struct (`OverlayPersistenceTests`) or per-test when the service under test is MainActor-isolated (app target defaults to MainActor isolation; test targets do NOT, so explicit annotation is required).
+- `// MARK: -` sections group behaviors within a suite (`// MARK: - State Machine Transitions`, `// MARK: - Fixtures`).
+- **Isolated persistence:** every test needing defaults uses the `makeDefaults()` helper — a UUID-suffixed `UserDefaults(suiteName:)` plus `defer { defaults.removePersistentDomain(forName: suiteName) }` teardown.
+- **Re-init persistence testing:** instantiate service from suite → mutate → construct a SECOND instance from the same suite → assert state re-applied (canonical in `NetworkConditionServiceTests`, `CaptureSettingsTests`, `OverlayPersistenceTests`).
 
 ## Mocking
 
-**No mocking framework** is configured or imported. Current tests test pure model logic (`CertificateOperation` state transitions, `CertificateStatus` metadata) that requires no mocks.
+**Framework:** Hand-rolled protocol seam doubles — no mocking library.
 
-**What to mock (when needed):**
-- `SimCtlService` — for services that call xcrun subprocesses
-- `SimulatorWindowTracker` — for view tests that depend on simulator state
-- `CertificateStore` — for `CertificateService` tests
+**Seam protocols live in PRODUCTION code** so facades take doubles in tests:
+- `SimCtlRunning` — `BoosterSimApp/Services/SimCtlService.swift` (conformed by `SimCtlService`)
+- `CommandBroadcasting` — `BoosterSimApp/Services/CommandServer.swift`
+- `AppKeychainResetting` — `BoosterSimApp/Models/AppActionModels.swift`
+- `TouchPreferencesStore` — `BoosterSimApp/Services/TouchIndicatorController.swift`
 
-**Approach:** Use protocol-based dependency injection. Create a protocol (e.g., `SimCtlProviding`) and inject a mock conformer. The existing `init` dependency injection pattern in services (e.g., `CertificateService(simCtl:)`) supports this directly.
+**Doubles:**
+- `ScriptedSimCtlDouble` (`BoosterSimAppTests/ScriptedSimCtl.swift`) — shared scripted double: `when(verb, returns:)` cans outcomes per first-argv-token; `hold(verb)` + `complete(verb, with:)` gate in-flight runs oldest-first for race tests; `requested`/`requestedVerbs` record invocations.
+- `NoopCommandBroadcast` — a no-op `CommandBroadcasting` implemented in PRODUCTION code (`CommandServer.swift`) and injected by tests; the codebase pattern for "test needs a silent collaborator."
+- Small per-file doubles are `private final class` inside the test file (`KeychainResetDouble` in `AppActionServiceTests.swift`) with plain recorded `calls: [String]` arrays.
 
-**What NOT to mock:**
-- Model types (`CertificateStatus`, `CertificateOperation`, `NetworkEvent`) — test directly
-- Pure utility types (`DesignTokens`, `AppLogger`)
+```typescript
+// Scripted-double usage (AppActionServiceTests.swift)
+let simCtl = ScriptedSimCtlDouble()
+simCtl.when("terminate", returns: .success(""))
+service.resetApp(udid: "CONCRETE-UDID", bundleID: "com.example.app")
+await pumpMainQueue()   // chain lands via .receive(on: main) even with a synchronous double
+#expect(simCtl.requestedVerbs == ["terminate", "listapps", "uninstall"])
+```
+
+**Async determinism — `pumpMainQueue()`:** Combine `.receive(on: main)` hops enqueue async main-queue jobs even with synchronous doubles, so tests call `await pumpMainQueue()` (a `for _ in 0 ..< 50 { await Task.yield() }` loop, defined on `ScriptedSimCtlDouble` and inlined in `AppActionServiceTests`) between act and assert. For gated sequencing tests, drive events and pump between each: `events.send(.resetting)` → `await pumpMainQueue()` → `#expect(...)` (see the clear-keychain reconcile tests in `AppActionServiceTests.swift`, stale-container race tests in `UserDefaultsEditorServiceTests.swift`).
+
+**What to Mock:**
+- Process boundaries (`xcrun simctl`), network broadcast sinks, keychain reset delegates, defaults stores.
+- Never mock the unit under test's pure logic — builders/parsers are `static func` and tested directly with no doubles.
+
+**What NOT to Mock:**
+- `UserDefaults` — use real isolated per-test suites (pattern above).
+- Codable round-trips and state machines — always exercised for real.
 
 ## Fixtures and Factories
 
-**Test data:** Created inline within test functions:
-```swift
-let expiry = Date(timeIntervalSince1970: 1_234_567)
-let generated = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
-```
+**Test Data:**
+- Inline fixture builders as private funcs/properties: `makeApp(_:age:)` building `DiscoveredApp`, embedded `listAppsXML` plist strings, `launchctlExcerpt` output samples (`BoosterSimAppTests/AppActionServiceTests.swift`).
+- Legacy-payload fixtures declared as private `Codable` structs + `plantLegacyPreset(...)` writers (`BoosterSimAppTests/OverlayPersistenceTests.swift`).
+- Synthetic `NSImage` factories with explicit pixel dimensions (`makeImage(pixelsWide:pixelsHigh:)` in `OverlayPersistenceTests.swift`).
+- Deterministic dates: `Date(timeIntervalSince1970: 1_700_000_000)` for filename tests (`CaptureSettingsTests.swift`).
 
-**Location:** No shared fixture files or factory directories exist. All test data is inline.
+**Location:**
+- Fixtures are declared inside the test file that uses them — no shared fixture directory.
 
 ## Coverage
 
-**Requirements:** No enforced coverage target.
+**Requirements:** None enforced.
 
-**Current state:** Only model-layer logic is tested (`CertificateOperation` transitions, `CertificateStatus` metadata). Services, views, and controllers have zero test coverage.
+**View Coverage:** Not wired up (no `xcconfig`, no CI flags). Enable ad hoc via Xcode test-report coverage tab.
 
 ## Test Types
 
 **Unit Tests:**
-- Framework: Swift Testing
-- Scope: Model logic, enums, state transitions
-- One test file with 2 test functions: `BoosterSimAppTests/CertificateServiceTests.swift`
+- Swift Testing; four families:
+  1. **Pure logic** — static argv builders, output parsers, math, payload parsing with no I/O (`AppActionServiceTests` argv equality, `RulerMathTests` geometry, `PushPayloadTests` parse contracts, `GridGeometryTests`).
+  2. **Persistence round-trips** — real `UserDefaults` suites + re-init (see above).
+  3. **State machines** — `canTransition(to:)` accept/reject matrices (`NetworkConditionServiceTests`, `CertificateServiceTests`, `ConditionVerdictTests`).
+  4. **Seam/async chains** — scripted doubles + `pumpMainQueue()` ordering assertions (`SimCtlServiceTests`, `UserDefaultsEditorServiceTests`, `AppActionServiceTests`).
 
-**UI Tests:**
-- Framework: XCTest
-- Scope: Screenshot capture for visual regression, launch verification
-- Primary file: `BoosterSimAppUITests/ScreenshotTests.swift` (4 test methods)
-- Secondary: `BoosterSimAppUITests/BoosterSimAppUITestsLaunchTests.swift` (1 launch + 1 performance test)
-- `BoosterSimAppUITests/BoosterSimAppUITests.swift`: Xcode-generated scaffold, empty tests
+**Integration Tests:**
+- None as a separate tier; seam tests with real `SimCtlService` (subprocess preflight stubs only, e.g., stdin-bound rejection test) are the closest.
 
-**E2E Tests:** Not used.
-
-## CI Configuration
-
-**File:** `.github/workflows/ci.yml`
-
-**Jobs:**
-1. **build** — Builds Debug + Release configurations on `macos-26`; code signing disabled; SPM dependency caching
-2. **ui-tests** — Runs `ScreenshotTests` only; extracts PNG screenshots from xcresult; uploads xcresult bundle and screenshots as artifacts (14-day retention)
-3. **build-benchmark** (PR only) — Measures build time in seconds; posts to `$GITHUB_STEP_SUMMARY`
-
-**Notable CI gaps:**
-- Unit tests (`BoosterSimAppTests`) are **not run in CI** — only UI tests and builds execute
-- No coverage reporting
-- Build benchmark runs on PRs only, not on push to main
-
-**UI test output:**
-- xcresult bundle uploaded as `ui-test-results` artifact
-- Screenshots extracted and uploaded as `ui-screenshots` artifact
-- Uses `xcbeautify` for build output formatting (piped with `|| true` so UI test failures don't fail the job)
-
-**Concurrency:** `cancel-in-progress: true` on same ref
+**E2E Tests:**
+- XCTest UI tests: `ScreenshotTests.swift` launches `XCUIApplication`, asserts `window.waitForExistence(timeout: 5)`, attaches numbered screenshots via `XCTAttachment` with `.keepAlways` lifetime (`"01-launch"`, `"03-side-window-tab-\(index)"`, `"05-full-screen"` — full-desktop via `XCUIScreen.main.screenshot()`). CI exports these PNGs from the xcresult bundle and uploads them as artifacts.
 
 ## Common Patterns
 
-**State machine testing:**
+**Async Testing:**
 ```swift
-@Test func certificateOperationAllowsExpectedTransitions() {
-    #expect(CertificateOperation.idle.canTransition(to: .generating))
-    #expect(!CertificateOperation.installing.canTransition(to: .generating))
+@Test func staleResultIsSkipped() async throws {
+    simCtl.hold("get_app_container")
+    service.loadDomain(udid: "UDID", bundle: "com.a")
+    simCtl.complete("get_app_container", with: containerA)
+    await simCtl.pumpMainQueue()      // let main-queue Combine hops land
+    #expect(simCtl.requestedVerbs == ["get_app_container", "get_app_container"])
 }
 ```
+No `confirmation`/task-group concurrency tests exist — ordering is verified by gated `hold`/`complete` + `pumpMainQueue`.
 
-**Metadata extraction testing:**
+**Error Testing:**
 ```swift
-@Test func certificateStatusExposesMetadataWhenAvailable() {
-    let status = CertificateStatus.generated(cn: "BoosterSim CA", expiry: expiry, sha256: "abc")
-    #expect(status.certificateMetadata?.commonName == "BoosterSim CA")
-    #expect(CertificateStatus.notGenerated.certificateMetadata == nil)
+// Guard-destructure with Issue.record; assert typed error + boundary (SimCtlServiceTests.swift)
+var failure: SimCtlError?
+let cancellable = service.run(["push", "UDID", "com.x", "-"],
+                              stdin: Data(count: SimCtlLimits.maxStdinBytes + 1))
+    .sink(receiveCompletion: { if case .failure(let e) = completion { failure = e } },
+          receiveValue: { _ in values += 1 })
+guard let failure, case .stdinTooLarge(let size) = failure else {
+    Issue.record("expected .stdinTooLarge for a payload over the pipe bound"); _ = cancellable; return
 }
+#expect(size == SimCtlLimits.maxStdinBytes + 1)
 ```
+Boundary +1/+1-byte-over patterns recur (`PushPayloadTests` 4097-byte cap; `SimCtlServiceTests` pipe bound); corrupted-payload tests assert degrade-never-trap (`OverlayPersistenceTests` "garbage under key" tests).
 
-**Async testing:** Swift Testing supports `async throws` on `@Test` functions natively. XCTest UI tests use `@MainActor` annotation.
+**Parameterization:**
+- Swift Testing parameterized `@Test(arguments:)` is NOT used; case matrices are `for` loops inside a single `@Test` over inline arrays (`BoosterSimAppTests/LocaleCommandTests.swift:38`).
 
 ---
 
-*Testing analysis: 2026-08-29*
+*Testing analysis: 2026-08-31*

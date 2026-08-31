@@ -1,227 +1,192 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-08-29
+**Analysis Date:** 2026-08-31
 
 ## Directory Layout
 
-```
-BoosterSimApp/                        # Xcode project root
-├── BoosterSimApp/                    # Main app target source
-│   ├── App/                          # App lifecycle
-│   ├── Models/                       # Data types (value types)
-│   ├── Services/                     # Business logic & external integrations
-│   ├── Windows/                      # AppKit window management
-│   ├── Views/                        # SwiftUI views
-│   │   ├── SideWindow/               # Floating panel UI (4 tabs)
-│   │   │   ├── tabs/                 # Tab content views
-│   │   │   └── network/              # Network tab subviews + models
-│   │   ├── MenuBar/                  # Menu bar dropdown content
-│   │   ├── Preferences/              # Preferences window (General, About)
-│   │   ├── Onboarding/               # First-launch onboarding flow
-│   │   └── Shared/                   # Reusable view components
-│   ├── Utilities/                    # Cross-cutting helpers
-│   └── Assets.xcassets/              # Asset catalog (app icon, accent color)
-├── BoosterSimConnect/                # iOS SPM framework (PulseProxy activation)
-├── booster-sim-cli/                  # SPM CLI tool (ArgumentParser)
-│   └── Sources/boostersim/
-│       ├── boostersim.swift          # CLI entry point
-│       ├── Commands/                 # Subcommand implementations
-│       └── Services/
-│           └── SimCtlService.swift   # CLI's own simctl wrapper
-├── BoosterSimAppTests/               # Unit tests
-├── BoosterSimAppUITests/             # UI tests
-├── BoosterSimApp.xcodeproj/         # Xcode project
-├── docs/                             # Project documentation
-│   └── journals/                     # Session journals
-├── plans/                            # Historical implementation plans
-│   └── reports/                      # Plan execution reports
-├── scripts/                          # Build/utility scripts
-├── .github/workflows/                # CI (GitHub Actions)
-├── .claude/                          # Claude agent config, skills, memory
-├── .planning/                        # GSD planning artifacts
-├── .build-benchmark/                 # Build optimization notes
-└── CLAUDE.md / AGENTS.md / README.md
+```text
+BoosterSimApp/                      # repo root
+├── BoosterSimApp.xcodeproj/        # Xcode project — 4 targets: app, unit tests, UI tests, BoosterSimConnect framework
+├── BoosterSimApp/                  # main app target source
+│   ├── App/                        # AppDelegate (composition root)
+│   ├── Models/                     # value types, settings, wire-contract models
+│   ├── Services/                   # ObservableObject services + pure helpers + process seams
+│   ├── Utilities/                  # design tokens, logger, pure rendering, animation
+│   ├── Windows/                    # NSPanel subclasses + AppKit controllers
+│   ├── Views/                      # SwiftUI views, grouped by surface
+│   │   ├── MenuBar/                # MenuBarExtra content
+│   │   ├── Onboarding/             # first-launch 4-step flow
+│   │   ├── Preferences/            # Settings scene tabs
+│   │   ├── Shared/                 # reusable atoms (CollapsibleSection, AccentButton, StatusBadge)
+│   │   ├── SideWindow/             # side panel root + tab sections
+│   │   │   ├── tabs/               # one view per tab (Capture, Design, Actions, Network)
+│   │   │   ├── actions/            # Actions tab sections (locale, push, privacy, defaults, …)
+│   │   │   ├── capture/            # Capture tab sections (export, recording)
+│   │   │   ├── network/            # Network tab: traffic list/detail, conditions, block rules
+│   │   │   └── (root files)        # SideWindowView, TabBarView, Design* sections, DeepLink, Certificates, …
+│   │   └── Overlay/                # design-overlay tool views (grid, ruler, magnifier, safe area, comparison)
+│   ├── BoosterSimAppApp.swift      # @main entry
+│   └── Assets.xcassets/            # AppIcon, AccentColor
+├── BoosterSimAppTests/             # unit tests (XCTest + Swift Testing), hosted in the app
+├── BoosterSimAppUITests/           # XCUITest launch/screenshot tests
+├── BoosterSimConnect/              # iOS framework target, loaded into Simulator apps (DEBUG)
+├── booster-sim-cli/                # standalone SwiftPM executable (boostersim CLI)
+├── docs/                           # living architecture/standards docs + journals
+├── plans/                          # dated implementation-plan directories (MMDD-HHMM-slug)
+├── scripts/                        # helper scripts
+├── .planning/                      # GSD state: ROADMAP.md, PROJECT.md, phases/, codebase/
+├── BoosterHealth-Entitlements.plist# entitlements (app is non-sandboxed)
+└── AGENTS.md / CLAUDE.md / README.md
 ```
 
 ## Directory Purposes
 
-**`BoosterSimApp/BoosterSimApp/App/`:**
-- Purpose: Application lifecycle management and service wiring
-- Contains: `AppDelegate.swift` (service container, tracking startup, onboarding)
+**`BoosterSimApp/App/`:**
+- Purpose: Application composition root
+- Contains: `AppDelegate.swift` — owns every service, panel, controller; lifecycle wiring; onboarding window
 - Key files: `BoosterSimApp/App/AppDelegate.swift`
 
-**`BoosterSimApp/BoosterSimApp/Models/`:**
-- Purpose: Value-type data structures shared across services and views
-- Contains: `SimulatorWindow.swift`, `AXNode.swift`, `BuildRecord.swift`, `AppSettings.swift`
-- Key files: `BoosterSimApp/Models/AppSettings.swift` (also contains `SideWindowPosition` enum)
+**`BoosterSimApp/Services/`:**
+- Purpose: All domain logic and state. 36 files, roughly four families: (1) tracking core (`SimulatorWindowTracker`, `WindowEnumerator`, `WindowObserver`, `PermissionManager`), (2) feature services (one per tab capability), (3) pure helpers (`PositionCalculator`-style: `OverlayGeometry`, `SafeAreaCatalog`, `DerivedDataAppScanner`), (4) process/network seams (`SimCtlService`, `PulseServer`/`PulseClientConnection`/`PulsePacketDecoder`, `CommandServer`)
+- Contains: `@MainActor final class … ObservableObject` services, static pure enums, same-type extension files
+- Key files: `SimulatorWindowTracker.swift`, `SimCtlService.swift`, `CaptureService.swift`, `AppActionService.swift`, `DesignOverlayService.swift` (+`+Presets.swift`, `+Import.swift`), `PixelSamplerService.swift`, `ConnectService.swift`, `NetworkConditionService.swift`, `CommandServer.swift`
 
-**`BoosterSimApp/BoosterSimApp/Services/`:**
-- Purpose: All business logic, external process orchestration, protocol handling, and permission management
-- Contains: 31 Swift files covering simulator control, accessibility, screen capture, certificates, network protocol, deep links, design comparison, permissions, window enumeration, Xcode detection, and (Phase 3) app actions, DerivedData scanning, and the UserDefaults editor
-- Key files: `BoosterSimApp/Services/SimCtlService.swift` (shared `xcrun simctl` executor), `BoosterSimApp/Services/ConnectService.swift` (network event aggregation), `BoosterSimApp/Services/PulseServer.swift` (TCP server)
+**`BoosterSimApp/Models/`:**
+- Purpose: Value types, settings, enums, and wire-contract models — no AppKit windows, no business logic beyond pure predicates
+- Contains: structs/enums, `AppSettings` (`@AppStorage` singleton), protocol-adjacent types (`PrivacyPermission` TCC strings, `PushPayload`, `DefaultsEntry`)
+- Key files: `AppSettings.swift`, `BoosterCommand.swift`, `AppAction.swift`, `AppActionModels.swift`, `SimulatorWindow.swift`
 
-**`BoosterSimApp/BoosterSimApp/Windows/`:**
-- Purpose: AppKit window/panel management — floating panel, position calculation, spring animation, highlight overlay
-- Contains: `SideWindowController.swift`, `SideWindowPanel.swift`, `AXHighlightPanel.swift`, `PositionCalculator.swift`
-- Key files: `BoosterSimApp/Windows/SideWindowController.swift` (central window manager)
+**`BoosterSimApp/Windows/`:**
+- Purpose: AppKit window surfaces and their controllers — everything that owns an `NSPanel`
+- Contains: `SideWindowController` + `SideWindowPanel`, `DesignOverlayController` (+`+InputMode.swift`) + `DesignOverlayPanel`, `AXHighlightPanel`, `CaptureThumbnailPanel`, pure `PositionCalculator`
+- Key files: `SideWindowController.swift`, `DesignOverlayController.swift`, `DesignOverlayPanel.swift`
 
-**`BoosterSimApp/BoosterSimApp/Views/SideWindow/`:**
-- Purpose: Main floating panel UI — tab bar, device header, 4 tab content views, feature sections
-- Contains: `SideWindowView.swift` (root), `TabBarView.swift`, `SideTab.swift`, `CollapsedStripView.swift`, `SideWindowFooter.swift`, `DeviceHeaderView.swift`, plus 8 feature section views
-- Subdirectories: `tabs/` (4 tab views: Capture, Design, Actions, Network), `network/` (network subviews + `NetworkEventModel.swift`), `actions/` (Phase 3 app-action section views — picker, reset, push, privacy, locale, location, clipboard, defaults editor, search bar)
-- Key files: `BoosterSimApp/Views/SideWindow/SideWindowView.swift` (root view), `BoosterSimApp/Views/SideWindow/TabBarView.swift` (tab navigation)
+**`BoosterSimApp/Views/`:**
+- Purpose: All SwiftUI. Grouped by surface; the side panel is further grouped by tab then section
+- Contains: `SideWindow/SideWindowView.swift` (root, environment-object consumer), `SideWindow/tabs/` (4 tab roots), `SideWindow/actions|capture|network/` (section views), design sections at `SideWindow/` root (`DesignComparisonView`, `DesignToolsSection`, `DesignSafeAreaSection`, `DesignPresetsSection`), `Overlay/` tool views, `MenuBar/`, `Onboarding/`, `Preferences/`, `Shared/` atoms
+- Key files: `SideWindow/SideWindowView.swift`, `SideWindow/tabs/{CaptureTabView,DesignTabView,ActionsTabView,NetworkTabView}.swift`, `Overlay/MagnifierView.swift`, `Overlay/RulerOverlayView.swift`
 
-**`BoosterSimApp/BoosterSimApp/Views/MenuBar/`:**
-- Purpose: Menu bar dropdown content
-- Contains: `MenuBarView.swift`
-
-**`BoosterSimApp/BoosterSimApp/Views/Preferences/`:**
-- Purpose: Preferences window with General and About tabs
-- Contains: `PreferencesView.swift`, `GeneralTab.swift`, `AboutTab.swift`
-
-**`BoosterSimApp/BoosterSimApp/Views/Onboarding/`:**
-- Purpose: First-launch onboarding wizard
-- Contains: `OnboardingContainerView.swift`, `OnboardingStepView.swift`, `ProgressDotsView.swift`
-
-**`BoosterSimApp/BoosterSimApp/Views/Shared/`:**
-- Purpose: Reusable SwiftUI components
-- Contains: `CollapsibleSection.swift`, `StatusBadge.swift`, `AccentButton.swift`
-
-**`BoosterSimApp/BoosterSimApp/Utilities/`:**
-- Purpose: Cross-cutting helpers not tied to any service
-- Contains: `AppLogger.swift`, `SpringAnimator.swift`, `DesignTokens.swift`
+**`BoosterSimApp/Utilities/`:**
+- Purpose: Cross-cutting, dependency-light helpers
+- Contains: `DesignTokens.swift` (layout constants), `AppLogger.swift` (os.Logger namespace), `SpringAnimator.swift` (display-link spring), `CaptureCompositor.swift` (pure CG rendering), `CaptureFilename.swift`
+- Key files: `DesignTokens.swift`, `AppLogger.swift`
 
 **`BoosterSimConnect/`:**
-- Purpose: iOS SPM framework loaded into Simulator apps via `Bundle.load()` to activate PulseProxy network capture
-- Contains: `BoosterSimConnect.swift` (single file, conditional `#if canImport(PulseProxy)`)
-
-**`booster-sim-cli/`:**
-- Purpose: Standalone SPM CLI tool for AI-agent-driven Simulator control
-- Contains: `Package.swift`, `Sources/boostersim/boostersim.swift` (ArgumentParser entry), `Commands/` (8 subcommands), `Services/SimCtlService.swift` (CLI's own simctl wrapper, independent from the app target's)
+- Purpose: iOS framework (its own Xcode target) loaded into Simulator apps via `Bundle.load()` in DEBUG builds; captures URLSession traffic (Pulse/PulseProxy) and enforces pushed network conditions
+- Contains: `BoosterSimConnect.swift` (entry/activation), `BoosterNetworkProtocol.swift`, `BoosterCommandClient.swift`, `CommandFrameAssembler.swift`, `NetworkConditionController.swift` (mirror of `Models/BoosterCommand.swift`), `ThrottlePacing.swift`
+- Key files: `BoosterSimConnect/BoosterSimConnect.swift`, `BoosterSimConnect/NetworkConditionController.swift`
 
 **`BoosterSimAppTests/`:**
-- Purpose: Unit tests for the main app target
-- Contains: `CertificateServiceTests.swift`, `BoosterSimAppTests.swift`
+- Purpose: Unit tests (XCTest + Swift Testing) with headless seams (`ScriptedSimCtl.swift`, cache injection)
+- Key files: `AppActionServiceTests.swift`, `OverlayPersistenceTests.swift`, `PixelSamplerTests.swift`, `SafeAreaCatalogTests.swift`, `RulerMathTests.swift`, `GridGeometryTests.swift`, `PushPayloadTests.swift`, `UserDefaultsEditorServiceTests.swift`, `ScriptedSimCtl.swift`
 
 **`BoosterSimAppUITests/`:**
-- Purpose: UI tests
-- Contains: `BoosterSimAppUITests.swift`, `BoosterSimAppUITestsLaunchTests.swift`, `ScreenshotTests.swift`
+- Purpose: XCUITest launch/screenshot smoke tests
+- Key files: `ScreenshotTests.swift`, `BoosterSimAppUITestsLaunchTests.swift`
+
+**`docs/`:**
+- Purpose: Hand-maintained architecture and standards documentation (kept current with code), plus journals
+- Key files: `system-architecture.md`, `code-standards.md`, `codebase-summary.md`, `project-roadmap.md`
+
+**`plans/`:**
+- Purpose: Per-task implementation plans, named `MMDD-HHMM-slug/` (e.g. `plans/0411-2219-booster-sim-connect-activation/`)
+- Generated: No (human/agent authored); Committed: Yes
+
+**`.planning/`:**
+- Purpose: GSD workflow state — `ROADMAP.md`, `PROJECT.md`, `REQUIREMENTS.md`, `STATE.md`, `phases/` (RESEARCH/PLAN/VALIDATION per phase), `codebase/` (these documents)
+- Generated: Workflow-managed; Committed: Yes
 
 ## Key File Locations
 
 **Entry Points:**
-- `BoosterSimApp/BoosterSimAppApp.swift`: SwiftUI `@main` entry — defines menu bar and settings scenes
-- `BoosterSimApp/App/AppDelegate.swift`: AppKit delegate — service container, startup orchestration
-- `BoosterSimConnect/BoosterSimConnect.swift`: iOS framework activation entry
-- `booster-sim-cli/Sources/boostersim/boostersim.swift`: CLI entry with ArgumentParser
+- `BoosterSimApp/BoosterSimAppApp.swift`: `@main` SwiftUI App — `MenuBarExtra` + `Settings` scenes, delegate adaptor
+- `BoosterSimApp/App/AppDelegate.swift`: all construction/wiring; read this first to find who owns what
 
 **Configuration:**
-- `BoosterHealth-Entitlements.plist`: HealthKit entitlements (seems vestigial — app is macOS-only)
-- `BoosterSimApp/BoosterSimAppApp.swift`: `LSUIElement = true` is in `Info.plist` (not visible in source, set in Xcode target)
-- `BoosterSimApp/Models/AppSettings.swift`: `@AppStorage` keys define persisted settings
+- `BoosterSimApp.xcodeproj/project.pbxproj`: targets, build settings (`MACOSX_DEPLOYMENT_TARGET = 26.2`, `SWIFT_VERSION = 5.0`, `INFOPLIST_KEY_LSUIElement = YES`)
+- `BoosterHealth-Entitlements.plist`: entitlements (non-sandboxed app)
+- `BoosterSimApp/Utilities/DesignTokens.swift`: all layout constants
+- `booster-sim-cli/Package.swift`: standalone CLI SwiftPM manifest
 
 **Core Logic:**
-- `BoosterSimApp/Services/SimCtlService.swift`: Shared `xcrun simctl` process executor
-- `BoosterSimApp/Services/SimulatorWindowTracker.swift`: Simulator window detection hub
-- `BoosterSimApp/Services/ConnectService.swift`: Network event aggregation from Pulse protocol
-- `BoosterSimApp/Services/PulsePacketDecoder.swift`: Binary protocol codec
-- `BoosterSimApp/Services/CertificateService.swift`: Certificate generation/installation orchestration
-- `BoosterSimApp/Services/EnvironmentOverrideService.swift`: Appearance and accessibility override management
-- `BoosterSimApp/Services/CaptureService.swift`: Screen recording via ScreenCaptureKit
+- Tracking: `BoosterSimApp/Services/SimulatorWindowTracker.swift` (+ `WindowObserver.swift`, `WindowEnumerator.swift`)
+- Actions domain: `BoosterSimApp/Services/AppActionService.swift` — public verbs in the class, argv in `nonisolated static` builder extensions at the bottom of the file
+- Overlay math: `BoosterSimApp/Services/OverlayGeometry.swift`, `SafeAreaCatalog.swift`; input machine `BoosterSimApp/Windows/DesignOverlayController+InputMode.swift`
+- Wire contract: `BoosterSimApp/Models/BoosterCommand.swift` ↔ `BoosterSimConnect/NetworkConditionController.swift` (kept semantically identical)
 
 **Testing:**
-- `BoosterSimAppTests/CertificateServiceTests.swift`: Certificate service unit tests
-- `BoosterSimAppUITests/ScreenshotTests.swift`: Screenshot-based UI tests
+- Unit: `BoosterSimAppTests/*Tests.swift` (file-per-type mirror; pure-logic tests for builders, geometry, persistence, payloads)
+- UI: `BoosterSimAppUITests/`
 
 ## Naming Conventions
 
 **Files:**
-- Services: PascalCase + `Service` suffix — e.g., `StatusBarService.swift`, `AXInspectorService.swift`
-- Models: PascalCase noun — e.g., `SimulatorWindow.swift`, `BuildRecord.swift`, `AppSettings.swift`
-- Views: PascalCase + `View` suffix — e.g., `SideWindowView.swift`, `MenuBarView.swift`, `CollapsibleSection.swift`
-- Windows: PascalCase + `Panel`/`Controller` suffix — e.g., `SideWindowPanel.swift`, `SideWindowController.swift`, `AXHighlightPanel.swift`
-- Utilities: PascalCase descriptive — e.g., `AppLogger.swift`, `SpringAnimator.swift`, `DesignTokens.swift`
-- Protocol/network types: PascalCase — e.g., `PulseServer.swift`, `PulsePacketDecoder.swift`, `PulseClientConnection.swift`
-- CLI commands: PascalCase + `Command` suffix — e.g., `TapCommand.swift`, `ScreenshotCommand.swift`
+- PascalCase, file name matches the primary type: `SideWindowController.swift` declares `SideWindowController`
+- Same-type extensions get a `+Concern` suffix: `DesignOverlayService+Presets.swift`, `DesignOverlayService+Import.swift`, `DesignOverlayController+InputMode.swift` — used to hold files under the ~200 LOC standard
+- Suffixes encode role: `*Service` (state/verbs), `*Controller` (AppKit window owner), `*Panel` (NSPanel subclass), `*View`/`*Section`/`*Tab` (SwiftUI), `*Tests` (unit tests)
+- Pure helpers carry no suffix: `PositionCalculator`, `OverlayGeometry`, `CaptureCompositor`, `SafeAreaCatalog`, `SpringAnimator`
 
 **Directories:**
-- Feature directories: PascalCase — `Services/`, `Windows/`, `Views/`, `Models/`, `Utilities/`
-- View subdirectories: PascalCase — `SideWindow/`, `MenuBar/`, `Preferences/`, `Onboarding/`, `Shared/`
-- Nested view organization: lowercase for sub-concerns — `tabs/`, `network/`
-- SPM packages: kebab-case — `booster-sim-cli/`
+- Lowercase plural for layers: `Models/`, `Services/`, `Utilities/`, `Views/`, `Windows/`, `App/`
+- Views subgrouped by surface in lowercase: `MenuBar/`, `Onboarding/`, `Preferences/`, `Shared/`, `SideWindow/` (with `actions/`, `capture/`, `network/`, `tabs/`), `Overlay/`
 
-**Types:**
-- Service classes: `final class: ObservableObject` with `@MainActor`
-- Model structs: `struct: Identifiable, Sendable, Equatable` (value types)
-- Enums: PascalCase cases — `SideTab.capture`, `SimulatorDeviceType.iOS`, `PulsePacketCode.clientHello`
-- Error enums: `enum FooError: LocalizedError` — e.g., `SimCtlError`, `CertificateError`
-- Published properties: `@Published private(set) var` for read-only external state
+**Code:**
+- Every file uses `// MARK: -` sections in the order Imports → Properties → Lifecycle → Public Methods → Private Methods → Extensions (see `docs/code-standards.md`)
+- `@MainActor final class` for services/controllers; `private(set) @Published` for exposed state; `[weak self]` in all sinks
+- Swift types PascalCase, members camelCase; settings keys are camelCase strings (`captureExportFormat`, `sideWindowPosition`)
 
 ## Where to Add New Code
 
-**New Feature (with UI):**
-- Primary code: `BoosterSimApp/Services/<Feature>Service.swift`
-- View: `BoosterSimApp/Views/SideWindow/<Feature>SectionView.swift`
-- If it needs a full tab: `BoosterSimApp/Views/SideWindow/tabs/<Feature>TabView.swift` and add case to `SideTab` in `BoosterSimApp/Views/SideWindow/SideTab.swift`
-- Wire in `AppDelegate.swift` (lazy var + pass to `SideWindowController` init + `.environmentObject()` in `embedSwiftUIContent`)
+**New feature service (a new panel capability):**
+1. Create `BoosterSimApp/Services/<Name>Service.swift` — `@MainActor final class … ObservableObject`, `@Published private(set)` state, sync API
+2. Construct it in `BoosterSimApp/App/AppDelegate.swift` (eager `let` or `lazy var`, following the existing grouping)
+3. Pass it into `SideWindowController.init` and add it to the `.environmentObject(…)` chain in `embedSwiftUIContent` (`BoosterSimApp/Windows/SideWindowController.swift:145-181`)
+4. Consume via `@EnvironmentObject` in the relevant section view; add a `#Preview` fixture following `BoosterSimApp/Views/SideWindow/SideWindowView.swift:96-127`
+5. Tests in `BoosterSimAppTests/<Name>ServiceTests.swift` with injected seams (see `ScriptedSimCtl.swift`, `PixelSamplerService` injectable closures)
 
-**New Service (no UI):**
-- Implementation: `BoosterSimApp/Services/<Name>Service.swift`
-- If it uses `simctl`: inject `SimCtlService` in init, call `simCtl.run(args)`
-- Wire in `AppDelegate.swift` as lazy var
+**New simctl-backed verb:**
+- Put argv construction in a `nonisolated static func` extension of the owning service (pure, testable), run it through `SimCtlService` / `runVerb`/`runChain` — reference `BoosterSimApp/Services/AppActionService.swift:724-808`
 
-**New Model:**
-- Value types: `BoosterSimApp/Models/<Name>.swift`
-- Service-specific types: can live in the service file or `BoosterSimApp/Models/<Name>Models.swift`
+**New Actions-tab section:**
+- View: `BoosterSimApp/Views/SideWindow/actions/<Name>SectionView.swift`; register in `AppActionCatalog` (`BoosterSimApp/Models/AppAction.swift`) so search and mount order come from the catalog
 
-**New Window/Panel:**
-- Implementation: `BoosterSimApp/Windows/<Name>Panel.swift` or `<Name>Controller.swift`
-- Follow `SideWindowPanel` pattern: `NSPanel` subclass with floating level
+**New Design-overlay tool view:**
+- View: `BoosterSimApp/Views/Overlay/<Name>View.swift`; add a slot to `OverlayLayer` if it needs its own band and `install` it in `DesignOverlayController.init` (`BoosterSimApp/Windows/DesignOverlayController.swift`); state goes on `DesignOverlayService` with write-through persistence; a readout/CTA section goes under `BoosterSimApp/Views/SideWindow/` (see `DesignToolsSection.swift`)
 
-**New View Component:**
-- Reusable: `BoosterSimApp/Views/Shared/<Name>.swift`
-- Tab-specific: `BoosterSimApp/Views/SideWindow/<Name>View.swift`
+**New tab (beyond Capture/Design/Actions/Network):**
+- Add a case to `SideTab` (`BoosterSimApp/Views/SideWindow/SideTab.swift`), a root view in `BoosterSimApp/Views/SideWindow/tabs/`, and a `switch` case in `SideWindowView.tabContent`
 
-**Utilities:**
-- Shared helpers: `BoosterSimApp/Utilities/<Name>.swift`
-- Design constants: add to existing `BoosterSimApp/Utilities/DesignTokens.swift`
+**New model/value type:**
+- `BoosterSimApp/Models/<Name>.swift`; wire-contract types that cross to the framework must be mirrored in `BoosterSimConnect/` and covered by payload tests
 
-**New CLI Subcommand:**
-- Implementation: `booster-sim-cli/Sources/boostersim/Commands/<Name>Command.swift`
-- Register in `boostersim.swift` `subcommands` array
+**New utility (pure, reusable):**
+- `BoosterSimApp/Utilities/`; layout constants must extend `DesignTokens.swift`, logging concerns must extend `AppLogger.swift`
+
+**Tests:**
+- `BoosterSimAppTests/<Type>Tests.swift` mirroring the type name; keep tests headless via seams — no live Simulator, no ScreenCaptureKit, no real windows
 
 ## Special Directories
 
 **`BoosterSimApp/Assets.xcassets/`:**
-- Purpose: Asset catalog for app icon and accent color
-- Generated: No
-- Committed: Yes
-
-**`BoosterSimApp.xcodeproj/`:**
-- Purpose: Xcode project configuration
-- Generated: Partially (pbxproj, xcuserdata are machine-managed)
-- Committed: Yes
-
-**`booster-sim-cli/`:**
-- Purpose: Standalone SPM CLI package (independent build from main app)
-- Generated: No
-- Committed: Yes
-
-**`BoosterSimConnect/`:**
-- Purpose: iOS SPM framework (consumed by iOS apps, not by the macOS app itself)
-- Generated: No
-- Committed: Yes
-
-**`.build-benchmark/`:**
-- Purpose: Build optimization analysis notes
-- Generated: No
-- Committed: Yes
+- Purpose: App icon and accent color
+- Generated: No; Committed: Yes
 
 **`plans/`:**
-- Purpose: Historical implementation plans and execution reports (GSD workflow artifacts)
-- Generated: No
-- Committed: Yes
+- Purpose: Archived per-task plan documents (RESEARCH/PLAN/reports per slug)
+- Generated: By GSD workflows; Committed: Yes
+
+**`.planning/`:**
+- Purpose: GSD project state consumed by plan/execute phases
+- Generated: By GSD workflows; Committed: Yes
+
+**`.gsd/`, `.omx/`, `.build-benchmark/`, `.gitnexus/`, `.swift-module-cache/`:**
+- Purpose: Tool state, agent artifacts, build benchmarks, code index, Swift module cache
+- Generated: Yes; Committed: No (local tooling artifacts)
+
+**`docs/journals/`:**
+- Purpose: Dated engineering journal entries
+- Generated: Manual; Committed: Yes
 
 ---
 
-*Structure analysis: 2026-08-29*
+*Structure analysis: 2026-08-31*

@@ -1,183 +1,173 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-08-29
+**Analysis Date:** 2026-08-31
 
-## Language & Concurrency
+Authoritative source: `docs/code-standards.md` (team-authored). Where the doc and build settings diverge, this document reports the actual `BoosterSimApp.xcodeproj/project.pbxproj` values observed.
 
-- **Swift 6** with strict concurrency enabled; deployment target macOS 15 Sequoia
-- **No async/await for service-layer patterns** — use Combine `@Published` + `Timer` per `docs/code-standards.md`. Exception: the sanctioned ScreenCaptureKit bridge pattern (sync public API → single private `Task {}` bridge → TCC preflight), instantiated by `CaptureService.swift` (Phase 2) and `PixelSamplerService.swift` (Phase 4) because ScreenCaptureKit requires it.
-- `@MainActor final class` on all classes that touch UI or own AppKit objects (`AppDelegate`, `SideWindowController`, `CertificateService`, `ConnectService`, `CaptureService`, `SpringAnimator`)
-- `final class` preferred over `class` for all services and controllers
-- No `DispatchQueue.global()` for UI work — background `DispatchQueue.global()` used only for CPU-bound subprocess calls (AX inspection, xcrun simctl, file I/O) in `AXInspectorService.swift:39`, `SimCtlService.swift:37`, `CertificateStore.swift:26`, `CameraService.swift:52`, `SimulatorWindowTracker.swift:66`
-- AXObserver callbacks use `CFRunLoopGetMain()` (fires on main thread)
+## Language Mode & Runtime
 
-## File Naming
+- **Language mode:** `SWIFT_VERSION = 5.0` with `SWIFT_APPROACHABLE_CONCURRENCY = YES` and `SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES` (all targets, `BoosterSimApp.xcodeproj/project.pbxproj`). Note: `docs/code-standards.md` describes this as "Swift 6 strict concurrency"; the project is on the Swift 6 migration path (approachable concurrency), not the literal Swift 6 language mode.
+- **Default actor isolation:** `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` is set on the **app target** (`BoosterSimApp`) — types are `@MainActor` by default there; opt out with `nonisolated` where needed. The test targets use approachable concurrency without default MainActor isolation, so tests that touch services carry explicit `@MainActor`.
+- **Deployment target:** `MACOSX_DEPLOYMENT_TARGET = 26.2` (all app-side configurations). `docs/code-standards.md` still says macOS 15 — the pbxproj is ground truth.
+- **No async/await in general code** — use Combine `@Published` + publishers. The single sanctioned exception is the ScreenCaptureKit bridge pattern (sync public API → one private `Task {}` → TCC preflight), used only by `BoosterSimApp/Services/CaptureService.swift` and `BoosterSimApp/Services/PixelSamplerService.swift`.
+- **No SwiftLint/SwiftFormat** — no `.swiftlint.yml`/`.swiftformat` exists; style is enforced by convention and code review, not tooling.
 
-- **PascalCase.swift** — file name matches primary type: `CertificateService.swift`, `SideWindowController.swift`
-- Descriptive names: file purpose must be clear from name alone
-- Target: files under 200 LOC; split by concern when approaching (see `CaptureService.swift` at 312 LOC as an overage)
+## Naming Patterns
 
-## MARK Section Order
+**Files:**
+- `PascalCase.swift`, file name matches its primary type (e.g., `BoosterSimApp/Windows/SideWindowController.swift`).
+- File-purpose header comment as line 1: `// FileName.swift — one-line purpose` (e.g., `BoosterSimApp/Models/BlockRule.swift`, `BoosterSimAppTests/RulerMathTests.swift`). Used across ~33 service files; a few older files (`BoosterSimApp/Services/CertificateService.swift`) omit it — new files MUST include it.
+- Concern-split extensions use `+` suffix: `BoosterSimApp/Services/DesignOverlayService+Import.swift`, `BoosterSimApp/Services/DesignOverlayService+Presets.swift`, `BoosterSimApp/Windows/DesignOverlayController+InputMode.swift`.
 
-Every Swift file uses this MARK section order (from `docs/code-standards.md`):
+**Types:**
+- `PascalCase` for all types; `final class` for services/controllers/observable objects (never bare `class`).
+- Caseless `enum`s as namespaces for constants: `AppLogger` (`BoosterSimApp/Utilities/AppLogger.swift`), `Spacing`/`CornerRadius`/`SideWindowMetrics`/`OverlayMetrics` (`BoosterSimApp/Utilities/DesignTokens.swift`), `SimCtlLimits` (`BoosterSimApp/Services/SimCtlService.swift`).
+- Test doubles: `*Double` (`ScriptedSimCtlDouble`, `KeychainResetDouble`) or `Noop*` (`NoopCommandBroadcast`).
+- Seam protocols end in `-ing`: `SimCtlRunning`, `CommandBroadcasting`, `AppKeychainResetting`, `TouchPreferencesStore`.
+
+**Functions/Variables:**
+- `camelCase` everywhere; services are `@MainActor final class` + `ObservableObject`.
+- Pure builders/parsers are `static func` on the service, named for what they return/build: `AppActionService.terminateCommand(udid:bundleID:)`, `AppActionService.parseInstalledApps(fromListAppsXML:)` (`BoosterSimApp/Services/AppActionService.swift`).
+
+**Tests:**
+- Test types: `struct XTests` (Swift Testing, not classes). Method names are full sentences describing the contract: `runRejectsStdinOverThePipeBoundWithTheTypedException` (`BoosterSimAppTests/SimCtlServiceTests.swift`), `legacyPayloadImportsOnceIntoVersionedKey` (`BoosterSimAppTests/OverlayPersistenceTests.swift`).
+
+## MARK Structure
+
+Every file orders sections exactly like this (from `BoosterSimApp/Services/SimCtlService.swift`):
 
 ```swift
+// FileName.swift — one-line purpose
+
+// MARK: - Error        (or other top-level groupings: Pipe Drain, Service)
 // MARK: - Properties
-// MARK: - Lifecycle (init, deinit)
+// MARK: - Lifecycle
 // MARK: - Public Methods
-// MARK: - Private Methods
+// MARK: - Private
 // MARK: - Extensions
 ```
 
-`private enum` types used for file-private helpers sit at top of file before the main class (`RetryAction` in `CertificateService.swift:6`, `DeviceInfo` in `SimulatorWindowTracker.swift:7`).
+- `// MARK: - Properties` before stored properties; `// MARK: - Public Methods` / `// MARK: - Private` split the API surface.
+- Test files use `// MARK: -` to group behaviors: `// MARK: - Airplane Persistence`, `// MARK: - Fixtures` (`BoosterSimAppTests/NetworkConditionServiceTests.swift`, `BoosterSimAppTests/OverlayPersistenceTests.swift`).
+- `struct`/`class` declaration follows an `// MARK: - Service`-style banner when preceded by helper types in the same file.
+- Violations exist in older files (`CertificateSectionView.swift` has zero MARKs) — match MARK structure in new code.
+
+## File Size
+
+- Target under 200 LOC per file (`docs/code-standards.md`); split by concern via `+` extension files, sub-view extraction, or moving logic into services.
+- SwiftUI `body` over ~40 lines gets extracted into `private var` sub-views or `@ViewBuilder private func`s (see `BoosterSimApp/Views/SideWindow/CertificateSectionView.swift` — `statusRow`, `detailsRow(_:)`, `helperBanner(_:icon:dismissible:)`).
+
+## Code Style
+
+**Formatting:**
+- Xcode defaults: 4-space indent, braces on same line. Binary operators spaced (`lock.lock(); defer { lock.unlock() }` seen in `SimCtlService.swift`).
+- Space around range/`..` operators in newer code: `0 ..< 50` (`BoosterSimAppTests/ScriptedSimCtl.swift`).
+
+**Concurrency:**
+- `@MainActor` explicitly on all services/controllers that own AppKit objects (`SimCtlService`, `SideWindowController`, `AppDelegate`) — redundant on the app target now but kept for clarity.
+- All UI work on main; Combine sinks deliver via `.receive(on: main)` or explicit `DispatchQueue.main.async` in promise resolution (`SimCtlService.drainAndComplete`).
+- `[weak self]` in every Combine sink and Timer callback.
+- `isReleasedWhenClosed = false` on all `NSPanel`s; controller owns panel lifecycle (`BoosterSimApp/Windows/SideWindowPanel.swift`).
+- AXObserver refcon: balance `passRetained` with `release()` in `stopObserving()`.
 
 ## Import Organization
 
-- Framework imports first (`Foundation`, `AppKit`, `SwiftUI`, `Combine`, `OSLog`, `AVFoundation`, `Network`)
-- No third-party imports (no SPM packages in app target)
-- No blank line between imports
-- Test files: `import Testing` (unit) or `import XCTest` (UI), then `@testable import BoosterSimApp`
+**Order:**
+1. Foundation (or AppKit/SwiftUI as the platform base)
+2. Combine / OSLog / framework imports as needed
+3. `@testable import BoosterSimApp` (tests only, always last)
 
-## Class & Type Design
+Example: `BoosterSimApp/Services/SimCtlService.swift` → `Foundation`, `Combine`. `BoosterSimAppTests/RulerMathTests.swift` → `Foundation`, `CoreGraphics`, `Testing`, `@testable import BoosterSimApp`.
 
-**Services (in `BoosterSimApp/Services/`):**
-- All conform to `ObservableObject`; state via `@Published private(set) var` for read-only external access
-- Combine `@Published` for observable state; `@AppStorage` for user-facing settings (in `AppSettings`)
-- Services receive dependencies via `init` (e.g., `CertificateService(simCtl: SimCtlService)`)
-- `AppDelegate` wires all services and passes them into `SideWindowController`
-
-**Views (in `BoosterSimApp/Views/`):**
-- `@ObservedObject` for injected services; `@EnvironmentObject` for services injected via SwiftUI environment
-- `@State` for local view state only — never for shared state
-- `@Binding` for parent-child state flow (e.g., `$selectedTab` in `TabBarView`)
-- Services injected via `@EnvironmentObject` in views (see `SideWindowView.swift:22-28`)
-- View services: `@EnvironmentObject var connectService: ConnectService` pattern
-
-**Models (in `BoosterSimApp/Models/`):**
-- Plain `struct` for data (`SimulatorWindow`, `BuildRecord`, `AXNode`, `AppSettings`)
-- `enum` with associated values for state machines (`CertificateStatus`, `CertificateOperation`, `CertificateError`)
-- Models with computed properties for derived data (e.g., `CertificateStatus.certificateMetadata`)
-
-**Enums:**
-- `CaseIterable` for tab/option enums (`SideTab`, `ExportFormat`, `CaptureQuality`, `DeviceBezel`)
-- `RawRepresentable` with `String` raw value when persistence needed (`SideWindowPosition`)
-- Methods on enums for state transitions (`CertificateOperation.canTransition(to:)`)
+**Path Aliases:** None. Single Xcode project; `BoosterSimConnect/` is an iOS-Simulator framework target in the same project, `booster-sim-cli/` a separate SPM package.
 
 ## Error Handling
 
-- `do/catch` for all throwing APIs — never `try!` (prohibited by `docs/code-standards.md`)
-- Exception: `as!` force-casts in `WindowObserver.swift:138-140` and `AXInspectorService.swift:95` for AXValue bridging (CoreFoundation interop requires it)
-- `LocalizedError` conformance on domain error enums (`CertificateError` in `CertificateModels.swift`)
-- Permission failures are non-fatal: log and continue with degraded state
-- Error string pattern: `AppLogger.{category}.error("[ClassName] description: \(error)")`
+**Patterns:**
+- One typed `Error` enum per service, conforming to `LocalizedError` with a `switch`-based `errorDescription`: `SimCtlError` (`BoosterSimApp/Services/SimCtlService.swift`) with cases `.commandFailed`, `.xcrunNotFound`, `.timeout`, `.stdinTooLarge(Int)`.
+- Services expose results as Combine publishers (`AnyPublisher<String, SimCtlError>`); failures delivered via `Fail(error:)`, never thrown synchronously — except guard-style preconditions, which return `Fail` before spawning work (stdin bound check in `SimCtlService.run`).
+- `try/catch` for throwing APIs, logged with a `[ClassName]` prefix; **never `try!` or `as!` on user data**; permission failures degrade gracefully (log + continue) — see `BoosterSimApp/Services/PermissionManager.swift`.
+- Corrupted persisted payloads decode into tolerant all-optional shapes and degrade to empty state, never trap (`BoosterSimApp/Services/DesignOverlayService.swift`, verified by `BoosterSimAppTests/OverlayPersistenceTests.swift` "garbage under key" tests).
 
 ## Logging
 
-- **Centralized via `AppLogger`** (`BoosterSimApp/Utilities/AppLogger.swift`)
-- Subsystem: `com.nextlabs.BoosterSimApp`
-- Categories: `windowTracking`, `permissions`, `settings`, `certificates`
-- Framework: `os.Logger` (OSLog)
-- Log levels: `.debug` (state changes), `.info` (lifecycle), `.warning` (recoverable), `.error` (crashes)
-- Prefix with service name: `AppLogger.windowTracking.debug("[SimulatorWindowTracker] detected window: \(pid)")`
-- Never log sensitive data (UDIDs, file paths, tokens)
+**Framework:** `AppLogger` (`BoosterSimApp/Utilities/AppLogger.swift`) — caseless enum exposing per-category `os.Logger` instances under subsystem `com.nextlabs.BoosterSimApp`: `windowTracking`, `permissions`, `settings`, `certificates`, `network`, `capture`, `actions`, `design`.
 
-## Memory Management
-
-- `[weak self]` in all Combine sinks and Timer callbacks (see `SideWindowController.swift:85-89`, `AppDelegate.swift:68-73`)
-- AXObserver refcon: balance `passRetained` with `release()` in `stopObserving()`
-- NSPanel: `isReleasedWhenClosed = false` — controller owns lifecycle
-
-## Design Tokens
-
-Never hardcode layout values. Use constants from `BoosterSimApp/Utilities/DesignTokens.swift`:
-
-- **Spacing:** `Spacing.xxs` (2pt) through `Spacing.xxl` (24pt) on 4pt grid
-- **Corner radii:** `CornerRadius.small` (4pt) through `CornerRadius.panel` (10pt)
-- **Window dimensions:** `SideWindowMetrics.expandedWidth` (260pt), `SideWindowMetrics.headerHeight` (36pt), etc.
-- **Onboarding:** `OnboardingMetrics.width` (480pt), `OnboardingMetrics.height` (520pt)
-
-**Known deviation:** A few views use raw numeric values (`.padding(8)`, `.padding(12)`, `.cornerRadius(6)`) in `CaptureTabView.swift:96,109,114`, `DeepLinkSectionView.swift:49,83,131`, `DesignComparisonView.swift:222`. These should use `Spacing.sm`, `Spacing.md`, `CornerRadius.medium` respectively.
-
-## Color & Theming
-
-- Accent: amber/orange — `Color.accentColor` (asset catalog named `AccentColor`)
-- Use semantic SwiftUI colors: `.primary`, `.secondary`, `.windowBackgroundColor`, `.separator`
-- Never hardcode hex colors — zero instances found in Views
-- Support light and dark mode via semantic colors
-
-## Typography & Icons
-
-- **SF Pro exclusively** via `.font(.system(...))` or semantic sizes (`.caption`, `.caption2`, `.body`, `.subheadline`, `.headline`)
-- **SF Symbols exclusively** via `Image(systemName:)` and `Label(_, systemImage:)`
-- Filled variants for active/selected states, outlined for inactive
-- No custom fonts or third-party icon sets
-
-## View Composition
-
-- Small, focused SwiftUI views — extract when `body` exceeds ~40 lines
-- `private` sub-view functions within same file for non-reused components (e.g., `TabBarView.tabButton(_:)`, `TabBarView.collapseButton`)
-- Shared atoms in `BoosterSimApp/Views/Shared/`: `AccentButton.swift`, `StatusBadge.swift`, `CollapsibleSection.swift`
-- `#Preview` macro at bottom of view files for Xcode canvas previews
-- `@ViewBuilder` for conditional content switching (`SideWindowView.tabContent`)
-- `.buttonStyle(.plain)` on all custom-styled buttons
-- `.contentShape(Rectangle())` to expand tap targets on HStack rows
-
-## Accessibility
-
-- `.accessibilityLabel` on all icon-only buttons (e.g., `TabBarView.collapseButton`, `TabBarView.tabButton`)
-- `.accessibilityAddTraits(.isSelected)` for selected tab state
-- `.help()` tooltip on tab buttons and controls
-- `@Environment(\.accessibilityReduceMotion)` checked in `TabBarView.swift:24`, `SideWindowView.swift:33`, `FeatureRowView.swift:15`
-- Reduce Motion: shorten animation to 0.1s linear (vs spring/0.2-0.3s normally)
-- `Label(title, systemImage:)` preferred over bare `Image` where applicable
-
-## Shell Commands
-
-- All `xcrun simctl` calls routed through `SimCtlService` (`BoosterSimApp/Services/SimCtlService.swift`)
-- Never spawn subprocesses directly — always use `SimCtlService.spawn()`
-- UDID may be nil without Screen Recording permission — check before calling
-- Parse output as String or JSON; handle non-zero exit codes gracefully
+**Patterns:**
+- `AppLogger.<category>.<level>("[TypeName] message")` — levels: `.debug` state changes, `.info` lifecycle, `.warning` recoverable, `.error` crashes.
+- Never log UDIDs, file paths, or user tokens.
+- A few `print("[SimCtl] …")` traces remain in `BoosterSimApp/Services/SimCtlService.swift` — new code uses `AppLogger`.
 
 ## State Management
 
-- **Services:** Combine `@Published` for observable state
-- **Persistence:** `@AppStorage` for all user-facing settings (`BoosterSimApp/Models/AppSettings.swift`)
-- **Views:** `@ObservedObject` / `@EnvironmentObject` — no `@StateObject` in non-owning views
-- **No `@State` for shared state** — lift to ObservableObject services
-- Combine pipelines: `.receive(on: DispatchQueue.main)` + `.sink { [weak self] ... }.store(in: &cancellables)`
+- **Services:** Combine `@Published` for observable state (`SimulatorWindowTracker`, `SideWindowController`, `NetworkConditionService`).
+- **Persistence:** `@AppStorage` for all user-facing settings in views (e.g., `@AppStorage("certFirstUseHintDismissed")` in `BoosterSimApp/Views/SideWindow/CertificateSectionView.swift`); no raw `UserDefaults` in views.
+- **View state:** `@State private` for local-only UI state (`isExpanded`, `showResetConfirm`); `@EnvironmentObject` for services; `@ObservedObject` in non-owning views; no `@State` for shared state — lift to services.
+- **Schema changes to persisted keys:** version the key, import old payload once behind a flag via a tolerant all-optional decode; importing replaces, never appends (reference: `DesignOverlayService` importing legacy `DesignComparisonPresets`).
+- Parent→child context passes as closures, not globals: `CertificateSectionView` takes `udidProvider: () -> String?` and `deviceNameProvider: () -> String`.
+
+## Design Tokens
+
+Never hardcode layout values — always use `BoosterSimApp/Utilities/DesignTokens.swift`:
+
+```swift
+Spacing.xxs /*2*/  Spacing.xs /*4*/  Spacing.sm /*8*/  Spacing.md /*12*/
+Spacing.lg /*16*/  Spacing.xl /*20*/  Spacing.xxl /*24*/
+
+CornerRadius.small /*4*/  CornerRadius.medium /*6*/  CornerRadius.large /*8*/
+CornerRadius.panel /*10*/  CornerRadius.onboarding /*12*/
+
+SideWindowMetrics.expandedWidth /*260*/  .collapsedWidth /*28*/  .rowHeight /*32*/
+OnboardingMetrics.width /*480*/  .height /*520*/  .steps /*4*/
+PreferencesMetrics.width /*500*/  OverlayMetrics.loupeDiameter /*96*/
+```
+
+Usage style (from `CertificateSectionView.swift`): `VStack(alignment: .leading, spacing: Spacing.sm)`, `.background(..., in: RoundedRectangle(cornerRadius: CornerRadius.small))`.
+
+## View Conventions
+
+- `struct X: View` with `private var` computed sub-views; `@ViewBuilder` for switch-based branches.
+- `.buttonStyle(.plain)` for custom-styled buttons; `Label(_, systemImage:)` with SF Symbols only; semantic foreground styles (`.primary`/`.secondary`/`.tertiary`) — no hardcoded hex colors.
+- Amber accent via `Color.accentColor`; light/dark adaptive.
+- Reduce Motion: `@Environment(\.accessibilityReduceMotion)` → linear 0.1s animation, else spring/easeInOut 0.2s (pattern in `CertificateSectionView.animation` computed var).
+- `accessibilityElement(children: .combine)` on composite status rows; `accessibilityLabel` required on icon-only buttons.
+- Shared atoms in `BoosterSimApp/Views/Shared/` (`CollapsibleSection`, `StatusBadge`, `AccentButton`); per-tab sections in `BoosterSimApp/Views/SideWindow/<Tab>/`.
+- Tab navigation via `SideTab` enum + `switch selectedTab` routing in `BoosterSimApp/Views/SideWindow/SideWindowView.swift`; content views are tab-agnostic.
+
+## Shell Commands (xcrun simctl)
+
+- ALL `xcrun simctl` invocations go through `SimCtlService` (`BoosterSimApp/Services/SimCtlService.swift`) — `run(args)` / `runVoid(args)`; no direct `Process` spawning anywhere else.
+- Parse `simctl` output with pure static parsers (`AppActionService.parseInstalledApps`, `parseRunningApps`) so they are unit-testable without subprocesses.
 
 ## Comments
 
-- Single-line comment at top of file: `// FileName.swift — Purpose description`
-- MARK comments for section organization (see MARK order above)
-- No JSDoc/TSDoc equivalents — Swift documentation comments (`///`) used sparingly (only on public computed properties like `CertificateStatus.certificateMetadata`)
-- Inline `// swiftlint:disable:this force_cast` when force-cast is unavoidable (`AXInspectorService.swift:95`)
+**When to Comment:**
+- `///` doc comments on seam protocols and non-obvious invariants, citing review findings: `/// (03-REVIEW WR-03: bound enforced at the seam)` in `SimCtlService.swift`.
+- One-line `// FileName.swift — purpose` headers state the file's single responsibility (e.g., `// RulerMathTests.swift — Y-flip/scale window-point→image-pixel mapping and distance math (no windows)`).
+- Inline `//` explains WHY (deadlock fixes, gate ordering), never restates code.
 
-## File Header Comment
+## Function Design
 
-Every file starts with a single-line purpose comment:
-```swift
-// SideWindowController.swift — Manages SideWindowPanel lifecycle, position sync, and collapse state
-// PulseServer.swift — NWListener TCP server for Pulse protocol connections
-```
+**Size:** Small; view helpers return `some View` from computed properties.
 
-## Formatting
+**Parameters:** Closure providers for context injection (`udidProvider: () -> String?`); defaults for optional args (`run(_ args:, stdin: Data? = nil)`), with protocol-extension overloads so defaults survive existential witnesses (`extension SimCtlRunning { func run(_ args: [String]) }`).
 
-- 4-space indentation (Xcode default)
-- No external formatter or linter configured (no `.swiftlint.yml`, no `.swiftformat`, no `.editorconfig`)
-- Code style enforced via Xcode defaults and `docs/code-standards.md` conventions
-- Trailing closures preferred for single-closure APIs
+**Return Values:** Combine `AnyPublisher<T, ServiceError>` for I/O; plain values/tuples for pure functions; state machines modeled as enums with `canTransition(to:)` (`NetworkConditionState`, `CertificateOperation`).
 
-## Prohibited Patterns (from docs/code-standards.md)
+## Module Design
 
-- No sandboxing bypass hacks
-- No `DispatchQueue.global()` for UI work
-- No `@unchecked Sendable` without explicit justification
-- No hardcoded strings for localized text (prepare for future l10n)
-- No `try!` or `as!` force-casts on user data (AXValue bridging is the sole exception)
-- No direct subprocess spawning — use `SimCtlService`
-- No raw `UserDefaults` in views — use `@AppStorage` via `AppSettings`
+**Exports:** One primary type per file; helpers (`Once`, `PipeBuffer` in `SimCtlService.swift`) are `private final class` in the same file.
+
+**Barrel Files:** None — imports are direct by file.
+
+## Prohibited Patterns
+
+From `docs/code-standards.md`, verified enforced:
+
+- No direct subprocess spawning — always `SimCtlService`.
+- No `DispatchQueue.global()` for UI work (background lanes only for pipe drains in `SimCtlService`).
+- No `@unchecked Sendable`; no `try!`/`as!` on user data; no hardcoded layout values (use `DesignTokens`); no hardcoded hex colors; no custom fonts/icons (SF Pro + SF Symbols only); no sensitive data in logs.
 
 ---
 
-*Convention analysis: 2026-08-29*
+*Convention analysis: 2026-08-31*
