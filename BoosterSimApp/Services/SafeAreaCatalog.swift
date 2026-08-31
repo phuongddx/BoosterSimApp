@@ -22,10 +22,11 @@ enum SafeAreaCatalog {
 
     // MARK: - Lookup
 
-    static func insets(forDeviceName name: String?, logicalSize: CGSize?) -> Insets {
-        if let name, let device = byName[name] { return device.insets }
-        if let logicalSize, let sizeInsets = byLogicalSize[logicalSize] { return sizeInsets }
-        return manualDefaults
+    /// Portrait row resolution; orientation applies the landscape transform on top (single lookup implementation).
+    static func insets(forDeviceName name: String?, logicalSize: CGSize?,
+                       orientation: OverlayGeometry.Orientation = .portrait) -> Insets {
+        let portrait = portraitInsets(forDeviceName: name, logicalSize: logicalSize)
+        return orientation == .landscape ? landscape(from: portrait) : portrait
     }
 
     static func logicalSize(forDeviceName name: String?) -> CGSize? {
@@ -35,6 +36,21 @@ enum SafeAreaCatalog {
 
     /// Fallback when neither name nor size is known (modern default family; override manually for custom devices).
     static let manualDefaults = Insets(top: 59, bottom: 34, left: 0, right: 0)
+
+    /// Verified landscape shape (useyourloaf 16-series): top 0, bottom 21, sides = portrait top.
+    /// Classic 20/0 rows carry no home indicator and no notch, so they landscape to all-zero per the ASSUMED rows —
+    /// the portrait row itself is the signal, one data table, no per-device special cases.
+    static func landscape(from portrait: Insets) -> Insets {
+        guard portrait.bottom > 0 else { return Insets(top: 0, bottom: 0, left: 0, right: 0) }
+        return Insets(top: 0, bottom: 21, left: portrait.top, right: portrait.top)
+    }
+
+    private static func portraitInsets(forDeviceName name: String?, logicalSize: CGSize?) -> Insets {
+        if let name, let device = byName[name] { return device.insets }
+        if let logicalSize, let sizeInsets = byLogicalSize[logicalSize] { return sizeInsets }
+        return manualDefaults
+    }
+
 
     // MARK: - Tables (portrait; landscape top 0, sides = portrait top, bottom 21)
 

@@ -18,6 +18,19 @@ enum OverlayGeometry {
         )
     }
 
+    // MARK: - Orientation
+
+    /// Screen orientation, resolved from the tracked content rect's aspect (D-02 orientation input).
+    enum Orientation {
+        case portrait
+        case landscape
+    }
+
+    /// Wide content rect → landscape, tall (or square) → portrait.
+    static func orientation(contentRect: CGRect) -> Orientation {
+        contentRect.width > contentRect.height ? .landscape : .portrait
+    }
+
     /// Window-points-per-device-point: content width over the device's logical width.
     static func scale(contentRect: CGRect, deviceLogicalSize: CGSize) -> CGFloat {
         guard deviceLogicalSize.width > 0 else { return 1 }

@@ -1,9 +1,9 @@
 // DesignOverlayService.swift — Design overlay tool state: per-tool toggles, comparison image, picked color, versioned presets
 // Cut-over of the deleted design-comparison scaffold: persistence shape and color helpers kept verbatim in shape,
 // the fake pickColor core and the single-spacing grid model deleted (D-01). Grid spacing is computed, not stored.
+// Preset persistence + legacy import live in DesignOverlayService+Presets.swift; image import in +Import.swift.
 import Foundation
 import SwiftUI
-import UniformTypeIdentifiers
 import AppKit
 import Combine
 import OSLog
@@ -26,6 +26,20 @@ final class DesignOverlayService: ObservableObject {
     @Published var pickedColor: NSColor?
     @Published var presets: [DesignPreset] = []
 
+    // Safe-area tool state (D-02): auto-resolved insets pushed by the controller (service stays tracker-free),
+    // manual override as the escape hatch, calibration offsets for bezel drift (Pitfall 3 / Open Question 5).
+    @Published var showSafeArea: Bool = false { didSet { defaults.set(showSafeArea, forKey: Keys.showSafeArea) } }
+    @Published var resolvedInsets: SafeAreaCatalog.Insets = SafeAreaCatalog.manualDefaults
+    @Published var resolvedDeviceName: String?
+    @Published var useManualInsets: Bool = false { didSet { defaults.set(useManualInsets, forKey: Keys.useManualInsets) } }
+    @Published var manualTop: CGFloat = SafeAreaCatalog.manualDefaults.top { didSet { defaults.set(manualTop, forKey: Keys.manualTop) } }
+    @Published var manualBottom: CGFloat = SafeAreaCatalog.manualDefaults.bottom { didSet { defaults.set(manualBottom, forKey: Keys.manualBottom) } }
+    @Published var manualLeading: CGFloat = SafeAreaCatalog.manualDefaults.left { didSet { defaults.set(manualLeading, forKey: Keys.manualLeading) } }
+    @Published var manualTrailing: CGFloat = SafeAreaCatalog.manualDefaults.right { didSet { defaults.set(manualTrailing, forKey: Keys.manualTrailing) } }
+    @Published var calibrationX: CGFloat = 0 { didSet { defaults.set(calibrationX, forKey: Keys.calibrationX) } }
+    @Published var calibrationY: CGFloat = 0 { didSet { defaults.set(calibrationY, forKey: Keys.calibrationY) } }
+    @Published var importError: String?
+
     // MARK: - Types
 
     enum ComparisonMode: String, CaseIterable, Codable {
@@ -42,27 +56,37 @@ final class DesignOverlayService: ObservableObject {
         let showRuler: Bool
     }
 
-    /// Tolerant decode shape for imported preset data: every field optional so a missing key —
-    /// or unknown extras like the deleted legacy spacing field — never fails the whole array (Pitfall 5).
-    private struct ImportedEntry: Decodable {
-        let id: UUID?
-        let name: String?
-        let mode: ComparisonMode?
-        let opacity: Double?
-        let showGrid: Bool?
-        let showRuler: Bool?
+    // MARK: - Safe-Area Resolution (D-02)
+
+    /// Manual values win while flagged; resetInsetsToDevice() restores catalog auto-resolution.
+    var effectiveInsets: SafeAreaCatalog.Insets {
+        guard useManualInsets else { return resolvedInsets }
+        return SafeAreaCatalog.Insets(top: manualTop, bottom: manualBottom, left: manualLeading, right: manualTrailing)
+    }
+
+    func resetInsetsToDevice() {
+        useManualInsets = false
     }
 
     // MARK: - Private
 
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
 
-    private enum Keys {
+    // Internal: the Presets/Import extension files share these keys (file < 200 LOC, docs/code-standards).
+    enum Keys {
         static let presets = "DesignOverlayPresets"
         static let legacyPresets = "DesignComparisonPresets"
         static let legacyImported = "DesignOverlayLegacyImported"
         static let showGrid = "DesignOverlayShowGrid"
         static let showRuler = "DesignOverlayShowRuler"
+        static let showSafeArea = "DesignOverlayShowSafeArea"
+        static let useManualInsets = "DesignOverlayUseManualInsets"
+        static let manualTop = "DesignOverlayManualTop"
+        static let manualBottom = "DesignOverlayManualBottom"
+        static let manualLeading = "DesignOverlayManualLeading"
+        static let manualTrailing = "DesignOverlayManualTrailing"
+        static let calibrationX = "DesignOverlayCalibrationX"
+        static let calibrationY = "DesignOverlayCalibrationY"
     }
 
     // MARK: - Init
@@ -71,26 +95,20 @@ final class DesignOverlayService: ObservableObject {
         self.defaults = defaults
         showGrid = defaults.bool(forKey: Keys.showGrid)
         showRuler = defaults.bool(forKey: Keys.showRuler)
+        showSafeArea = defaults.bool(forKey: Keys.showSafeArea)
+        useManualInsets = defaults.bool(forKey: Keys.useManualInsets)
+        manualTop = Self.read(defaults, Keys.manualTop, SafeAreaCatalog.manualDefaults.top)
+        manualBottom = Self.read(defaults, Keys.manualBottom, SafeAreaCatalog.manualDefaults.bottom)
+        manualLeading = Self.read(defaults, Keys.manualLeading, SafeAreaCatalog.manualDefaults.left)
+        manualTrailing = Self.read(defaults, Keys.manualTrailing, SafeAreaCatalog.manualDefaults.right)
+        calibrationX = Self.read(defaults, Keys.calibrationX, 0)
+        calibrationY = Self.read(defaults, Keys.calibrationY, 0)
         importLegacyPresets()
         loadPresets()
         AppLogger.design.debug("[DesignOverlayService] initialized with \(self.presets.count) presets")
     }
 
-    // MARK: - Public API
-
-    func loadImage() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.image]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        overlayImage = NSImage(contentsOf: url)
-    }
-
-    func clearOverlay() {
-        overlayImage = nil
-    }
+    // MARK: - Color Helpers
 
     func copyColorToClipboard() {
         guard let color = pickedColor else { return }
@@ -113,70 +131,10 @@ final class DesignOverlayService: ObservableObject {
         return "rgb(\(r), \(g), \(b))"
     }
 
-    func savePreset(name: String) {
-        let preset = DesignPreset(
-            id: UUID(),
-            name: name,
-            mode: comparisonMode,
-            opacity: overlayOpacity,
-            showGrid: showGrid,
-            showRuler: showRuler
-        )
-        presets.append(preset)
-        savePresets()
+    // MARK: - Defaults Read Helpers
+
+    private static func read(_ defaults: UserDefaults, _ key: String, _ fallback: CGFloat) -> CGFloat {
+        guard let stored = defaults.object(forKey: key) as? Double else { return fallback }
+        return CGFloat(stored)
     }
-
-    func loadPreset(_ preset: DesignPreset) {
-        comparisonMode = preset.mode
-        overlayOpacity = preset.opacity
-        showGrid = preset.showGrid
-        showRuler = preset.showRuler
-    }
-
-    func deletePreset(_ preset: DesignPreset) {
-        presets.removeAll { $0.id == preset.id }
-        savePresets()
-    }
-
-    // MARK: - Private
-
-    private func loadPresets() {
-        guard let data = defaults.data(forKey: Keys.presets),
-              let decoded = try? JSONDecoder().decode([DesignPreset].self, from: data) else { return }
-        presets = decoded
-    }
-
-    private func savePresets() {
-        guard let data = try? JSONEncoder().encode(presets) else { return }
-        defaults.set(data, forKey: Keys.presets)
-    }
-
-    /// One-shot legacy import (Pitfall 5): read the scaffold key once behind the flag, map tolerantly,
-    /// write the versioned key, set the flag. Re-running imports nothing; importing replaces, never appends.
-    private func importLegacyPresets() {
-        guard !defaults.bool(forKey: Keys.legacyImported) else { return }
-        defer { defaults.set(true, forKey: Keys.legacyImported) }
-        guard let data = defaults.data(forKey: Keys.legacyPresets),
-              let entries = try? JSONDecoder().decode([ImportedEntry].self, from: data) else { return }
-        let imported = importedPresets(from: entries)
-        guard !imported.isEmpty,
-              let encoded = try? JSONEncoder().encode(imported) else { return }
-        defaults.set(encoded, forKey: Keys.presets)
-        AppLogger.design.info("[DesignOverlayService] imported \(imported.count) legacy presets")
-    }
-
-    /// Maps tolerant decoded entries into the versioned schema; absent fields take safe defaults.
-    private func importedPresets(from entries: [ImportedEntry]) -> [DesignPreset] {
-        entries.map { entry in
-            DesignPreset(
-                id: entry.id ?? UUID(),
-                name: entry.name ?? "Imported preset",
-                mode: entry.mode ?? .overlay,
-                opacity: entry.opacity ?? 0.5,
-                showGrid: entry.showGrid ?? false,
-                showRuler: entry.showRuler ?? false
-            )
-        }
-    }
-
 }
