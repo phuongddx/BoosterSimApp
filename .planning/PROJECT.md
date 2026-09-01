@@ -22,7 +22,7 @@ from the side panel.
 
 - ✓ Simulator attachment — floating panel detects, tracks, and follows the Simulator window across move/resize/minimize with spring physics and a 0.5s polling fallback — Phase 1
 - ✓ Full app shell — menu-bar status icon, 4-step permission onboarding, preferences, 4-tab side panel (Capture/Design/Actions/Network) — Phase 1
-- ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector shipped in source — Phase 6. **Reachability gap (confirmed 2026-09-01)**: only env overrides are wired into the tab UI; status bar/camera/build-stats/AX-tree views have zero call sites outside `#Preview` — wiring folded into Phase 7 per user decision
+- ✓ Platform & system integration — status bar overrides, Mac→Simulator camera, 11 instant accessibility environment overrides, Xcode build stats, AX tree inspector — Phase 6, wired into the Actions tab as of Phase 7 (07-05: `ActionsTabView.swift:79,97,99,101`, 13-section catalog, `SideTab` unchanged at 4 cases)
 - ✓ Network inspection core — BoosterSimConnect + Pulse TCP pipeline, traffic viewer (filter/detail/cURL export), certificate trust management — delivered pre-.planning (Phase 5 scope)
 - ✓ Network manipulation — command-channel engine (`BoosterCommand` v1 wire contract, `_booster-cmd._tcp.` CommandServer, reconcile-on-connect) + per-app Airplane Mode, throttle profiles (off/EDGE/3G/LTE/Wi-Fi, paced chunks), block rules (domain/path matcher + editor) — Phase 5 (verified 20/20)
 - ✓ Capture tools — SCScreenshotManager window screenshots with 7 exact ASC presets + bezel modes + solid/gradient backgrounds, floating thumbnail, Desktop/clipboard/custom saves, SCRecordingOutput recordings at the 120 fps ceiling with Simulator-native touch indicators, GIF (centisecond-quantized) / MP4 / MOV export — Phase 2 (verified 4/4)
@@ -61,7 +61,7 @@ from the side panel.
   defaults + quick search); Network tab ships full inspection + manipulation; Capture
   tab ships screenshots (7 ASC presets), recordings (120 fps ceiling, touch
   indicators), and GIF/MP4/MOV export; Phase 6 views (StatusBar, BuildStats, AXTree,
-  Camera) are complete but not yet wired into tabs.
+  Camera) are wired into the Actions tab's catalog (Phase 7, 07-05).
 - Institutional knowledge from the docs ingest (2026-08-29): `.planning/intel/`
   (SYNTHESIS.md, requirements/constraints/context/decisions, INGEST-CONFLICTS.md) and
   `.planning/codebase/` (7 codebase-map docs).

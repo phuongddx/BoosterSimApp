@@ -191,7 +191,7 @@ Plans:
   4. User can view Xcode build statistics (build count, time graphs)
   5. User can inspect the Simulator accessibility tree with a highlight overlay
 
-**Plans**: N/A — completed before .planning bootstrap. **Reachability gap confirmed 2026-09-01**: `StatusBarSectionView`, `BuildStatsSectionView`, `AXTreeView`, `CameraView` exist and compile but have zero call sites in `SideWindowView.swift`'s tab switch (4 tabs only: capture/design/actions/network) or anywhere else outside their own `#Preview` blocks — criteria 1, 2, 4, 5 above are unreachable from the running app. Only criterion 3 (env overrides, via the separately-wired `EnvironmentOverridesView`) actually ships. Wiring work is scoped into Phase 7 (see below) rather than reopening this phase.
+**Plans**: N/A — completed before .planning bootstrap. **Reachability gap (confirmed 2026-09-01, closed 2026-09-01)**: `StatusBarSectionView`, `BuildStatsSectionView`, `AXTreeView`, `CameraView` had zero call sites outside `#Preview` at confirmation time; wired into the Actions tab's catalog by Phase 7's 07-05 plan (`ActionsTabView.swift:79,97,99,101`) — all five criteria above are now reachable from the running app.
 **UI hint**: yes
 
 ### Phase 7: Polish & Distribution
