@@ -20,7 +20,7 @@ enum WindowEnumerator {
 
     // MARK: - Private
 
-    private static func parseSimulatorWindow(from info: [String: Any]) -> SimulatorWindow? {
+    static func parseSimulatorWindow(from info: [String: Any]) -> SimulatorWindow? {
         // Filter by owner name = "Simulator"
         guard let ownerName = info[kCGWindowOwnerName as String] as? String,
               ownerName == "Simulator" else { return nil }
