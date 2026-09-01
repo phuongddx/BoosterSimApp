@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 07
 current_phase_name: Polish & Distribution
 status: planning
-stopped_at: Completed 07-04-PLAN.md
-last_updated: "2026-09-01T04:50:44.762Z"
+stopped_at: Completed 07-05-PLAN.md
+last_updated: "2026-09-01T05:01:01.192Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
-state_head: 2c425320e3ac51770b9ec0da8bb3a8a38b938e90
+state_head: 74149dd4a34b2ae956bca0c931ee12ef2cbe0e9a
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 20
+  completed_plans: 21
   percent: 57
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 07 — Polish & Distribution
-Plan: 4 of 6 (07-03 complete; 07-01 halted at human gate; 07-02/04/05/06 pending)
+Plan: 5 of 6 (07-03 complete; 07-01 halted at human gate; 07-02/04/05/06 pending)
 Status: Ready to plan (deps 2/3/4/5 all complete)
 Last activity: 2026-09-01 — Phase 4 complete; current-phase pointer corrected to 07
 
@@ -68,6 +68,7 @@ Progress: [██████░░░░] 57%
 | Phase 04 P03 | 30min | 3 tasks | 13 files |
 | Phase 07 P03 | 21min | 3 tasks | 8 files |
 | Phase 07 P04 | 12min | 2 tasks | 13 files |
+| Phase 07 P05 | 9min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07]: 07-04: UserDefaults privacy reason corrected to CA92.1 (1C8F.1 is the App-Group code; research had them inverted) — verified against Apple live docs
 - [Phase 07]: 07-04: FileTimestamp category added (C617.1+3B52.1) — re-grep found 3 real contentModificationDate/modificationDate call sites research missed; never ship a stale declaration
 - [Phase 07]: 07-04: AppIcon shipped as scripted PLACEHOLDER (Path B, amber #E8720C + white bolt.fill, all 10 sizes) — image generation device unavailable; full-bleed opaque art, system squircle mask
+- [Phase 07]: [Phase 7][07-05] All four Phase 6 views mount INSIDE the Actions tab's AppActionCatalog (13 sections: statusBar after environment; camera/axTree/buildStats before reset) — SideTab stays exactly 4 cases (REQ-fr-13), zero call sites outside the catalog
+- [Phase 07]: [Phase 7][07-05] pid signature mismatch handled at the mount: ActionsTabView gained pid: pid_t? fed by SideWindowView's activeSim?.pid — udid stays the argument for every other section; probeSupport has exactly one owner (CameraView onAppear + onChange of pid, house convention)
+- [Phase 07]: [Phase 7][07-05] Plan verify greps are BSD-grep-shaped but this harness ships pi-uu-grep (Rust regex) — paren/? patterns must run grep -F for literal semantics
 
 ### Pending Todos
 
@@ -150,6 +154,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T04:50:43.985Z
-Stopped at: Completed 07-04-PLAN.md
+Last session: 2026-09-01T05:01:00.597Z
+Stopped at: Completed 07-05-PLAN.md
 Resume file: None
