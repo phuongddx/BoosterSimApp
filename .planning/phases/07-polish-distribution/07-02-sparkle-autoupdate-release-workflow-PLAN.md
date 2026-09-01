@@ -9,7 +9,6 @@ files_modified:
   - docs/deployment-guide.md
   - BoosterSimApp/App/AppDelegate.swift
   - BoosterSimApp/Views/MenuBar/MenuBarView.swift
-  - .github/workflows/release.yml
   - .planning/PROJECT.md
   - .planning/REQUIREMENTS.md
 autonomous: false
@@ -111,7 +110,7 @@ Output: Sparkle-integrated app, tracked pin file, release.yml, EdDSA key on reco
     Resolve + build both schemes (BoosterSimApp AND BoosterSimConnect — the Phase 5 lesson in STATE.md: always build the framework scheme too; the app target compiles that folder empty).
   </action>
   <verify>
-    <automated>grep -q 'repositoryURL = "https://github.com/sparkle-project/Sparkle.git"' BoosterSimApp.xcodeproj/project.pbxproj && grep -q 'minimumVersion = 2.9.6' BoosterSimApp.xcodeproj/project.pbxproj && git ls-files --error-unmatch BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved && python3 -c "import json;p=json.load(open('BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));pins={x['identity'] for x in p['pins']};assert pins=={'pulse','sparkle'},pins" && grep -q 'Sparkle' .planning/PROJECT.md && grep -q 'Sparkle' .planning/REQUIREMENTS.md && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' build && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimConnect -destination 'platform=macOS' build</automated>
+    <automated>grep -q 'repositoryURL = "https://github.com/sparkle-project/Sparkle.git"' BoosterSimApp.xcodeproj/project.pbxproj && grep -q 'minimumVersion = 2.9.6' BoosterSimApp.xcodeproj/project.pbxproj && git ls-files --error-unmatch BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved && python3 -c "import json;p=json.load(open('BoosterSimApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved'));pins={x['identity'] for x in p['pins']};assert pins=={'pulse','sparkle'},pins" && grep -q 'Sparkle' .planning/PROJECT.md && grep -q 'Sparkle' .planning/REQUIREMENTS.md && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' build && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimConnect -destination 'generic/platform=iOS Simulator' build</automated>
     <fails_when>any step fails — Sparkle URL/version absent, pin file still untracked, pins ≠ {pulse, sparkle}, policy docs unchanged, or either scheme fails to build</fails_when>
   </verify>
   <done>Sparkle 2.9.6 linked into the app target only, both schemes green, Package.resolved tracked with exactly two pins, and the Apple-frameworks-only policy names Sparkle as the second explicit exception in both PROJECT.md and REQUIREMENTS.md.</done>

@@ -102,7 +102,7 @@ Output: three new unit suites + one UI suite, all green, zero existing-suite chu
     Do NOT test screen(containing:) — it reads live NSScreen state; note the exclusion in a comment.
   </action>
   <verify>
-    <automated>xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppTests/PositionCalculatorTests -parallel-testing-enabled NO 2>&1 | tail -5</automated>
+    <automated>set -o pipefail; xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppTests/PositionCalculatorTests -parallel-testing-enabled NO 2>&1 | tail -5</automated>
     <fails_when>the targeted run reports any failed test or a non-passing suite summary</fails_when>
   </verify>
   <behavior>
@@ -143,7 +143,7 @@ Output: three new unit suites + one UI suite, all green, zero existing-suite chu
     Do NOT call setLaunchAtLogin — it mutates .standard AND drives SMAppService.mainApp on the test host (would register a real login item); note the exclusion in a comment.
   </action>
   <verify>
-    <automated>xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppTests/WindowEnumeratorTests -only-testing:BoosterSimAppTests/AppSettingsTests -parallel-testing-enabled NO 2>&1 | tail -5 && ! grep -rl 'import XCTest' BoosterSimAppTests/ | grep -v .build</automated>
+    <automated>set -o pipefail; xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppTests/WindowEnumeratorTests -only-testing:BoosterSimAppTests/AppSettingsTests -parallel-testing-enabled NO 2>&1 | tail -5 && ! grep -rl 'import XCTest' BoosterSimAppTests/ | grep -v .build</automated>
     <fails_when>either suite reports a failure, or any file under BoosterSimAppTests/ now imports XCTest</fails_when>
   </verify>
   <behavior>
@@ -182,7 +182,7 @@ Output: three new unit suites + one UI suite, all green, zero existing-suite chu
     Keep queries identifier-based (never label-string-based except the title assertions, which read displayed text intentionally).
   </action>
   <verify>
-    <automated>grep -q 'onboarding.root' BoosterSimApp/Views/Onboarding/OnboardingContainerView.swift && grep -q 'onboarding.skip' BoosterSimApp/Views/Onboarding/OnboardingStepView.swift && grep -q 'uitest-reset-onboarding' BoosterSimApp/App/AppDelegate.swift && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppUITests/OnboardingFlowUITests -parallel-testing-enabled NO 2>&1 | tail -8</automated>
+    <automated>set -o pipefail; grep -q 'onboarding.root' BoosterSimApp/Views/Onboarding/OnboardingContainerView.swift && grep -q 'onboarding.skip' BoosterSimApp/Views/Onboarding/OnboardingStepView.swift && grep -q 'uitest-reset-onboarding' BoosterSimApp/App/AppDelegate.swift && xcodebuild -project BoosterSimApp.xcodeproj -scheme BoosterSimApp -destination 'platform=macOS' test -only-testing:BoosterSimAppUITests/OnboardingFlowUITests -parallel-testing-enabled NO 2>&1 | tail -8</automated>
     <fails_when>identifier/seam greps fail, or the UI run's per-test summary shows a failed test — the documented post-test exit-65 relaunch flake is NOT a failure if the test summary itself is all-pass (re-run once and record per the flagged assumption)</fails_when>
   </verify>
   <behavior>
