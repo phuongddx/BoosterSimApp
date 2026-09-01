@@ -212,15 +212,16 @@
 
 ## Missing Critical Features
 
-**Phase 6 views not wired into the side panel:**
-- Problem: `StatusBarSectionView`, `BuildStatsSectionView`/`BuildChartView`, `AXTreeView`, `CameraView` are complete implementations with no tab mount point — repeatedly deferred (Phases 5, 2, 3 all closed without wiring; standing STATE.md concern).
-- Files: `BoosterSimApp/Views/SideWindow/` (`tabs/`, `MenuBar/` per `docs/codebase-summary.md:274-277`); services exist (`BoosterSimApp/Services/StatusBarService.swift`, `BuildStatsService.swift`, `AXInspectorService.swift`, `CameraService.swift`)
-- Blocks: Phase 6 user-facing value; the "11 accessibility overrides" and AX inspector criteria are only reachable pre-wiring via nothing.
+**Phase 6 views not wired into the side panel — RESOLVED 2026-09-01 (Phase 7, plan 07-05):**
+- Was: `StatusBarSectionView`, `BuildStatsSectionView`/`BuildChartView`, `AXTreeView`, `CameraView` were complete implementations with no tab mount point — repeatedly deferred (Phases 5, 2, 3 all closed without wiring; standing STATE.md concern).
+- Fix: all four mounted as searchable sections inside the Actions tab's `AppActionCatalog` (`BoosterSimApp/Views/SideWindow/tabs/ActionsTabView.swift:79,97,99,101`) — 13 catalog sections total, `SideTab` unchanged at exactly 4 cases (REQ-fr-13 held).
+- Files: `BoosterSimApp/Views/SideWindow/tabs/ActionsTabView.swift`, `BoosterSimApp/Models/AppAction.swift`; services unchanged (`StatusBarService.swift`, `BuildStatsService.swift`, `AXInspectorService.swift`, `CameraService.swift`)
 
-**Distribution readiness (Phase 7 not started):**
-- Problem: No code signing team, notarization, Sparkle auto-update, privacy manifest, or app icon polish; non-sandbox documented but DMG pipeline unexecuted.
-- Files: `BoosterSimApp.xcodeproj`, `docs/deployment-guide.md` § Distribution (Future)
-- Blocks: Any external distribution; REQ-roadmap-phase7-polish-distribution.
+**Distribution readiness — MOSTLY RESOLVED 2026-09-01 (Phase 7):**
+- Was: no code signing team, notarization, Sparkle auto-update, privacy manifest, or app icon polish; non-sandbox documented but DMG pipeline unexecuted.
+- Fix: signing team switched to `K2TYLYAWMK` (the team with a real Developer ID cert), credential-free archive→export→DMG pipeline proven (`scripts/build-release.sh`), Sparkle 2.9.6 wired + `release.yml`, `PrivacyInfo.xcprivacy` shipped, app icon shipped as a labeled placeholder (image-gen tool outage) pending real design.
+- Open: real notarization ticket and Sparkle EdDSA key both require user credentials on their own machine — genuinely blocked at `07-01`/`07-02`'s human checkpoints, not yet closed. Phase 7 itself has not closed (see `.planning/phases/07-polish-distribution/07-06-phase-gate-closure-SUMMARY.md`).
+- Files: `BoosterSimApp.xcodeproj`, `docs/deployment-guide.md` § Distribution
 
 **Network timing truth (v2 candidates NET-01…04):**
 - Problem: `TrafficDetailView` metrics tab shows placeholder timing data (real `PulseMetrics` deferred); Pulse Code 8 (`taskCreated`) in-progress tracking unsupported; `includePeerToPeer` flag value uninvestigated (`docs/journals/2026-04-12-booster-sim-connect-activation.md:94-96`).
