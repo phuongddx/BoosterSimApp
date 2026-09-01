@@ -90,6 +90,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         buildStatsService.startMonitoring()
         connectService.startServer()
 
+        // Start Sparkle now, not lazily on the first menu click: the lazy
+        // property's only other reader is MenuBarView's "Check for Updates…"
+        // button, so without this touch at launch the updater's scheduled
+        // automatic checks never run.
+        _ = updaterController
+
         // Sweep stale capture temp files from previous sessions (threat T-02-04)
         CaptureExporter.sweepStaleCaptures()
 

@@ -143,9 +143,9 @@ Every credential is a named repository secret (**Settings → Secrets and variab
 | `ASC_KEY_ID` | App Store Connect → Users and Access → Integrations → create an API key (Developer role is sufficient for notarytool); copy the **Key ID** |
 | `ASC_ISSUER_ID` | same page — the **Issuer ID** shown above the key list |
 | `ASC_KEY_P8` | the one-time `.p8` key download (`AuthKey_<KeyID>.p8`) — `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
-| `SPARKLE_PRIVATE_KEY` | Sparkle's EdDSA private key exported from the release machine's keychain: `<generate_keys path> -x /path/to/eddsa-private-key.pem`, then `base64 -i /path/to/eddsa-private-key.pem \| pbcopy` — must be the **same keypair** whose public key is pasted into `INFOPLIST_KEY_SUPublicEDKey`, or released appcasts will not validate against shipped apps |
+| `SPARKLE_PRIVATE_KEY` | Sparkle's EdDSA private key exported from the release machine's keychain: `<generate_keys path> -x /path/to/eddsa-private-key.pem`, then `base64 -i /path/to/eddsa-private-key.pem \| pbcopy` — must be the **same keypair** whose public key is pasted into `SUPublicEDKey` in `SparkleInfo.plist`, or released appcasts will not validate against shipped apps |
 
-> The Sparkle keypair is generated once on the release machine (the machine that owns the notary profile) via Sparkle's `generate_keys`: the private key is stored in the login keychain, and the printed **public key** is what `INFOPLIST_KEY_SUPublicEDKey` in `BoosterSimApp.xcodeproj/project.pbxproj` must carry. Without that key the app checks the feed but cannot verify updates.
+> The Sparkle keypair is generated once on the release machine (the machine that owns the notary profile) via Sparkle's `generate_keys`: the private key is stored in the login keychain, and the printed **public key** is what `SUPublicEDKey` in `SparkleInfo.plist` must carry (NOT an `INFOPLIST_KEY_*` build setting — the generated-plist merge drops unknown `INFOPLIST_KEY_*` prefixes, so a key pasted into `project.pbxproj` never reaches the built Info.plist). Without that key the app checks the feed but cannot verify updates.
 
 ### Sandboxing Considerations
 

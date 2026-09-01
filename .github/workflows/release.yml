@@ -102,17 +102,26 @@ jobs:
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          GENERATE_APPCAST="$(find SourcePackages/checkouts -path '*Sparkle*/bin/generate_appcast' -type f | head -1)"
+          # Sparkle 2.9.6 ships the tool as a BINARY SPM artifact:
+          # SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast.
+          # The checkouts tree contains only the tool's Swift sources (its
+          # bin/ holds just old_dsa_scripts), so search all of SourcePackages.
+          GENERATE_APPCAST="$(find SourcePackages -path '*Sparkle*/bin/generate_appcast' -type f | head -1)"
           if [ -z "$GENERATE_APPCAST" ]; then
-            echo "ERROR: generate_appcast not found in the Sparkle SPM checkout" >&2
+            echo "ERROR: generate_appcast not found under SourcePackages (expected SourcePackages/artifacts/sparkle/Sparkle/bin/)" >&2
             exit 1
           fi
           KEY_FILE="$(mktemp)"
+          trap 'rm -f "$KEY_FILE"' EXIT
           printf '%s' "$SPARKLE_PRIVATE_KEY" | base64 --decode -o "$KEY_FILE"
+          # generate_appcast takes a DIRECTORY OF UPDATE ARCHIVES (dmg/zip),
+          # not an .app bundle, and writes appcast.xml beside the archives with
+          # the enclosure pointing at the archive's file name. Shipping the DMG
+          # into build/appcast keeps enclosure "BoosterSim.dmg" resolvable
+          # against the feed URL (releases/latest/download/<asset>).
           mkdir -p build/appcast
-          "$GENERATE_APPCAST" --ed-key-file "$KEY_FILE" \
-            -o build/appcast \
-            build/export/BoosterSimApp.app
+          cp build/BoosterSim.dmg build/appcast/
+          "$GENERATE_APPCAST" --ed-key-file "$KEY_FILE" build/appcast
           ls -la build/appcast
 
       - name: Create GitHub Release (DMG + appcast.xml)
@@ -122,7 +131,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "BoosterSim $GITHUB_REF_NAME" \
             --generate-notes \
-            build/BoosterSim.dmg \
+            build/appcast/BoosterSim.dmg \
             build/appcast/appcast.xml
 
       - name: Clean up temporary keychain
