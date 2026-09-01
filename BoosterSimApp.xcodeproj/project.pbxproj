@@ -85,6 +85,14 @@ fi";
 				minimumVersion = 5.1.0;
 			};
 		};
+		FFD01CD74BBF05F93E6E25D0 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.6;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 
@@ -199,6 +207,7 @@ fi";
 			packageProductDependencies = (
 				FD0EBCE09EF34E9DADF86FF9 /* Pulse */,
 				03A8970A216C40DDA3DA33AB /* PulseProxy */,
+				AD727C48F85374F4B99555CC /* Sparkle */,
 			);
 			productName = BoosterSimApp;
 			productReference = F2E054AA2F6D24D100056210 /* BoosterSimApp.app */;
@@ -311,6 +320,7 @@ fi";
 			preferredProjectObjectVersion = 77;
 			packageReferences = (
 				078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */,
+				FFD01CD74BBF05F93E6E25D0 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = F2E054AB2F6D24D100056210 /* Products */;
 			projectDirPath = "";
@@ -433,6 +443,11 @@ fi";
 			isa = XCSwiftPackageProductDependency;
 			package = 078964689B1B4B3CA61502F0 /* XCRemoteSwiftPackageReference "Pulse" */;
 			productName = PulseProxy;
+		};
+		AD727C48F85374F4B99555CC /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FFD01CD74BBF05F93E6E25D0 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 

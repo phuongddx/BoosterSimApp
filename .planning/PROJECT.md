@@ -40,7 +40,7 @@ from the side panel.
 <!-- Explicit boundaries. Includes reasoning to prevent re-adding. -->
 
 - Health Data Generator (BoosterHealth companion app + HealthDataService) — built 2026-03-28, then removed from the repo (3b1015f); both journals superseded per user resolution 2026-08-29. Institutional knowledge stays in .planning/intel/context.md only; do not rebuild without explicit new scope.
-- Strict zero-external-dependency policy — relaxed 2026-08-29: Apple frameworks only, exception Pulse/PulseProxy via BoosterSimConnect (linked on both native targets).
+- Strict zero-external-dependency policy — relaxed 2026-08-29: Apple frameworks only, exception Pulse/PulseProxy via BoosterSimConnect (linked on both native targets); relaxed again 2026-09-01: Sparkle 2.x (auto-update) via the BoosterSimApp target only.
 
 ## Context
 
@@ -73,7 +73,7 @@ from the side panel.
 
 - **Platform (Tech stack)**: macOS 15+ only, no backwards-compat shims; Xcode 16.3+; iOS Simulator installed — target runtime is the two-target product (BoosterSimApp + BoosterSimConnect).
 - **Language/concurrency**: Swift 6 strict concurrency enforced at compile time; @MainActor isolation; Combine @Published + Timer only, no async/await.
-- **Dependencies**: Apple frameworks only — exception: Pulse/PulseProxy via BoosterSimConnect (user-resolved 2026-08-29).
+- **Dependencies**: Apple frameworks only — exceptions: Pulse/PulseProxy via BoosterSimConnect (user-resolved 2026-08-29); Sparkle 2.x (auto-update) via the BoosterSimApp target (user-resolved 2026-09-01).
 - **Security model**: Non-sandboxed (ENABLE_APP_SANDBOX = NO) — required for Accessibility API, CGWindowList, simctl control; permissions requested at runtime (AXIsProcessTrusted, CGPreflightScreenCaptureAccess).
 - **App lifecycle**: LSUIElement = true (menu-bar agent, no Dock icon).
 - **Design system (SPEC)**: 12 constraints from docs/design-guidelines.md — utility-first native macOS feel; amber accent via asset catalog (#E8720C light / #F59E0B dark) for primary CTA/active indicators only; semantic system colors only; SF Pro + SF Symbols exclusively; 4pt spacing grid (Spacing enum); CornerRadius enum; SideWindowMetrics (260pt expanded / 28pt collapsed / 400pt min height); collapse/expand 0.2s ease-in-out (0.1s under Reduce Motion); panel frame animations via NSAnimationContext. Full detail: .planning/intel/constraints.md.
@@ -92,6 +92,7 @@ from the side panel.
 | NWListener server-mode Connect with Bonjour (replaced NWBrowser client mode) | Simulator apps are Pulse clients; macOS must host the server | ✓ Good |
 | BoosterSimConnect as loadable framework (Bundle.load, DEBUG builds only) | iOS framework cannot ship in macOS Contents/Frameworks (platform-strict validation) | ✓ Good |
 | Pulse/PulseProxy exception to the Apple-only dependency policy | User-resolved 2026-08-29; powers Connect network inspection | — Pending |
+| Sparkle 2.x exception to the Apple-only dependency policy (BoosterSimApp target only) | User-resolved 2026-09-01; powers Sparkle auto-update (EdDSA-signed appcast) — BoosterSimConnect stays Pulse-only, no macOS package linked into the iOS framework target | — Pending |
 | Non-sandboxed runtime | Required for AXIsProcessTrusted, CGWindowList, AXObserver, simctl | ✓ Good |
 | Spring-physics panel tracking (CADisplayLink, stiffness 280 / damping 22, Reduce Motion aware) | Smooth follow; rigid 1:1 under Reduce Motion | ✓ Good |
 | No async/await — Combine @Published + Timer only | Codebase-wide concurrency convention | ✓ Good |

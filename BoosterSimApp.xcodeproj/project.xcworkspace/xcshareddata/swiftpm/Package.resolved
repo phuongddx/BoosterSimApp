@@ -1,0 +1,24 @@
+{
+  "originHash" : "db4071859b1d5951f9edca997914d321ac0b2dd1c8abd0925836bd06a093de3b",
+  "pins" : [
+    {
+      "identity" : "pulse",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kean/Pulse.git",
+      "state" : {
+        "revision" : "a4e5bc2b0439552d4ff5fc9667c389be6ef5bd52",
+        "version" : "5.2.2"
+      }
+    },
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle.git",
+      "state" : {
+        "revision" : "ac2def288cbff5cfc7df3ffef6abdf45b72bcb0a",
+        "version" : "2.9.6"
+      }
+    }
+  ],
+  "version" : 3
+}

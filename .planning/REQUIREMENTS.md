@@ -41,7 +41,7 @@ Phase 5 in progress).
 ### Network — Certificates & Dependency Policy
 
 - [x] **REQ-fr-16**: CA generation, install, rotate, and reset flows work against the Simulator keychain; trust state persists across sessions
-- [x] **REQ-nfr-03**: Apple frameworks only, exception: Pulse/PulseProxy via BoosterSimConnect *(user-resolved variant, 2026-08-29)*
+- [x] **REQ-nfr-03**: Apple frameworks only, exceptions: Pulse/PulseProxy via BoosterSimConnect *(user-resolved variant, 2026-08-29)* AND Sparkle 2.x (auto-update) via the BoosterSimApp target *(user-resolved variant, 2026-09-01)*
 
 ### Non-Functional — Platform & Runtime
 
@@ -80,7 +80,7 @@ Deferred candidates surfaced by the 2026-04-12 connect journal (not in current r
 | Feature | Reason |
 |---------|--------|
 | Health Data Generator (BoosterHealth companion app + HealthDataService) | Built 2026-03-28, removed from repo (3b1015f); journals superseded per user resolution 2026-08-29 — knowledge preserved in .planning/intel/context.md only |
-| Strict zero-external-dependency policy | Relaxed 2026-08-29: Pulse/PulseProxy SPM allowed via BoosterSimConnect (linked on both native targets) |
+| Strict zero-external-dependency policy | Relaxed 2026-08-29: Pulse/PulseProxy SPM allowed via BoosterSimConnect (linked on both native targets); relaxed 2026-09-01: Sparkle 2.x SPM allowed via the BoosterSimApp target only (auto-update) |
 | Backwards compatibility below macOS 15 | REQ-nfr-01: no compat shims by design |
 | Sandboxed (Mac App Store) distribution | Sandbox incompatible with AXIsProcessTrusted/CGWindowList/AXObserver/simctl usage; Phase 7 documents the non-sandbox requirement instead |
 
