@@ -23,10 +23,14 @@
 			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
-				<string>C617.1</string>
-				<string>3B52.1</string>
+				<string>DDA9.1</string>
 			</array>
 		</dict>
+		<!-- DerivedDataAppScanner.swift and BuildStatsService.swift read modification dates on
+		     Xcode's DerivedData tree, which sits outside the app container and outside every listed
+		     required-reason category (not user-granted access, not app-container). DDA9.1 covers
+		     CaptureExporter.swift's own tmp-directory sweep only. Left honestly uncovered rather than
+		     padded with an inaccurate reason (07-REVIEW.md WR-03). -->
 	</array>
 </dict>
 </plist>

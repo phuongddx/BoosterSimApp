@@ -145,7 +145,7 @@ BoosterSimApp/
 │   │       ├── AccentButton.swift        # Amber CTA button (~25 LOC)
 │   │       ├── StatusBadge.swift         # Colored dot + label (44 LOC)
 │       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
-│   ├── PrivacyInfo.xcprivacy            # Privacy manifest: no tracking; UserDefaults/CA92.1 + FileTimestamp/C617.1+3B52.1 (32 LOC)
+│   ├── PrivacyInfo.xcprivacy            # Privacy manifest: no tracking; UserDefaults/CA92.1 + FileTimestamp/DDA9.1 (tmp sweep only; DerivedData mtime reads left honestly uncovered — 07-REVIEW.md WR-03) (36 LOC)
 │   ├── Assets.xcassets/AppIcon.appiconset/ # 10-size placeholder icon PNGs (amber + white bolt), scripted
 │   └── Utilities/
 │       ├── AppLogger.swift               # Centralized os.Logger instances (18 LOC)

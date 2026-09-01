@@ -37,7 +37,7 @@ findings:
   info: 6
   total: 12
 status: issues_found
-fix_status: critical_resolved_warnings_partial
+fix_status: critical_resolved_warnings_3_of_4_resolved
 ---
 
 # Phase 07: Code Review Report — Polish & Distribution
@@ -115,6 +115,7 @@ Committed separately from this document (per review protocol):
 | CR-01, CR-02 | `release.yml`: appcast step now finds the binary under `SourcePackages` (artifact location), feeds it a directory containing the DMG, drops the invalid `-o <dir>`, `trap`-removes the EdDSA key file, and uploads `build/appcast/BoosterSim.dmg` so the enclosure name matches the released asset | Corrected invocation run locally against the real `generate_appcast` 2.9.6 binary with a scratch signed DMG + throwaway EdDSA key: exit 0, `appcast.xml` written beside the DMG with relative enclosure `url="Test-1.0.dmg"`. (EdDSA signing leg additionally requires the app's embedded Sparkle 2.9.6 — the real app sets `requiresSignedAppcast`; the synthetic test app doesn't embed Sparkle, so it exercised the unsigned path.) |
 | WR-01 | `AppDelegate.swift`: `_ = updaterController` at launch so Sparkle's scheduled automatic checks actually run | `xcodebuild -scheme BoosterSimApp` **BUILD SUCCEEDED** |
 | WR-02 | `docs/deployment-guide.md`: EdDSA paste site corrected to `SUPublicEDKey` in `SparkleInfo.plist` (with the why: unknown `INFOPLIST_KEY_*` prefixes are dropped by the generated-plist merge) | Matches SparkleInfo.plist's own comment and the 07-02 summary's empirically-proven merge behavior |
+| WR-03 | `BoosterSimApp/PrivacyInfo.xcprivacy`: FileTimestamp reasons corrected to `DDA9.1` alone (dropped inaccurate `C617.1`/`3B52.1`); DerivedData mtime reads left honestly uncovered per an inline XML comment rather than padded with an inapplicable reason; `docs/codebase-summary.md` line updated to match | `plutil -lint` OK, structural assert (exactly `{CA92.1}` + `{DDA9.1}`) passes, Debug build green — fixed post-review by the orchestrating agent, applied outside the reviewer's own fix pass |
 
 ## Critical Issues
 
@@ -194,7 +195,7 @@ would appear closed while every update still fails signature verification.
 **Fix (applied):** Both spots now point at `SUPublicEDKey` in `SparkleInfo.plist`, with the
 INFOPLIST_KEY-drop explanation preserved so the mistake isn't re-made.
 
-### WR-03: PrivacyInfo.xcprivacy FileTimestamp reason codes don't match Apple's current definitions — 3B52.1 is third-party-SDK-only, and the app-container reason is now DDA9.1
+### WR-03 (RESOLVED post-review): PrivacyInfo.xcprivacy FileTimestamp reason codes don't match Apple's current definitions — 3B52.1 is third-party-SDK-only, and the app-container reason is now DDA9.1
 
 **File:** `BoosterSimApp/PrivacyInfo.xcprivacy:24-31`; actual use sites:
 `BoosterSimApp/Services/DerivedDataAppScanner.swift:75` (`.modificationDate`),
