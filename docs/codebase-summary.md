@@ -4,39 +4,47 @@
 
 - **Language:** Swift 6 (strict concurrency)
 - **Frameworks:** AppKit, SwiftUI, Combine, CoreGraphics, ApplicationServices, ServiceManagement, QuartzCore, Network
-- **Files:** 173 Swift source files (~21,005 LOC total across app, iOS framework source, CLI, and tests)
+- **Files:** 178 Swift source files (~21,790 LOC across app, iOS framework source, CLI, tests, and build scripts)
 - **Targets:** BoosterSimApp (macOS), BoosterSimConnect (iOS framework), test targets
-- **External dependencies:** Pulse/PulseProxy SPM (BoosterSimConnect framework only)
-- **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI test scaffolds)
+- **External dependencies:** Pulse/PulseProxy + Sparkle SPM — the two named exceptions to the Apple-only policy (Sparkle: BoosterSimApp target only; both pinned in the tracked `Package.resolved`)
+- **Test targets:** BoosterSimAppTests (unit tests), BoosterSimAppUITests (UI tests incl. the onboarding flow)
 
 ## Directory Structure
 
 ```
 BoosterSimApp/
+├── scripts/                              # Release & asset tooling (Phase 7)
+│   ├── build-release.sh                  # Archive → Developer-ID export → notarize → staple → DMG (170 LOC)
+│   └── generate-placeholder-icon.swift   # Deterministic 10-size AppIcon renderer (182 LOC)
+├── .github/workflows/
+│   ├── ci.yml                            # CI build
+│   └── release.yml                       # Tag-push pipeline: notarize + DMG + Sparkle appcast → GitHub Release (133 LOC)
+├── ExportOptions.plist                   # Developer-ID export contract (12 LOC)
+├── SparkleInfo.plist                     # SUFeedURL + SUPublicEDKey, merged into the generated Info.plist (18 LOC)
 ├── BoosterSimApp.xcodeproj/
 ├── BoosterSimApp/                        # Main target
 │   ├── BoosterSimAppApp.swift            # @main entry point (23 LOC)
 │   ├── App/
-│   │   └── AppDelegate.swift             # NSApplicationDelegate (144 LOC)
+│   │   └── AppDelegate.swift             # NSApplicationDelegate + Sparkle updater (152 LOC)
 │   ├── Models/
 │   │   ├── SimulatorWindow.swift         # Window data model (25 LOC)
 │   │   ├── AppSettings.swift             # @AppStorage settings (52 LOC)
 │   │   ├── BuildRecord.swift             # Build history record (28 LOC)
 │   │   ├── AXNode.swift                  # Accessibility tree node (18 LOC)
 │   │   ├── BoosterCommand.swift          # Condition snapshot + framing + verdict (127 LOC)
-│   │   ├── BlockRule.swift               # Domain/path block rule + matcher (43 LOC)
+│   │   ├── BlockRule.swift              # Domain/path block rule + matcher (43 LOC)
 │   │   ├── NetworkConditionProfile.swift # Throttle presets + pacing math (83 LOC)
 │   │   ├── AppActionModels.swift        # App-action operation, reset outcomes, argv builders/parsers (148 LOC)
 │   │   ├── PrivacyPermission.swift      # 12 verbatim simctl TCC services + argv builders (71 LOC)
 │   │   ├── PushPayload.swift            # Push payload model + typed parse + 4096-byte gate (125 LOC)
 │   │   ├── DefaultsEntry.swift          # Typed defaults entry + value kinds (49 LOC)
-│   │   └── AppAction.swift              # AppAction/EffectLatency/AppActionCatalog — pure searchable catalog (122 LOC)
+│   │   ├── AppAction.swift              # AppAction/EffectLatency/AppActionCatalog — pure searchable catalog, 13 sections / 18 actions (140 LOC)
 │   ├── Services/
-│   │   ├── SimulatorWindowTracker.swift  # Core detection service (199 LOC)
+│   │   ├── SimulatorWindowTracker.swift  # Core detection service (203 LOC)
 │   │   ├── WindowEnumerator.swift        # CGWindowList scan (65 LOC)
 │   │   ├── WindowObserver.swift          # AXObserver wrapper (158 LOC)
 │   │   ├── PermissionManager.swift       # Permission checks/requests (143 LOC)
-│   │   ├── AppActionService.swift     # App-action facade: reset/keychain/push/privacy/locale/location/clipboard verbs (906 LOC)
+│   │   ├── AppActionService.swift     # App-action facade: reset/keychain/push/privacy/locale/location/clipboard verbs (957 LOC)
 │   │   ├── DerivedDataAppScanner.swift # Pure DerivedData iOS .app scanner (101 LOC)
 │   │   ├── UserDefaultsEditorService.swift # Typed defaults editor: plist read + validated spawn writes (213 LOC)
 │   │   ├── XcodeDetector.swift           # Xcode path detection (39 LOC)
@@ -72,7 +80,7 @@ BoosterSimApp/
 │   │   └── AXHighlightPanel.swift        # Floating orange border overlay (68 LOC)
 │   ├── Views/
 │   │   ├── MenuBar/
-│   │   │   └── MenuBarView.swift         # MenuBarExtra content (59 LOC)
+│   │   │   └── MenuBarView.swift         # MenuBarExtra content + Check for Updates… (63 LOC)
 │   │   ├── SideWindow/
 │   │   │   ├── SideWindowView.swift      # Root side panel view, tab-based layout (127 LOC)
 │   │   │   ├── SideTab.swift             # Tab enum for side window navigation (27 LOC)
@@ -80,7 +88,7 @@ BoosterSimApp/
 │   │   │   ├── tabs/
 │   │   │   │   ├── CaptureTabView.swift  # Capture tab: screenshot, recording, GIF (201 LOC)
 │   │   │   │   ├── DesignTabView.swift   # Design tab mount + typed image drag-and-drop (46 LOC)
-│   │   │   │   ├── ActionsTabView.swift  # Actions tab: catalog-driven searchable 9-section surface (122 LOC)
+│   │   │   │   ├── ActionsTabView.swift  # Actions tab: catalog-driven searchable 13-section surface (131 LOC)
 │   │   │   │   └── NetworkTabView.swift  # Network tab: traffic + conditions + rules + certs (70 LOC)
 │   │   │   ├── network/
 │   │   │   │   ├── NetworkEventModel.swift # NetworkEvent, HTTPMethod, TrafficFilter, ConnectionState (208 LOC)
@@ -114,7 +122,7 @@ BoosterSimApp/
 │   │   │   ├── BuildStatsSectionView.swift # Build history section (92 LOC)
 │   │   │   ├── BuildChartView.swift      # Canvas bar chart (42 LOC)
 │   │   │   ├── AXTreeView.swift          # Accessibility tree list (141 LOC)
-│   │   │   ├── CameraView.swift          # Camera toggle UI (99 LOC)
+│   │   │   ├── CameraView.swift          # Camera toggle UI + support-probe lifecycle (108 LOC)
 │   │   │   ├── DesignComparisonView.swift # Design tab root: import row + grid controls (136 LOC)
 │   │   │   ├── DesignSafeAreaSection.swift # Safe-area controls: manual fields + reset + calibration (98 LOC)
 │   │   │   ├── DesignPresetsSection.swift # Comparison preset save/load/delete (78 LOC)
@@ -130,13 +138,15 @@ BoosterSimApp/
 │   │   │   ├── GeneralTab.swift          # Position + launch at login (~45 LOC)
 │   │   │   └── AboutTab.swift            # App info + links (79 LOC)
 │   │   ├── Onboarding/
-│   │   │   ├── OnboardingContainerView.swift  # 4-step flow (114 LOC)
-│   │   │   ├── OnboardingStepView.swift       # Single step layout (98 LOC)
+│   │   │   ├── OnboardingContainerView.swift  # 4-step flow + AX identifiers + reset seam (117 LOC)
+│   │   │   ├── OnboardingStepView.swift       # Single step layout (101 LOC)
 │   │   │   └── ProgressDotsView.swift         # Step indicator dots (~25 LOC)
 │   │   └── Shared/
 │   │       ├── AccentButton.swift        # Amber CTA button (~25 LOC)
 │   │       ├── StatusBadge.swift         # Colored dot + label (44 LOC)
 │       └── CollapsibleSection.swift  # Reusable collapsible header (47 LOC)
+│   ├── PrivacyInfo.xcprivacy            # Privacy manifest: no tracking; UserDefaults/CA92.1 + FileTimestamp/C617.1+3B52.1 (32 LOC)
+│   ├── Assets.xcassets/AppIcon.appiconset/ # 10-size placeholder icon PNGs (amber + white bolt), scripted
 │   └── Utilities/
 │       ├── AppLogger.swift               # Centralized os.Logger instances (18 LOC)
 │       ├── DesignTokens.swift            # Layout/spacing constants + OverlayMetrics (60 LOC)
@@ -156,15 +166,19 @@ BoosterSimApp/
 │   ├── PushPayloadTests.swift            # Typed parse + 4096-byte boundary gate (156 LOC)
 │   ├── LocaleCommandTests.swift          # Locale/timezone/location/clipboard builders + parsers (244 LOC)
 │   ├── UserDefaultsEditorServiceTests.swift # Plist parse + typed write/delete argv (180 LOC)
-│   ├── AppActionCatalogTests.swift       # Catalog search/filter contracts (124 LOC)
+│   ├── AppActionCatalogTests.swift       # Catalog search/filter contracts, 13-section pinned list (139 LOC)
 │   ├── SafeAreaCatalogTests.swift        # Catalog rows: name/size/manual + landscape + iPad (119 LOC)
 │   ├── GridGeometryTests.swift           # Dual 8/4 spacing + scale math (62 LOC)
 │   ├── RulerMathTests.swift              # Device-point round trip + Y-flip pixel mapping + distance (38 LOC)
 │   ├── OverlayPersistenceTests.swift     # Toggles/presets/legacy import/safe-area/arming (289 LOC)
-│   └── PixelSamplerTests.swift           # Cached-capture sampling: mapping, generation guard, preflight (155 LOC)
+│   ├── PixelSamplerTests.swift           # Cached-capture sampling: mapping, generation guard, preflight (155 LOC)
+│   ├── PositionCalculatorTests.swift     # Frame-math contract: 4 position modes, clamps, fallback regimes (244 LOC)
+│   ├── WindowEnumeratorTests.swift       # CGWindowList parse contract: Y flip, rejections, strict size gate (90 LOC)
+│   ├── AppSettingsTests.swift            # Persisted-settings contract over injected defaults suite (118 LOC)
 ├── BoosterSimAppUITests/                 # UI test target
 │   ├── BoosterSimAppUITests.swift        # UI test scaffold (41 LOC)
-│   └── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
+│   ├── BoosterSimAppUITestsLaunchTests.swift # Launch test scaffold (33 LOC)
+│   └── OnboardingFlowUITests.swift       # Deterministic 4-step onboarding flow drive (reset-seam launch arg) (82 LOC)
 ├── BoosterSimConnect/                    # iOS framework source (loaded into Simulator apps)
 │   ├── BoosterSimConnect.swift           # PulseProxy + condition-engine activation (71 LOC)
 │   ├── BoosterCommandClient.swift        # Command channel client, NWBrowser (191 LOC)
@@ -232,20 +246,24 @@ BoosterSimApp/
 | Overlay panel + D-04 layer install | `Windows/DesignOverlayPanel.swift` |
 | Overlay controller + input machine | `Windows/DesignOverlayController.swift` (+`+InputMode`) |
 | Overlay renderers (grid/safe-area/ruler/loupe/artboard) | `Views/Overlay/*.swift` |
+| Sparkle auto-update wiring | `App/AppDelegate.swift` (`SPUStandardUpdaterController`) + `Views/MenuBar/MenuBarView.swift` + `SparkleInfo.plist` |
+| Release pipeline | `scripts/build-release.sh` + `ExportOptions.plist` + `.github/workflows/release.yml` |
+| Privacy manifest (required-reason APIs) | `BoosterSimApp/PrivacyInfo.xcprivacy` |
+| Placeholder AppIcon generator | `scripts/generate-placeholder-icon.swift` |
 
 ## Largest Files (by LOC)
 
 | Rank | File | LOC | Notes |
 |---|---|---|---|
-| 1 | `Services/AppActionService.swift` | 906 | App-action facade + preset models/builders co-located (plan file-list constraint) — flagged for split (03-03 deviation 4) |
+| 1 | `Services/AppActionService.swift` | 957 | App-action facade + preset models/builders co-located (plan file-list constraint) — flagged for split (03-03 deviation 4) |
 | 2 | `actions/UserDefaultsEditorView.swift` | 505 | Whole editor surface in one view (plan file-list constraint) — flagged (03-04 deviation 6) |
 | 3 | `TrafficDetailView.swift` | 295 | Network detail sheet (4 tabs) — candidate for split |
 | 4 | `EnvironmentOverrideService.swift` | 279 | Candidate for split |
 | 5 | `actions/PushNotificationSectionView.swift` | 263 | Payload editor + D-01 guided-grant block |
 | 6 | `actions/LocaleSectionView.swift` | 262 | Presets + manual rows + captions |
-| 7 | `SideWindowController.swift` | 234 | Monitor growth |
+| 7 | `SideWindowController.swift` | 264 | Monitor growth |
 | 8 | `NetworkEventModel.swift` | 208 | Network event + filter models |
-| 9 | `SimulatorWindowTracker.swift` | 199 | — |
+| 9 | `SimulatorWindowTracker.swift` | 203 | — |
 
 ## Feature Sections (Side Panel — Tab-Based UI)
 
@@ -262,7 +280,11 @@ BoosterSimApp/
 | Actions | Location | Validated coordinates + 6 city presets (tz-syncing) + visible Stop | Complete (Phase 3) |
 | Actions | Clipboard | Two manual pbsync buttons, Mac ↔ Simulator | Complete (Phase 3) |
 | Actions | Defaults | Typed UserDefaults editor (view/edit/add/delete) for the active app | Complete (Phase 3) |
-| Actions | Quick Search | AppActionCatalog-driven section filter over all 9 sections | Complete (Phase 3) |
+| Actions | Quick Search | AppActionCatalog-driven section filter over all 13 sections | Complete (Phase 3) |
+| Actions | Status Bar | 4 presets (Screenshot Ready/Low Battery/No Signal/Normal) + custom time/battery/signal | Complete (Phase 7) |
+| Actions | Camera | Mac camera ↔ Simulator input routing (support probed on appear/pid change) | Complete (Phase 7) |
+| Actions | AX Tree | Live accessibility tree browser with element highlighting (manual refresh) | Complete (Phase 7) |
+| Actions | Build Stats | DerivedData build-history bar chart (5s polling) | Complete (Phase 7) |
 | Network | Network Conditions | Airplane Mode, Throttle Profiles (Off/EDGE/3G/LTE/Wi-Fi), effective-condition status, URLSession-scope caption | Complete |
 | Network | Block Rules | Domain/path rule editor (add/toggle/delete, 50-rule cap), snapshot push | Complete |
 
@@ -271,11 +293,7 @@ BoosterSimApp/
 - Network tab: `ConnectService` + `PulseServer` + `TrafficList`/`TrafficDetailView` + `CertificateSectionView`
 - Network tab: `NetworkConditionService` + `CommandServer` pushing snapshots over `_booster-cmd._tcp.` (`NetworkConditionsSectionView`, `BlockRulesView`)
 
-**Standalone views** (exist but not wired into tabs yet):
-- `StatusBarSectionView` — status bar presets + custom (Complete)
-- `BuildStatsSectionView` / `BuildChartView` — build history + bar chart (Complete)
-- `AXTreeView` — accessibility tree inspector with lazy loading (Complete)
-- `CameraView` — Mac camera input toggle (Complete)
+**Phase 6 views — wired (Phase 7):** all four former orphans mount as searchable Actions-tab sections in `ActionsTabView`'s section table — `StatusBarSectionView(udid:)`, `BuildStatsSectionView()`, `AXTreeView(pid:)`, `CameraView(pid:)` — with pid threaded from `SideWindowView`'s `activeSim?.pid`. Zero standalone views remain; `SideTab` stays exactly 4 cases.
 
 ### Network Manipulation (Phase 5) — primary types
 

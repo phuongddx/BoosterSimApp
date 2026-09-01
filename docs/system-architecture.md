@@ -47,7 +47,8 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 │  ├── DerivedDataAppScanner — DerivedData .app scan  │
 │  ├── UserDefaultsEditorService — defaults editor    │
 │  ├── DeepLinkService — openurl deep links on seam   │
-│  └── XcodeDetector — filesystem path detection     │
+│  ├── XcodeDetector — filesystem path detection      │
+│  └── SPUStandardUpdaterController — Sparkle update  │
 ├─────────────────────────────────────────────────────┤
 │  Capture Services (Phase 2)                         │
 │  ├── CaptureService — sync Combine facade           │
@@ -293,7 +294,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 
 ### Views
 
-**`MenuBarView`** — Show/hide toggle (Cmd+B), simulator list, Settings link, Quit
+**`MenuBarView`** — Show/hide toggle (Cmd+B), simulator list, Settings link, **Check for Updates…** (Sparkle), Quit
 
 **`SideWindowView`** — Root: collapsed strip or expanded panel with tab-based layout (4 tabs: Capture, Design, Actions, Network)
 
@@ -309,7 +310,7 @@ BoosterSimApp uses a SwiftUI App + AppKit hybrid architecture. The `@main` Swift
 
 - `CaptureTabView` — Capture tab: screenshot framing options (ASC preset, bezel, background, destination pills), `RecordingSectionView` (record/stop, touch-indicator toggle, staged-recording reveal), `ExportSectionView` (format/GIF pills, progress + cancel) — see § Capture Tools
 - `DesignTabView` — Design tab mount: `DesignComparisonView` (grid controls + import row) with typed image drag-and-drop — see § Design Tools
-- `ActionsTabView` — Catalog-driven searchable Actions tab: 9 sections in fixed `AppActionCatalog` order, section visibility routed through the pure filter (see § App Actions)
+- `ActionsTabView` — Catalog-driven searchable Actions tab: 13 sections in fixed `AppActionCatalog` order, section visibility routed through the pure filter (see § App Actions)
 
 **Side Panel Components**
 - `ConnectStatusBanner` — Slim banner showing connection state (dot + label + setup/searching indicator); pulse animation on .searching
@@ -523,7 +524,7 @@ CaptureService (@MainActor facade, Combine @Published state)
 
 ## App Actions
 
-Phase 3 turns the Actions tab into the real tool: **14 searchable actions across 9 sections** — app picker + reset/uninstall/keychain (D-02), deep links, push (D-01), privacy (12 TCC services), locale/timezone, location, clipboard, and a UserDefaults editor — all over one hardened `xcrun simctl` seam, all Apple frameworks (zero new packages; `Package.resolved` unchanged from Phase 5).
+Phase 3 turned the Actions tab into the real tool, and Phases 6–7 completed the surface: **18 searchable actions across 13 sections** — environment overrides, status bar control, app picker + reset/uninstall/keychain (D-02), deep links, push (D-01), privacy (12 TCC services), locale/timezone, location, clipboard, a UserDefaults editor, camera routing, AX tree inspection, and build stats — all over one hardened `xcrun simctl` seam. The only SPM additions are the two named policy exceptions (Pulse/PulseProxy, Sparkle — both pinned in the tracked `Package.resolved`).
 
 **Service split.** One `@MainActor` Combine facade over small single-concern units, mirroring the Capture split:
 
@@ -562,7 +563,7 @@ Phase 3 turns the Actions tab into the real tool: **14 searchable actions across
 - **D-01 — notification permission is managed by iOS.** `simctl privacy` has no `notifications` service (research-proven against positive controls; TCC.db has no UserNotifications row), so no control anywhere claims to grant or revoke push authorization. The Push section ships a guided-grant block instead: the caption *"Notification permission is managed by iOS — it cannot be set from here."*, an Open Settings verb (`launch com.apple.Preferences`), the inline manual-grant steps, and the Send button doubling as the delivery probe. The Privacy section carries the matching pointer caption.
 - **D-02 — keychain clear is device-wide only.** Per-app keychain clear does not exist on Simulator. Clear Keychain sits behind a red destructive dialog naming the full blast radius — *"Erases EVERY app's keychain … and removes the BoosterSimApp local CA. The CA is re-installed automatically afterward … No undo."* — and the wipe composes the existing `CertificateService` verbs (`resetKeychain → reconcileStatus → install` when a CA exists) so certificate trust is restored automatically with zero manual steps.
 
-**Quick search.** `AppActionCatalog` — 14 actions, 9 sections, fixed mount order — owns BOTH the tab's section order and search visibility (`AppActionCatalog.filter(query:)`, the TrafficFilter discipline: one pure matching point, zero per-view `contains` chains). Empty query renders every section through the same table; a query narrows to matching sections in catalog order with a matched-actions disclosure; no match renders an honest empty state; collapsing `ActionSearchBar` clears the query so a hidden filter can never silently narrow the tab.
+**Quick search.** `AppActionCatalog` — 18 actions, 13 sections, fixed mount order — owns BOTH the tab's section order and search visibility (`AppActionCatalog.filter(query:)`, the TrafficFilter discipline: one pure matching point, zero per-view `contains` chains). Empty query renders every section through the same table; a query narrows to matching sections in catalog order with a matched-actions disclosure; no match renders an honest empty state; collapsing `ActionSearchBar` clears the query so a hidden filter can never silently narrow the tab.
 
 **Known logging gap (pre-existing, tracked).** `SimCtlService` prints `xcrun simctl <argv>` before every invocation (a Phase-1 diagnostic). Phase 3 verbs carry full openurl URLs and defaults VALUES in argv, so that echo brushes the never-log-values/URLs prohibitions at the seam. All Phase-3 `AppLogger.actions` lines are verb/size/outcome-only; redacting the seam echo is a tracked review item (03-02 deviation 6, 03-04 deviation 7).
 
@@ -626,6 +627,14 @@ PixelSamplerService (arm → single Task bridge → ScreenshotService SCK captur
 
 **Overlay chrome tokens.** `OverlayMetrics` (`Utilities/DesignTokens.swift`): marker radius 3, readout inset `Spacing.sm`, loupe diameter 96, magnification default 8 (range 2…16). Overlay content renders system blue — the amber accent stays reserved for side-panel active controls (D-03).
 
+## Platform & System Integration
+
+Phase 6 built four platform-integration surfaces (StatusBarService, BuildStatsService, AXInspectorService, CameraService — constructed and injected end-to-end by `AppDelegate`/`SideWindowController` since Phase 6); Phase 7 (07-05) made them reachable. All four mount as searchable sections inside the Actions tab's `AppActionCatalog` — `statusBar` right after `environment`, `camera`/`axTree`/`buildStats` between `defaults` and `reset` — so `SideTab` stays exactly four cases (REQ-fr-13 unregressed). `AXTreeView` and `CameraView` take the Simulator's **pid** (threaded from `SideWindowView`'s `activeSim?.pid`), not the udid every other section receives; `CameraView` owns its `probeSupport` lifecycle (onAppear + onChange of pid — the EnvironmentOverridesView convention, one owner).
+
+## Distribution
+
+Direct distribution, not the Mac App Store: `scripts/build-release.sh` covers archive → Developer-ID export (team `K2TYLYAWMK`, hardened runtime on, no entitlements) → zip → notarize (`xcrun notarytool`, keychain-profile credentials only) → staple → DMG. Auto-update ships via **Sparkle 2.9.6** (the second named exception to the Apple-only dependency policy, linked into the BoosterSimApp target only): `SPUStandardUpdaterController` in `AppDelegate`, the "Check for Updates…" menu item in `MenuBarView`, `SUFeedURL` pointing at the GitHub Releases appcast, and `SUPublicEDKey` (EdDSA public key) merged into the generated Info.plist via `SparkleInfo.plist`. The app is deliberately **non-sandboxed** — Accessibility APIs, `CGWindowList`, CFPreferences writes into the Simulator domain, and `simctl` all require it — which Developer ID + hardened runtime + notarization fully accommodate. Full runbook: [`docs/deployment-guide.md`](deployment-guide.md).
+
 ## Concurrency Model
 
 - All UI and service code runs on `@MainActor` (AppDelegate, SideWindowController are explicit)
@@ -642,6 +651,7 @@ PixelSamplerService (arm → single Task bridge → ScreenshotService SCK captur
 | `Settings` scene | Automatic Cmd+, binding, native Preferences window chrome |
 | NSPanel over NSWindow | Floating utility window behavior, hides when Simulator loses focus |
 | Dual-mode tracking (poll + AXObserver) | Graceful degradation without Accessibility permission |
+| Sparkle 2.9.6 SPM exception to the Apple-only policy (user-resolved 2026-09-01) | Auto-update outside the Mac App Store (MAS is out of scope; sandboxing is incompatible with AX/CGWindowList/simctl). App target ONLY — a macOS framework must not link into the iphonesimulator BoosterSimConnect target. `Package.resolved` is tracked in git with exactly two pins (pulse 5.2.2 + sparkle 2.9.6) |
 | `xcrun simctl spawn` for env overrides | Instant state changes without app relaunch |
 | NWListener + Bonjour for Connect | macOS hosts TCP server; Simulator apps connect to it — zero-config |
 | Second Bonjour channel (`_booster-cmd._tcp.`, loopback-bound) for condition snapshots | Full-state idempotent snapshots self-heal on reconnect; loopback bind keeps the LAN out while Simulator apps still reach the host |
