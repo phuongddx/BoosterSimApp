@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 07
 current_phase_name: Polish & Distribution
 status: planning
-stopped_at: Completed 07-02 through Task 2; halted at Task 3 blocking-human EdDSA gate
-last_updated: "2026-09-01T05:18:15.491Z"
+stopped_at: Completed 07-06 through Task 2; halted at Task 3 doubly-blocked human gate (07-01 notarization ticket + 07-02 EdDSA key)
+last_updated: "2026-09-01T05:36:59.745Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
-state_head: 9689e739c62665628120e7c9eb8a1841d1cc00c4
+state_head: 029a0b5e17dde92640629b13f8b562add37e6403
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 22
+  completed_plans: 23
   percent: 57
 ---
 
@@ -131,6 +131,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07]: [Phase 7][07-02] Xcode 26.3's generated-Info.plist drops arbitrary INFOPLIST_KEY_* prefixes (SUFeedURL setting present, key absent from built plist) — Sparkle's SU keys live in repo-root SparkleInfo.plist via INFOPLIST_FILE + GENERATE_INFOPLIST_FILE merge in both app configs; the plan's flagged assumption was disproven by a built-plist dump
 - [Phase 07]: [Phase 7][07-02] Sparkle 2.9.6 = second NAMED Apple-only-policy exception (app target only; BoosterSimConnect stays Pulse-only); Package.resolved tracked in git for the first time (pins pulse 5.2.2 + sparkle 2.9.6) — closes the Phase 2-5 infra gap, 07-06's pin gate is real now
 - [Phase 07]: [Phase 7][07-02] Halted at Task 3 blocking-human EdDSA gate (07-01 pattern): generate_keys is a human keychain-credential step; Task 3's SUPublicEDKey paste site is SparkleInfo.plist (mechanism deviation), resume signal 'key wired'
+- [Phase 07]: [Phase 7][07-06] Phase gate: docs truth pass green (TRUTH-PASS-OK) + all machine criteria green (266/266 units, both schemes, FIRST real git-level pin {pulse 5.2.2, sparkle 2.9.6} on the tracked Package.resolved, zero regressions); onboarding UI suite environment-blocked (automation-mode runner-init timeout x3, 0 tests executed — WINDOWS.md #9); Task 3 doubly blocked on 07-01 Task 3 notarization ticket + 07-02 Task 3 EdDSA key human gates — machine-verified open
 
 ### Pending Todos
 
@@ -157,6 +158,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T05:18:14.763Z
-Stopped at: Completed 07-02 through Task 2; halted at Task 3 blocking-human EdDSA gate
+Last session: 2026-09-01T05:36:56.441Z
+Stopped at: Completed 07-06 through Task 2; halted at Task 3 doubly-blocked human gate (07-01 notarization ticket + 07-02 EdDSA key)
 Resume file: None

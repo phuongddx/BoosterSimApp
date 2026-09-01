@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 7
+open_count: 8
 waived_count: 0
 fixed_count: 1
-total_count: 8
-last_updated: 2026-09-01T05:17:56.726Z
+total_count: 9
+last_updated: 2026-09-01T05:34:58.616Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,7 @@ last_updated: 2026-09-01T05:17:56.726Z
 | 6 | 07 | deviation | docs/deployment-guide.md |  | Dropped stale cd BoosterSimApp line (xcodeproj lives at repo root) | open |  | 2026-09-01T04:11:36.931Z |  |
 | 7 | 07 | stub | BoosterSimApp/Assets.xcassets/AppIcon.appiconset |  | AppIcon set is a PLACEHOLDER pending real design (scripted amber + bolt.fill; image generation unavailable) | open |  | 2026-09-01T04:50:28.427Z |  |
 | 8 | 07 | stub | SparkleInfo.plist | 19 | SUPublicEDKey empty string until 07-02 Task 3 blocking-human gate generates the EdDSA keypair (public key paste site; plan transparency prohibition forbids a placeholder) | open |  | 2026-09-01T05:17:56.726Z |  |
+| 9 | 07 | unrun-verify | BoosterSimAppUITests/OnboardingFlowUITests.swift |  | Onboarding UI suite could not run at the 07-06 phase gate: test runner failed to initialize (Timed out while enabling automation mode, XCTFuture 1000) on all 3 attempts — 0 tests executed; suite proven green by 07-03 at 04:35Z; environment-blocked, needs user-side re-run | open |  | 2026-09-01T05:34:58.616Z |  |
 
 ````json
 [
@@ -120,6 +121,18 @@ last_updated: 2026-09-01T05:17:56.726Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-09-01T05:17:56.726Z",
+    "resolved_at": null
+  },
+  {
+    "id": 9,
+    "kind": "unrun-verify",
+    "phase": "07",
+    "file": "BoosterSimAppUITests/OnboardingFlowUITests.swift",
+    "line": null,
+    "description": "Onboarding UI suite could not run at the 07-06 phase gate: test runner failed to initialize (Timed out while enabling automation mode, XCTFuture 1000) on all 3 attempts — 0 tests executed; suite proven green by 07-03 at 04:35Z; environment-blocked, needs user-side re-run",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-01T05:34:58.616Z",
     "resolved_at": null
   }
 ]
