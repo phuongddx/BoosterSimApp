@@ -24,6 +24,7 @@ enum EffectLatency: Equatable, Sendable {
 /// The Actions tab's sections in fixed mount order — the catalog owns the tab's section order.
 enum AppActionSection: String, CaseIterable, Identifiable, Sendable {
     case environment   // reused EnvironmentOverridesView (dark/Dynamic Type/a11y)
+    case statusBar     // Phase 6 StatusBarSectionView (time/battery/signal presets + custom)
     case deepLinks
     case push
     case privacy
@@ -65,6 +66,10 @@ enum AppActionCatalog {
                   keywords: ["reduce motion", "bold text", "invert", "grayscale",
                              "button shapes", "labels", "a11y"],
                   section: .environment, effectLatency: .instant),
+        // status bar (Phase 6 view wired in 07-05)
+        AppAction(id: "status-bar", title: "Status Bar Override",
+                  keywords: ["statusbar", "status bar", "time", "battery", "signal", "preset", "custom"],
+                  section: .statusBar, effectLatency: .instant),
         // deep links
         AppAction(id: "deep-links", title: "Deep Link Testing",
                   keywords: ["deep link", "url", "scheme", "openurl", "universal link", "link"],

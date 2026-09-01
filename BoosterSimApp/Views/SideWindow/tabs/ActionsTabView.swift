@@ -74,6 +74,8 @@ struct ActionsTabView: View {
         switch section {
         case .environment:
             EnvironmentOverridesView(udid: udid)
+        case .statusBar:
+            StatusBarSectionView(udid: udid)
         case .deepLinks:
             CollapsibleSection(title: "Deep Link Testing", icon: "link", isExpanded: $isDeepLinkExpanded) {
                 DeepLinkSectionView(deepLinkService: deepLinkService, udid: udid)

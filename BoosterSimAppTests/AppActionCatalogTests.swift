@@ -17,6 +17,12 @@ struct AppActionCatalogTests {
         #expect(pasteMatches.contains { $0.section == .clipboard })
     }
 
+    @Test func statusBarKeywordHitsTheNewSection() {
+        // 07-05 Task 1: the Phase 6 status bar section joins the searchable catalog.
+        let batteryMatches = AppActionCatalog.filter(query: "battery")
+        #expect(batteryMatches.contains { $0.section == .statusBar })
+    }
+
     @Test func matchingIsCaseInsensitive() {
         let lower = AppActionCatalog.filter(query: "keychain")
         let upper = AppActionCatalog.filter(query: "KEYCHAIN")
@@ -69,11 +75,11 @@ struct AppActionCatalogTests {
     // MARK: - Section Coverage (the catalog enumerates every section the tab renders)
 
     @Test func catalogCoversEveryTabSection() {
-        // The Actions tab's section list, in mount order (Task 2's catalog owns the order):
-        // environment (reused EnvironmentOverridesView), deep links, push, privacy, locale,
-        // location, clipboard, defaults, reset.
+        // The Actions tab's section list, in mount order (the catalog owns the order):
+        // environment (reused EnvironmentOverridesView), status bar (07-05 Phase 6 wiring),
+        // deep links, push, privacy, locale, location, clipboard, defaults, reset.
         let expectedSections: [AppActionSection] = [
-            .environment, .deepLinks, .push, .privacy,
+            .environment, .statusBar, .deepLinks, .push, .privacy,
             .locale, .location, .clipboard, .defaults, .reset,
         ]
 
