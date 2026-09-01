@@ -1,5 +1,6 @@
 // MenuBarView.swift — SwiftUI menu content for the MenuBarExtra
 import SwiftUI
+import Sparkle
 
 struct MenuBarView: View {
 
@@ -40,6 +41,9 @@ struct MenuBarView: View {
         .keyboardShortcut(",", modifiers: .command)
 
         Divider()
+        Button("Check for Updates…") {
+            appDelegate.updaterController.checkForUpdates(nil)
+        }
 
         Button("About BoosterSim") {
             NSApp.orderFrontStandardAboutPanel(nil)

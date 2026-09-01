@@ -2,6 +2,7 @@
 import AppKit
 import SwiftUI
 import Combine
+import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
@@ -37,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     lazy var designOverlayPanel     = DesignOverlayPanel()
     lazy var designOverlayController = DesignOverlayController(panel: designOverlayPanel)
     lazy var captureThumbnailPanel = CaptureThumbnailPanel()
+    lazy var updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     // MARK: - Windows
 

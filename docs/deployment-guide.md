@@ -130,6 +130,23 @@ After this one-time step, `scripts/build-release.sh` submits, waits, staples, an
 xcrun notarytool history --keychain-profile booster-notary
 ```
 
+### CI release secrets (GitHub Actions)
+
+Pushing a tag matching `v*` triggers `.github/workflows/release.yml`: resolve SPM → import the Developer ID certificate into a temporary keychain → store notarytool credentials (App Store Connect API-key form) → `scripts/build-release.sh` (archive → Developer-ID export → notarize → staple → DMG) → Sparkle `generate_appcast` → GitHub Release carrying `BoosterSim.dmg` + `appcast.xml`. The appcast is reachable at the stable URL `https://github.com/phuongddx/BoosterSimApp/releases/latest/download/appcast.xml` — the app's `SUFeedURL`.
+
+Every credential is a named repository secret (**Settings → Secrets and variables → Actions**); no value lives in the workflow file, the script, or this doc:
+
+| Secret | Where the value comes from |
+|---|---|
+| `APPLE_CERTIFICATE_P12` | Keychain Access → My Certificates → **Developer ID Application: Doan Duy Phuong (K2TYLYAWMK)** → *Export…* as `.p12` (choose an export passphrase), then `base64 -i DeveloperID.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_P12_PASSPHRASE` | the `.p12` export passphrase chosen above |
+| `ASC_KEY_ID` | App Store Connect → Users and Access → Integrations → create an API key (Developer role is sufficient for notarytool); copy the **Key ID** |
+| `ASC_ISSUER_ID` | same page — the **Issuer ID** shown above the key list |
+| `ASC_KEY_P8` | the one-time `.p8` key download (`AuthKey_<KeyID>.p8`) — `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
+| `SPARKLE_PRIVATE_KEY` | Sparkle's EdDSA private key exported from the release machine's keychain: `<generate_keys path> -x /path/to/eddsa-private-key.pem`, then `base64 -i /path/to/eddsa-private-key.pem \| pbcopy` — must be the **same keypair** whose public key is pasted into `INFOPLIST_KEY_SUPublicEDKey`, or released appcasts will not validate against shipped apps |
+
+> The Sparkle keypair is generated once on the release machine (the machine that owns the notary profile) via Sparkle's `generate_keys`: the private key is stored in the login keychain, and the printed **public key** is what `INFOPLIST_KEY_SUPublicEDKey` in `BoosterSimApp.xcodeproj/project.pbxproj` must carry. Without that key the app checks the feed but cannot verify updates.
+
 ### Sandboxing Considerations
 
 BoosterSimApp is **non-sandboxed** (`ENABLE_APP_SANDBOX = NO`). Required for:

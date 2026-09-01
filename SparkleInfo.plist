@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sparkle auto-update: merged into the generated Info.plist for BOTH
+	     BoosterSimApp configurations via INFOPLIST_FILE (GENERATE_INFOPLIST_FILE
+	     stays YES — Xcode merges this file with the INFOPLIST_KEY_* settings).
+	     Arbitrary INFOPLIST_KEY_* prefixes are dropped by the generated-plist
+	     mechanism, so the Sparkle keys live here instead. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/phuongddx/BoosterSimApp/releases/latest/download/appcast.xml</string>
+	<!-- SUPublicEDKey is deliberately EMPTY until Sparkle's EdDSA keypair is
+	     generated on the release machine (plan 07-02 Task 3, blocking-human).
+	     Paste the public key generate_keys prints here — never a placeholder. -->
+	<key>SUPublicEDKey</key>
+	<string></string>
+</dict>
+</plist>
