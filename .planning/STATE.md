@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 07
 current_phase_name: Polish & Distribution
 status: planning
-stopped_at: Completed 07-03-test-coverage-PLAN.md
-last_updated: "2026-09-01T04:37:35.247Z"
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-09-01T04:50:44.762Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
-state_head: 21a132bb0f169f700164c55101ae0716017dec3d
+state_head: 2c425320e3ac51770b9ec0da8bb3a8a38b938e90
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 19
+  completed_plans: 20
   percent: 57
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 07 — Polish & Distribution
-Plan: 3 of 6 (07-03 complete; 07-01 halted at human gate; 07-02/04/05/06 pending)
+Plan: 4 of 6 (07-03 complete; 07-01 halted at human gate; 07-02/04/05/06 pending)
 Status: Ready to plan (deps 2/3/4/5 all complete)
 Last activity: 2026-09-01 — Phase 4 complete; current-phase pointer corrected to 07
 
@@ -67,6 +67,7 @@ Progress: [██████░░░░] 57%
 | Phase 4 P02 | 19min | 3 tasks | 14 files |
 | Phase 04 P03 | 30min | 3 tasks | 13 files |
 | Phase 07 P03 | 21min | 3 tasks | 8 files |
+| Phase 07 P04 | 12min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07]: [Phase 7][07-03] macOS SwiftUI StaticText exposes content as value (label empty) — XCUI text assertions must predicate on value; queries stay identifier-based
 - [Phase 07]: [Phase 7][07-03] accessibilityIdentifier on a plain VStack clobbers descendant identifiers — pair with .accessibilityElement(children: .contain); '-uitest-reset-onboarding' launch-arg seam is the determinism pattern for onboarding UI tests
 - [Phase 07]: [Phase 7][07-03] Unit bundle grew to 264 tests / 27 suites (Swift Testing only, zero XCTest); orphaned Debug-build app instances block test hosts via the single-instance guard — pkill before UI-test runs
+- [Phase 07]: 07-04: UserDefaults privacy reason corrected to CA92.1 (1C8F.1 is the App-Group code; research had them inverted) — verified against Apple live docs
+- [Phase 07]: 07-04: FileTimestamp category added (C617.1+3B52.1) — re-grep found 3 real contentModificationDate/modificationDate call sites research missed; never ship a stale declaration
+- [Phase 07]: 07-04: AppIcon shipped as scripted PLACEHOLDER (Path B, amber #E8720C + white bolt.fill, all 10 sizes) — image generation device unavailable; full-bleed opaque art, system squircle mask
 
 ### Pending Todos
 
@@ -146,6 +150,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T04:37:11.562Z
-Stopped at: Completed 07-03-test-coverage-PLAN.md
+Last session: 2026-09-01T04:50:43.985Z
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None

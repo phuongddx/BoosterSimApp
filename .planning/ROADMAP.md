@@ -215,7 +215,7 @@ Plans:
 
 - [x] 07-01-signing-notarization-pipeline-PLAN.md — Tracer: DEVELOPMENT_TEAM → K2TYLYAWMK (D-4) + ExportOptions.plist + build-release.sh; archive → Developer-ID export → DMG proven credential-free; deployment guide as-shipped + non-sandbox runbook; blocking-human notarization (real ticket) (criterion 1)
 - [x] 07-03-test-coverage-PLAN.md — PositionCalculator/WindowEnumerator/AppSettings unit suites (Swift Testing) + onboarding accessibilityIdentifiers, reset seam, and OnboardingFlowUITests (criterion 3)
-- [ ] 07-04-privacy-manifest-app-icon-PLAN.md — PrivacyInfo.xcprivacy (UserDefaults/1C8F.1, best-practice scope per D-5) + app icon: retry generation, else scripted amber SF-Symbol placeholder labeled honestly at all 10 sizes (criterion 4, icon+manifest halves)
+- [x] 07-04-privacy-manifest-app-icon-PLAN.md — PrivacyInfo.xcprivacy (UserDefaults/1C8F.1, best-practice scope per D-5) + app icon: retry generation, else scripted amber SF-Symbol placeholder labeled honestly at all 10 sizes (criterion 4, icon+manifest halves)
 - [ ] 07-05-phase6-view-wiring-PLAN.md — Tracer: StatusBarSectionView into the Actions catalog, then BuildStats/AXTree/Camera with pid threading + probeSupport gap closure; REQ-fr-13 safe (no 5th tab) (criterion 5)
 
 **Wave 2** *(blocked on 07-01 — final team ID + release script)*
@@ -241,4 +241,4 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 4. Design Tools | 4/4 | Complete    | 2026-09-01 |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
-| 7. Polish & Distribution | 2/6 | In Progress|  |
+| 7. Polish & Distribution | 3/6 | In Progress|  |
