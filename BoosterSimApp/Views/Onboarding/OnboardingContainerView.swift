@@ -83,9 +83,12 @@ struct OnboardingContainerView: View {
                 Text("Step \(currentStep + 1) of \(OnboardingMetrics.steps)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .accessibilityIdentifier("onboarding.stepIndicator")
             }
             .padding(.bottom, Spacing.lg)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("onboarding.root")
         .frame(width: OnboardingMetrics.width, height: OnboardingMetrics.height)
         .onAppear { permissions.checkAll() }
     }

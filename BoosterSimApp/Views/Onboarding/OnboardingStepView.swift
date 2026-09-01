@@ -32,6 +32,7 @@ struct OnboardingStepView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
+                .accessibilityIdentifier("onboarding.stepTitle")
                 .padding(.bottom, Spacing.sm)
 
             // Description
@@ -57,6 +58,7 @@ struct OnboardingStepView: View {
             // Primary CTA
             AccentButton(title: ctaTitle, action: ctaAction)
                 .padding(.horizontal, Spacing.xxl)
+                .accessibilityIdentifier("onboarding.cta")
                 .padding(.bottom, Spacing.md)
 
             // Skip
@@ -64,6 +66,7 @@ struct OnboardingStepView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("onboarding.skip")
 
             Spacer()
         }

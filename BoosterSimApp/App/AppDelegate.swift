@@ -103,6 +103,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Test scaffolding: '-uitest-reset-onboarding' forces the first-launch state so
+        // OnboardingFlowUITests gets a deterministic run regardless of prior completions.
+        if ProcessInfo.processInfo.arguments.contains("-uitest-reset-onboarding") {
+            UserDefaults.standard.set(false, forKey: "completedOnboarding")
+        }
+
         // Show onboarding on first launch
         if !completedOnboarding {
             openOnboardingWindow()
