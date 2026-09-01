@@ -4,15 +4,14 @@
 
 ### Requirements
 
-- macOS 15 Sequoia or later
-- Xcode 16.3+
+- macOS 26.2 or later (`MACOSX_DEPLOYMENT_TARGET = 26.2`)
+- Xcode 26.3+ (macOS 26.2 SDK)
 - iOS Simulator (installed via Xcode) for live testing
 
 ### Build & Run
 
 ```bash
-# From project root
-cd BoosterSimApp
+# From project root (repo root — the .xcodeproj lives here)
 
 # Build BoosterSimApp (Debug)
 xcodebuild -project BoosterSimApp.xcodeproj \
@@ -45,60 +44,116 @@ open BoosterSimApp.xcodeproj
 
 ---
 
-## Distribution (Future)
+## Distribution
 
-> Distribution is not configured for MVP. Steps below are planned for Phase 7.
+Shipped as of Phase 7. The release pipeline is **`scripts/build-release.sh`** — one command from the repo root covering archive → Developer-ID export → zip → notarize → staple → DMG.
 
-### Code Signing
+### One-command release path
 
 ```bash
-# Set team ID in Xcode project settings
-# Signing & Capabilities → Team → select Apple Developer team
+# Credential-free dry run (skips notarization/stapling — CI dry runs, local sanity):
+scripts/build-release.sh --skip-notarization
+
+# Full release (notarize + staple; requires the stored keychain profile, see below):
+scripts/build-release.sh
 ```
 
-### Notarization
+Configuration is env-overridable with defaults: `PROJECT=BoosterSimApp.xcodeproj`, `SCHEME=BoosterSimApp`, `CONFIGURATION=Release`, `BUILD_DIR=build`, `NOTARY_PROFILE=booster-notary`.
+
+Stages, in order:
+
+| # | Stage | What runs | Produces |
+|---|---|---|---|
+| 0 | Pre-build Connect | `xcodebuild -scheme BoosterSimConnect -sdk iphonesimulator build` | `BoosterSimConnect.framework` in the shared products dir, so the app target's "Build iOS Framework & Copy" phase takes its copy branch (a nested build inside the archive fails with a Clang module-map collision) |
+| 1 | Archive | `xcodebuild archive` | `build/BoosterSimApp.xcarchive` |
+| 2 | Export | `xcodebuild -exportArchive -exportOptionsPlist ExportOptions.plist` | `build/export/BoosterSimApp.app`, re-signed **Developer ID Application** (team `K2TYLYAWMK`) |
+| 3 | Zip | `ditto -c -k --keepParent` | `build/BoosterSimApp.zip` — notarytool's submission format |
+| 4 | Notarize + staple | `xcrun notarytool submit --keychain-profile booster-notary --wait`, then `xcrun stapler staple` + `xcrun stapler validate` | Apple's accepted ticket stapled to the .app (skipped entirely by `--skip-notarization`) |
+| 5 | DMG | `hdiutil create` | `build/BoosterSim.dmg` |
+
+The script ends by printing every artifact path. If the keychain profile is missing on a full run, the script exits non-zero **before submitting** and prints the exact `xcrun notarytool store-credentials` command to run — it never prompts for credentials and contains none.
+
+`ExportOptions.plist` (repo root) encodes the export contract: `method = developer-id`, `teamID = K2TYLYAWMK`, `signingStyle = automatic` (direct distribution — no provisioning-profile keys). Project signing is otherwise unchanged: `CODE_SIGN_STYLE = Automatic`, hardened runtime on (`ENABLE_HARDENED_RUNTIME = YES`), no entitlements file.
+
+The exported app embeds `BoosterSimConnect.framework` in `Contents/Resources` (stage 0's product); it is loaded at runtime only in DEBUG builds via `Bundle.load`.
+
+### Manual equivalents (per stage)
 
 ```bash
-# Archive
+# Stage 1 — Archive
 xcodebuild archive \
   -project BoosterSimApp.xcodeproj \
   -scheme BoosterSimApp \
+  -configuration Release \
   -archivePath build/BoosterSimApp.xcarchive
 
-# Export signed app
+# Stage 2 — Export (re-signs Developer ID)
 xcodebuild -exportArchive \
   -archivePath build/BoosterSimApp.xcarchive \
   -exportPath build/export \
   -exportOptionsPlist ExportOptions.plist
 
-# Notarize
-xcrun notarytool submit build/export/BoosterSimApp.zip \
-  --keychain-profile "AC_PASSWORD" \
-  --wait
+# Stage 3 — Zip for notarization
+ditto -c -k --keepParent build/export/BoosterSimApp.app build/BoosterSimApp.zip
 
-# Staple
+# Stage 4 — Notarize + staple
+xcrun notarytool submit build/BoosterSimApp.zip \
+  --keychain-profile booster-notary \
+  --wait
 xcrun stapler staple build/export/BoosterSimApp.app
+xcrun stapler validate build/export/BoosterSimApp.app
+
+# Stage 5 — DMG
+hdiutil create -volname "BoosterSim" \
+  -srcfolder build/export/BoosterSimApp.app \
+  -ov -format UDZO \
+  build/BoosterSim.dmg
+```
+
+### One-time credential setup (interactive — human-only)
+
+Notarization authenticates to Apple's notary service with an Apple ID that is a member of team `K2TYLYAWMK`. The credentials live **only** in a keychain profile referenced by name — never in the script, the repo, or this doc.
+
+1. Create an app-specific password at [appleid.apple.com](https://appleid.apple.com) → Sign-In and Security → App-Specific Passwords.
+2. Store it once, interactively (this step is deliberately never scripted):
+
+```bash
+xcrun notarytool store-credentials booster-notary \
+  --apple-id <Apple ID> \
+  --team-id K2TYLYAWMK \
+  --password <app-specific password>
+```
+
+After this one-time step, `scripts/build-release.sh` submits, waits, staples, and validates unattended. Past submissions can be read back with:
+
+```bash
+xcrun notarytool history --keychain-profile booster-notary
 ```
 
 ### Sandboxing Considerations
 
-BoosterSimApp is **non-sandboxed** (ENABLE_APP_SANDBOX = NO). Required for:
+BoosterSimApp is **non-sandboxed** (`ENABLE_APP_SANDBOX = NO`). Required for:
 - `AXIsProcessTrusted()` — Accessibility API
 - `CGWindowListCopyWindowInfo` — window enumeration
 - `AXObserverCreate` — per-process AX observation
 - `xcrun simctl spawn` — environment override and certificate trust commands
 
-For Mac App Store distribution, a redesigned sandboxed version would require entitlements review or alternative APIs (ScreenCaptureKit, accessibility frameworks with reduced capabilities).
+This is **fully compatible with direct distribution**: Developer ID signing + hardened runtime + notarization + stapling place no sandbox requirement on the app. The permissions the tools need (Accessibility, Screen Recording) are runtime TCC grants requested during onboarding — orthogonal to code signing.
+
+Mac App Store distribution remains **Out of Scope** for this product; a sandboxed redesign would require entitlements review or alternative APIs (ScreenCaptureKit, accessibility frameworks with reduced capabilities).
 
 ### Direct Distribution (DMG)
 
+The DMG is created by `hdiutil` (stage 5) — `create-dmg` was evaluated and rejected during Phase 7 research (an extra dependency for zero gain; `hdiutil` ships with macOS):
+
 ```bash
-# Create DMG with create-dmg or hdiutil
 hdiutil create -volname "BoosterSim" \
   -srcfolder build/export/BoosterSimApp.app \
   -ov -format UDZO \
-  BoosterSim.dmg
+  build/BoosterSim.dmg
 ```
+
+Distribute `build/BoosterSim.dmg`. Once the ticket is stapled, Gatekeeper verifies the app **offline** at first launch — no network check required.
 
 ---
 
@@ -110,4 +165,4 @@ hdiutil create -volname "BoosterSim" \
 - MINOR: new feature phase complete
 - PATCH: bug fix or polish release
 
-Current: **0.1.0** (MVP)
+Current: **1.0** (`MARKETING_VERSION = 1.0` in `BoosterSimApp.xcodeproj/project.pbxproj`)
