@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 0
 fixed_count: 1
-total_count: 6
-last_updated: 2026-09-01T04:11:36.931Z
+total_count: 7
+last_updated: 2026-09-01T04:50:28.427Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-09-01T04:11:36.931Z
 | 4 | 04 | stub | BoosterSimApp/Services/DesignOverlayService.swift | 26 | pickedColor has no producer until 04-03 PixelSamplerService (fake pickColor deleted by plan; Color Picker readout intentionally inert) | fixed |  | 2026-08-31T13:31:37.013Z | 2026-08-31T14:33:21.453Z |
 | 5 | 07 | deviation | scripts/build-release.sh |  | Stage-0 pre-build + BUILD_DIR pin: nested iphonesimulator build inside archive fails (PulseObjCHelpers module redefinition, exit 65) | open |  | 2026-09-01T04:11:36.808Z |  |
 | 6 | 07 | deviation | docs/deployment-guide.md |  | Dropped stale cd BoosterSimApp line (xcodeproj lives at repo root) | open |  | 2026-09-01T04:11:36.931Z |  |
+| 7 | 07 | stub | BoosterSimApp/Assets.xcassets/AppIcon.appiconset |  | AppIcon set is a PLACEHOLDER pending real design (scripted amber + bolt.fill; image generation unavailable) | open |  | 2026-09-01T04:50:28.427Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-09-01T04:11:36.931Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-09-01T04:11:36.931Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "stub",
+    "phase": "07",
+    "file": "BoosterSimApp/Assets.xcassets/AppIcon.appiconset",
+    "line": null,
+    "description": "AppIcon set is a PLACEHOLDER pending real design (scripted amber + bolt.fill; image generation unavailable)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-01T04:50:28.427Z",
     "resolved_at": null
   }
 ]
