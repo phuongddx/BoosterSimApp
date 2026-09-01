@@ -208,7 +208,23 @@ Plans:
   4. Privacy manifest, app icon, and README/marketing polish are complete
   5. User can reach Status Bar overrides, Build Stats, the AX Tree Inspector, and Camera routing from the side panel (Phase 6 views instantiated in source but never wired into the tab switch — this criterion closes that gap)
 
-**Plans**: TBD
+**Plans**: 6/6 planned
+Plans:
+
+**Wave 1** *(all independent — parallel)*
+
+- [ ] 07-01-signing-notarization-pipeline-PLAN.md — Tracer: DEVELOPMENT_TEAM → K2TYLYAWMK (D-4) + ExportOptions.plist + build-release.sh; archive → Developer-ID export → DMG proven credential-free; deployment guide as-shipped + non-sandbox runbook; blocking-human notarization (real ticket) (criterion 1)
+- [ ] 07-03-test-coverage-PLAN.md — PositionCalculator/WindowEnumerator/AppSettings unit suites (Swift Testing) + onboarding accessibilityIdentifiers, reset seam, and OnboardingFlowUITests (criterion 3)
+- [ ] 07-04-privacy-manifest-app-icon-PLAN.md — PrivacyInfo.xcprivacy (UserDefaults/1C8F.1, best-practice scope per D-5) + app icon: retry generation, else scripted amber SF-Symbol placeholder labeled honestly at all 10 sizes (criterion 4, icon+manifest halves)
+- [ ] 07-05-phase6-view-wiring-PLAN.md — Tracer: StatusBarSectionView into the Actions catalog, then BuildStats/AXTree/Camera with pid threading + probeSupport gap closure; REQ-fr-13 safe (no 5th tab) (criterion 5)
+
+**Wave 2** *(blocked on 07-01 — final team ID + release script)*
+
+- [ ] 07-02-sparkle-autoupdate-release-workflow-PLAN.md — Sparkle 2.9.6 SPM (app target only) + Package.resolved tracked + second NAMED policy exception (D-1); SPUStandardUpdaterController + Check for Updates… + SUFeedURL; release.yml tag-push workflow; blocking-human EdDSA keypair → SUPublicEDKey (criterion 2)
+
+**Wave 3** *(blocked on all above)*
+
+- [ ] 07-06-phase-gate-closure-PLAN.md — Docs truth pass (README marketing rewrite), full bundles + first real git-level pin gate, NARROW blocking-human gate (notarization ticket + EdDSA key + assumption dispositions) (criterion 4 README half + phase close)
 
 ## Progress
 
@@ -225,4 +241,4 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 4. Design Tools | 4/4 | Complete    | 2026-09-01 |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
-| 7. Polish & Distribution | 0/TBD | Not started | - |
+| 7. Polish & Distribution | 0/6 | Planned | - |
