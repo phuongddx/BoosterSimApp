@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 07
 current_phase_name: Polish & Distribution
 status: planning
-stopped_at: "07-01 halted at Task 3 blocking-human notarization gate (Tasks 1-2 complete: 9f5545b, c74feff)"
-last_updated: "2026-09-01T04:11:39.256Z"
+stopped_at: Completed 07-03-test-coverage-PLAN.md
+last_updated: "2026-09-01T04:37:35.247Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
-state_head: c74feff3590023e9b159791c9c067f3ec12e8419
+state_head: 21a132bb0f169f700164c55101ae0716017dec3d
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 18
+  completed_plans: 19
   percent: 57
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-31)
 ## Current Position
 
 Phase: 07 — Polish & Distribution
-Plan: Not started
+Plan: 3 of 6 (07-03 complete; 07-01 halted at human gate; 07-02/04/05/06 pending)
 Status: Ready to plan (deps 2/3/4/5 all complete)
 Last activity: 2026-09-01 — Phase 4 complete; current-phase pointer corrected to 07
 
@@ -66,6 +66,7 @@ Progress: [██████░░░░] 57%
 | Phase 04 P01 | 13min | 2 tasks | 16 files |
 | Phase 4 P02 | 19min | 3 tasks | 14 files |
 | Phase 04 P03 | 30min | 3 tasks | 13 files |
+| Phase 07 P03 | 21min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 4]: [Phase 4][04-03] PixelSamplerService is the second sanctioned async site (CaptureService Task-bridge shape): one cached capture per arming, generation-guarded late-result discard, mapping exclusively via OverlayGeometry.imagePixel — CONVENTIONS exemption wording updated at 04-04
 - [Phase 4]: [Phase 4][04-03] Capture-mode input routes through the panel container's hitTest (interactive band only) — render layers above the .interactive slot would otherwise swallow ruler/picker events while visible; D-04 z-order untouched
 - [Phase 4]: [Phase 4][04-03] A5 freshness = resize/orientation re-captures, pure translation does not (content pixels are translation-invariant) — no per-move captures during Simulator drags; loupe state pushes directly to the view (no per-move @Published churn)
+- [Phase 07]: [Phase 7][07-03] macOS SwiftUI StaticText exposes content as value (label empty) — XCUI text assertions must predicate on value; queries stay identifier-based
+- [Phase 07]: [Phase 7][07-03] accessibilityIdentifier on a plain VStack clobbers descendant identifiers — pair with .accessibilityElement(children: .contain); '-uitest-reset-onboarding' launch-arg seam is the determinism pattern for onboarding UI tests
+- [Phase 07]: [Phase 7][07-03] Unit bundle grew to 264 tests / 27 suites (Swift Testing only, zero XCTest); orphaned Debug-build app instances block test hosts via the single-instance guard — pkill before UI-test runs
 
 ### Pending Todos
 
@@ -142,6 +146,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T04:11:37.042Z
-Stopped at: 07-01 halted at Task 3 blocking-human notarization gate (Tasks 1-2 complete: 9f5545b, c74feff)
-Resume file: checkpoint reply
+Last session: 2026-09-01T04:37:11.562Z
+Stopped at: Completed 07-03-test-coverage-PLAN.md
+Resume file: None
