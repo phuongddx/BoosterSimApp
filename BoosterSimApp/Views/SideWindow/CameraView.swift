@@ -15,6 +15,15 @@ struct CameraView: View {
                 cameraRows
             }
         }
+        // NOTE: probeSupport is owned HERE (onAppear + onChange of pid) — the only call
+        // site; mirrors EnvironmentOverridesView's loadCurrentState convention, so no
+        // other owner (e.g. AppDelegate) should duplicate it.
+        .onAppear {
+            if let pid { service.probeSupport(pid: pid) }
+        }
+        .onChange(of: pid) { _, newPID in
+            if let newPID { service.probeSupport(pid: newPID) }
+        }
     }
 
     // MARK: - Sub-views

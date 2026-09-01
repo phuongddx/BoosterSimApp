@@ -23,6 +23,13 @@ struct AppActionCatalogTests {
         #expect(batteryMatches.contains { $0.section == .statusBar })
     }
 
+    @Test func cameraKeywordHitsTheCameraSection() {
+        // 07-05 Task 2: Phase 6 camera/ax-tree/build-stats sections join the catalog.
+        // ("camera" also matches the privacy entry's keywords — contains is the shape.)
+        let cameraMatches = AppActionCatalog.filter(query: "camera")
+        #expect(cameraMatches.contains { $0.section == .camera })
+    }
+
     @Test func matchingIsCaseInsensitive() {
         let lower = AppActionCatalog.filter(query: "keychain")
         let upper = AppActionCatalog.filter(query: "KEYCHAIN")
@@ -76,11 +83,13 @@ struct AppActionCatalogTests {
 
     @Test func catalogCoversEveryTabSection() {
         // The Actions tab's section list, in mount order (the catalog owns the order):
-        // environment (reused EnvironmentOverridesView), status bar (07-05 Phase 6 wiring),
-        // deep links, push, privacy, locale, location, clipboard, defaults, reset.
+        // environment (reused EnvironmentOverridesView), status bar, deep links, push,
+        // privacy, locale, location, clipboard, defaults, then the Phase 6 sections
+        // (camera, ax tree, build stats) before the destructive terminal reset section.
         let expectedSections: [AppActionSection] = [
             .environment, .statusBar, .deepLinks, .push, .privacy,
-            .locale, .location, .clipboard, .defaults, .reset,
+            .locale, .location, .clipboard, .defaults,
+            .camera, .axTree, .buildStats, .reset,
         ]
 
         var seen: Set<AppActionSection> = []

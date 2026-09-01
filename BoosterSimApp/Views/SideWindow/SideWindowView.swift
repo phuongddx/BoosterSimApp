@@ -67,7 +67,7 @@ struct SideWindowView: View {
         case .design:
             DesignTabView()
         case .actions:
-            ActionsTabView(udid: activeUDID, deviceName: activeSim?.displayName ?? "Simulator")
+            ActionsTabView(udid: activeUDID, deviceName: activeSim?.displayName ?? "Simulator", pid: activeSim?.pid)
         case .network:
             NetworkTabView(
                 udidProvider: { activeSim?.udid },

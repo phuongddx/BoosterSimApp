@@ -32,6 +32,9 @@ enum AppActionSection: String, CaseIterable, Identifiable, Sendable {
     case location
     case clipboard
     case defaults
+    case camera        // Phase 6 CameraView (Mac camera routing via AX menu automation)
+    case axTree        // Phase 6 AXTreeView (manual-refresh accessibility tree inspector)
+    case buildStats    // Phase 6 BuildStatsSectionView (DerivedData build history)
     case reset
 
     var id: String { rawValue }
@@ -102,6 +105,16 @@ enum AppActionCatalog {
         AppAction(id: "defaults-editor", title: "UserDefaults Editor",
                   keywords: ["defaults", "userdefaults", "preferences", "plist", "keys"],
                   section: .defaults, effectLatency: .instant),
+        // camera / ax tree / build stats (Phase 6 views wired in 07-05)
+        AppAction(id: "camera-routing", title: "Camera Routing",
+                  keywords: ["camera", "mac camera", "front", "back", "video input"],
+                  section: .camera, effectLatency: .instant),
+        AppAction(id: "ax-tree", title: "AX Tree Inspector",
+                  keywords: ["accessibility", "ax", "tree", "inspector", "elements", "highlight"],
+                  section: .axTree, effectLatency: .instant),
+        AppAction(id: "build-stats", title: "Build Statistics",
+                  keywords: ["build", "stats", "xcode", "deriveddata", "chart", "times"],
+                  section: .buildStats, effectLatency: .instant),
         // reset
         AppAction(id: "reset-app", title: "Reset App Data",
                   keywords: ["reset", "uninstall", "reinstall", "clear data", "fresh install"],

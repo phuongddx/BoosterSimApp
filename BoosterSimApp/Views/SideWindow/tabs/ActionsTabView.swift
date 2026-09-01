@@ -8,6 +8,7 @@ struct ActionsTabView: View {
 
     let udid: String?
     let deviceName: String
+    let pid: pid_t?
     @State private var query = ""
     @State private var isDeepLinkExpanded = true
 
@@ -92,6 +93,12 @@ struct ActionsTabView: View {
             ClipboardSectionView(udidProvider: { udid })
         case .defaults:
             UserDefaultsEditorView(udidProvider: { udid })
+        case .camera:
+            CameraView(pid: pid)
+        case .axTree:
+            AXTreeView(pid: pid)
+        case .buildStats:
+            BuildStatsSectionView()
         case .reset:
             AppResetSectionView(udidProvider: { udid }, deviceNameProvider: { deviceName })
         }
