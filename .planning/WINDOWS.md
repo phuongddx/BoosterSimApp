@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 6
+open_count: 7
 waived_count: 0
 fixed_count: 1
-total_count: 7
-last_updated: 2026-09-01T04:50:28.427Z
+total_count: 8
+last_updated: 2026-09-01T05:17:56.726Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,7 @@ last_updated: 2026-09-01T04:50:28.427Z
 | 5 | 07 | deviation | scripts/build-release.sh |  | Stage-0 pre-build + BUILD_DIR pin: nested iphonesimulator build inside archive fails (PulseObjCHelpers module redefinition, exit 65) | open |  | 2026-09-01T04:11:36.808Z |  |
 | 6 | 07 | deviation | docs/deployment-guide.md |  | Dropped stale cd BoosterSimApp line (xcodeproj lives at repo root) | open |  | 2026-09-01T04:11:36.931Z |  |
 | 7 | 07 | stub | BoosterSimApp/Assets.xcassets/AppIcon.appiconset |  | AppIcon set is a PLACEHOLDER pending real design (scripted amber + bolt.fill; image generation unavailable) | open |  | 2026-09-01T04:50:28.427Z |  |
+| 8 | 07 | stub | SparkleInfo.plist | 19 | SUPublicEDKey empty string until 07-02 Task 3 blocking-human gate generates the EdDSA keypair (public key paste site; plan transparency prohibition forbids a placeholder) | open |  | 2026-09-01T05:17:56.726Z |  |
 
 ````json
 [
@@ -107,6 +108,18 @@ last_updated: 2026-09-01T04:50:28.427Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-09-01T04:50:28.427Z",
+    "resolved_at": null
+  },
+  {
+    "id": 8,
+    "kind": "stub",
+    "phase": "07",
+    "file": "SparkleInfo.plist",
+    "line": 19,
+    "description": "SUPublicEDKey empty string until 07-02 Task 3 blocking-human gate generates the EdDSA keypair (public key paste site; plan transparency prohibition forbids a placeholder)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-01T05:17:56.726Z",
     "resolved_at": null
   }
 ]

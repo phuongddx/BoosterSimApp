@@ -220,7 +220,7 @@ Plans:
 
 **Wave 2** *(blocked on 07-01 — final team ID + release script)*
 
-- [ ] 07-02-sparkle-autoupdate-release-workflow-PLAN.md — Sparkle 2.9.6 SPM (app target only) + Package.resolved tracked + second NAMED policy exception (D-1); SPUStandardUpdaterController + Check for Updates… + SUFeedURL; release.yml tag-push workflow; blocking-human EdDSA keypair → SUPublicEDKey (criterion 2)
+- [x] 07-02-sparkle-autoupdate-release-workflow-PLAN.md — Sparkle 2.9.6 SPM (app target only) + Package.resolved tracked + second NAMED policy exception (D-1); SPUStandardUpdaterController + Check for Updates… + SUFeedURL; release.yml tag-push workflow; blocking-human EdDSA keypair → SUPublicEDKey (criterion 2)
 
 **Wave 3** *(blocked on all above)*
 
@@ -241,4 +241,4 @@ Phase numbering preserves docs/project-roadmap.md for requirement traceability
 | 4. Design Tools | 4/4 | Complete    | 2026-09-01 |
 | 5. Network Tools | 4/4 | Complete    | 2026-08-30 |
 | 6. Platform & System | — | Complete | pre-.planning |
-| 7. Polish & Distribution | 4/6 | In Progress|  |
+| 7. Polish & Distribution | 5/6 | In Progress|  |

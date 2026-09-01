@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 07
 current_phase_name: Polish & Distribution
 status: planning
-stopped_at: Completed 07-05-PLAN.md
-last_updated: "2026-09-01T05:01:01.192Z"
+stopped_at: Completed 07-02 through Task 2; halted at Task 3 blocking-human EdDSA gate
+last_updated: "2026-09-01T05:18:15.491Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 4 complete; corrected current-phase pointer to 07 (Phase 05 was already complete)
-state_head: 74149dd4a34b2ae956bca0c931ee12ef2cbe0e9a
+state_head: 9689e739c62665628120e7c9eb8a1841d1cc00c4
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
   percent: 57
 ---
 
@@ -128,6 +128,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 07]: [Phase 7][07-05] All four Phase 6 views mount INSIDE the Actions tab's AppActionCatalog (13 sections: statusBar after environment; camera/axTree/buildStats before reset) — SideTab stays exactly 4 cases (REQ-fr-13), zero call sites outside the catalog
 - [Phase 07]: [Phase 7][07-05] pid signature mismatch handled at the mount: ActionsTabView gained pid: pid_t? fed by SideWindowView's activeSim?.pid — udid stays the argument for every other section; probeSupport has exactly one owner (CameraView onAppear + onChange of pid, house convention)
 - [Phase 07]: [Phase 7][07-05] Plan verify greps are BSD-grep-shaped but this harness ships pi-uu-grep (Rust regex) — paren/? patterns must run grep -F for literal semantics
+- [Phase 07]: [Phase 7][07-02] Xcode 26.3's generated-Info.plist drops arbitrary INFOPLIST_KEY_* prefixes (SUFeedURL setting present, key absent from built plist) — Sparkle's SU keys live in repo-root SparkleInfo.plist via INFOPLIST_FILE + GENERATE_INFOPLIST_FILE merge in both app configs; the plan's flagged assumption was disproven by a built-plist dump
+- [Phase 07]: [Phase 7][07-02] Sparkle 2.9.6 = second NAMED Apple-only-policy exception (app target only; BoosterSimConnect stays Pulse-only); Package.resolved tracked in git for the first time (pins pulse 5.2.2 + sparkle 2.9.6) — closes the Phase 2-5 infra gap, 07-06's pin gate is real now
+- [Phase 07]: [Phase 7][07-02] Halted at Task 3 blocking-human EdDSA gate (07-01 pattern): generate_keys is a human keychain-credential step; Task 3's SUPublicEDKey paste site is SparkleInfo.plist (mechanism deviation), resume signal 'key wired'
 
 ### Pending Todos
 
@@ -154,6 +157,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-01T05:01:00.597Z
-Stopped at: Completed 07-05-PLAN.md
+Last session: 2026-09-01T05:18:14.763Z
+Stopped at: Completed 07-02 through Task 2; halted at Task 3 blocking-human EdDSA gate
 Resume file: None
